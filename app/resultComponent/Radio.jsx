@@ -57,15 +57,17 @@ const Radio = () => {
 
   console.log('getHighResImage', getHighResImage);
 
-  const handlePress = (songId, moreInfo) => {
+  const handlePress = (songId, moreInfo, imageUrl) => {
     setDataSearch({
       id: songId,
       moreInfo,
+      imageUrl,
     });
     navigation.navigate('Rresult', {
       id: songId,
       language: moreInfo?.language,
       moreInfo, // pass full object too if needed
+      imageUrl,
     });
   };
 
@@ -104,7 +106,7 @@ const Radio = () => {
         keyExtractor={(song, index) => `${song.id}-${index}`}
         renderItem={({ item: song }) => (
           <View style={styles.songContainer}>
-            <TouchableOpacity onPress={() => handlePress(song.id, song.more_info)}>
+            <TouchableOpacity onPress={() => handlePress(song.id, song.more_info, getHighResImage(song?.image))}>
               <Image
                 source={{ uri: getHighResImage(song?.image) }}
                 className="rounded-xl w-48 h-48 p-4"

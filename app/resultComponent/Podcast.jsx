@@ -11,26 +11,28 @@ const Podcast = () => {
 
   const trendingData = async () => {
     const response = await axios.get(`https://www.jiosaavn.com/api.php?__call=content.getTopShows&api_version=4&_format=json&_marker=0&n=20&p=1&ctx=wap6dot0`)
-    setTrend(response?.data?.data ?? []);
-    console.log("Podcast", response.data.data);
+    const podcast = response?.data?.data ?? [];
+    const trendingPodcasts = response?.data?.trendingPodcasts?.[0]?.items ?? [];
+    const combained = [...trendingPodcasts, ...podcast];
+    setTrend(combained);
+    console.log("podcast", podcast);
+    console.log("trendingPodcasts", trendingPodcasts);
+    console.log("combained", combained);
   }
-
   useEffect(() => {
     trendingData();
   }, []);
 
   const getHighResImage = (url) => url?.replace(/-\d+x\d+/, '-500x500');
 
-  const handlePress = (songId) => {
-    setDataSearch(songId);
-    // If songId is only digits, navigate to Tresult
-    if (/^\d+$/.test(songId)) {
-      navigation.navigate('Tresult', { id: songId });
-    }
-    // If songId contains letters, navigate to Tsongs
-    else {
-      navigation.navigate('Tsongs', { id: songId });
-    }
+  const handlePress = (songId, permurl,imageUrl,title) => {
+    setDataSearch({
+      songId,
+      permurl,
+      imageUrl,
+      title,
+    });
+    navigation.navigate('Podresult', { id: songId });
   };
   return (
     <View>
@@ -44,7 +46,7 @@ const Podcast = () => {
         keyExtractor={(song, index) => `${song.id}-${index}`}
         renderItem={({ item: song, index }) => (
           <View style={styles.songContainer} key={index}>
-            <TouchableOpacity onPress={() => handlePress(song.id)} >
+            <TouchableOpacity onPress={() => handlePress(song.id, song.perma_url, getHighResImage(song?.image),song?.title)} >
               <Image
                 source={{ uri: getHighResImage(song?.image) }}
                 className="rounded-xl w-48 h-48 p-4"

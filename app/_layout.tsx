@@ -18,7 +18,7 @@ import Suggestion from './resultComponent/Suggestion';
 import Tsongs from './resultComponent/Tsongs';
 import Sresult from './resultComponent/Sresult';
 import Rresult from './resultComponent/Rresult';
-
+import Podresult from './resultComponent/Podresult';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -79,9 +79,14 @@ export default function RootLayout() {
               component={Sresult}
               options={{headerShown: false}}
             />
-             <Stack.Screen
+            <Stack.Screen
               name="Rresult"
               component={Rresult}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="Podresult"
+              component={Podresult}
               options={{headerShown: false}}
             />
           </Stack.Navigator>

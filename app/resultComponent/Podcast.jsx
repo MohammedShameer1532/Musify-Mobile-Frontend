@@ -7,7 +7,7 @@ import { SearchContext } from '../contextProvider/searchContext';
 const Podcast = () => {
   const [trend, setTrend] = useState([]);
   const navigation = useNavigation();
-  const { globalSearch, setDataSearch } = useContext(SearchContext);
+  const { setDataSearch } = useContext(SearchContext);
 
   const trendingData = async () => {
     const response = await axios.get(`https://www.jiosaavn.com/api.php?__call=content.getTopShows&api_version=4&_format=json&_marker=0&n=20&p=1&ctx=wap6dot0`)
@@ -23,9 +23,30 @@ const Podcast = () => {
     trendingData();
   }, []);
 
-  const getHighResImage = (url) => url?.replace(/-\d+x\d+/, '-500x500');
 
-  const handlePress = (songId, permurl,imageUrl,title) => {
+  const getHighResImage = (image) => {
+    if (!image) return null;
+
+    // ✅ Case 1: JioSaavn image array
+    if (Array.isArray(image)) {
+      return (
+        image.find(img => img.quality === '500x500')?.link ||
+        image.find(img => img.quality === '150x150')?.link ||
+        image[image.length - 1]?.link
+      );
+    }
+
+    // ✅ Case 2: String image (Playlists, Artist)
+    if (typeof image === 'string') {
+      return image
+        .replace(/_\d+x\d+/, '_500x500')
+        .replace(/-\d+x\d+/, '-500x500');
+    }
+
+    return null;
+  };
+
+  const handlePress = (songId, permurl, imageUrl, title) => {
     setDataSearch({
       songId,
       permurl,
@@ -46,7 +67,7 @@ const Podcast = () => {
         keyExtractor={(song, index) => `${song.id}-${index}`}
         renderItem={({ item: song, index }) => (
           <View style={styles.songContainer} key={index}>
-            <TouchableOpacity onPress={() => handlePress(song.id, song.perma_url, getHighResImage(song?.image),song?.title)} >
+            <TouchableOpacity onPress={() => handlePress(song.id, song.perma_url, getHighResImage(song?.image), song?.title)} >
               <Image
                 source={{ uri: getHighResImage(song?.image) }}
                 className="rounded-xl w-48 h-48 p-4"

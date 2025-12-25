@@ -51,7 +51,27 @@ const Newrelease = () => {
   }, [selectedLanguage]);
 
 
-  const getHighResImage = (url) => url?.replace(/-\d+x\d+/, '-500x500');
+  const getHighResImage = (image) => {
+    if (!image) return null;
+
+    // ✅ Case 1: JioSaavn image array
+    if (Array.isArray(image)) {
+      return (
+        image.find(img => img.quality === '500x500')?.link ||
+        image.find(img => img.quality === '150x150')?.link ||
+        image[image.length - 1]?.link
+      );
+    }
+
+    // ✅ Case 2: String image (Playlists, Artist)
+    if (typeof image === 'string') {
+      return image
+        .replace(/_\d+x\d+/, '_500x500')
+        .replace(/-\d+x\d+/, '-500x500');
+    }
+
+    return null;
+  };
 
   const handlePress = (songId) => {
     setDataSearch(songId);

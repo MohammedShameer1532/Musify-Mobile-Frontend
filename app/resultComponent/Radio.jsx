@@ -21,7 +21,7 @@ const Radio = () => {
   const [trend, setTrend] = useState([]);
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const navigation = useNavigation();
-  const { globalSearch, setDataSearch } = useContext(SearchContext);
+  const { setDataSearch } = useContext(SearchContext);
 
   const trendingData = async () => {
     try {
@@ -36,26 +36,34 @@ const Radio = () => {
       console.error("Error fetching trending data:", error);
     }
   };
-  console.log('radio', trend);
 
   useEffect(() => {
     trendingData();
   }, [selectedLanguage]);
 
 
-  const getHighResImage = (url) => {
-    if (!url) return null;
-    let fixedUrl = url.replace(/\\/g, "");
-    if (!fixedUrl.startsWith("http")) {
-      fixedUrl = "https:" + fixedUrl;
+  const getHighResImage = (image) => {
+    if (!image) return null;
+
+    // ✅ Case 1: JioSaavn image array
+    if (Array.isArray(image)) {
+      return (
+        image.find(img => img.quality === '500x500')?.link ||
+        image.find(img => img.quality === '150x150')?.link ||
+        image[image.length - 1]?.link
+      );
     }
-    // Replace either "-150x150" or "_150x150" with "_500x500"
-    fixedUrl = fixedUrl.replace(/[_-]\d+x\d+/, "_500x500");
-    return fixedUrl;
+
+    // ✅ Case 2: String image (Playlists, Artist)
+    if (typeof image === 'string') {
+      return image
+        .replace(/_\d+x\d+/, '_500x500')
+        .replace(/-\d+x\d+/, '-500x500');
+    }
+
+    return null;
   };
 
-
-  console.log('getHighResImage', getHighResImage);
 
   const handlePress = (songId, moreInfo, imageUrl) => {
     setDataSearch({

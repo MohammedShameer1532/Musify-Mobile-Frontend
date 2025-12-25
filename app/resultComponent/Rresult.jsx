@@ -1,5 +1,5 @@
 import { ActivityIndicator, Alert, FlatList, Image, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
@@ -11,7 +11,7 @@ import { SearchContext } from '../contextProvider/searchContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import Music from '../common/Music';
-import TrackPlayer, { Capability, Event } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event, useActiveTrack } from 'react-native-track-player';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 import Icon from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -24,7 +24,7 @@ import RNBlobUtil from "react-native-blob-util";
 import { useTrackPlayerEvents } from 'react-native-track-player';
 
 const Rresult = () => {
-  const { setCurrentSong, dataSearch, setCurrentIndex, currentIndex, setSongsList, currentSong, setGlobalSearch } = useContext(SearchContext);
+  const { setCurrentSong, dataSearch, setCurrentIndex, currentIndex, setSongsList, setGlobalSearch } = useContext(SearchContext);
   const [stationid, setStationid] = useState([]);
   const [songid, setSongid] = useState('');
   const name = dataSearch.id;
@@ -41,9 +41,9 @@ const Rresult = () => {
   const [lyrics, setLyrics] = useState();
   const [copied, setCopied] = useState(false);
   const [showDownloadAnim, setShowDownloadAnim] = useState(false);
+  const currentSong = useActiveTrack();
   const songId = currentSong?.id;
   const navigation = useNavigation();
-  const pendingTrackRef = useRef(null);
   const [songData, setSongData] = useState([]);
 
   const topColor = dataSearch?.moreInfo?.color || "#000";
@@ -103,6 +103,8 @@ const Rresult = () => {
   }, [name]);
 
 
+
+
   const preloadAllSongs = async () => {
     try {
       const ids = rData.map(item => item.song.id).join(",");
@@ -112,29 +114,9 @@ const Rresult = () => {
       );
 
       const apiSongs = res.data.data;
+      setSongData(apiSongs);
 
-      // Convert to TrackPlayer format
-      const tracks = apiSongs.map(track => ({
-        id: track.id,
-        url: track.downloadUrl[4].url,   // 320kbps
-        title: track.name,
-        artist: track.album.name,
-        artwork: track.image[2].url
-      }));
-
-      // Save in global context (optional but useful)
-      setSongsList(tracks);
-
-      // Load into player
-      await TrackPlayer.reset();
-      await TrackPlayer.add(tracks);
-      await TrackPlayer.play();
-      setTimeout(() => {
-        sheetRef.current?.snapToIndex(0);
-      }, 100);
-
-
-      console.log("🔥 All songs preloaded");
+      console.log("🔥 All songs preloaded", apiSongs);
     } catch (e) {
       console.log("Preload error:", e);
     }
@@ -147,71 +129,47 @@ const Rresult = () => {
   }, [rData]);
 
 
-  useEffect(() => {
-    async function setupPlayer() {
-      await TrackPlayer.setupPlayer();
-      await TrackPlayer.updateOptions({
-        stopWithApp: true,
-        waitForBuffer: false,
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.Stop,
-          Capability.SkipToNext,
-          Capability.SkipToPrevious,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-        ],
-        jumpInterval: 10,
-      });
-    }
-    setupPlayer();
-  }, []);
-
 
   const handlePlay = async (song, index) => {
-    try {
-      // If user taps same track → open sheet
-      if (currentSong?.id === song.song.id) {
-        sheetRef.current?.snapToIndex(0);
-        return;
-      }
+    if (!song?.song) return;
 
-      await TrackPlayer.skip(index);
+    if (currentSong?.id === song.song.id) {
+      sheetRef.current?.snapToIndex(0);
+      return;
+    }
+
+    try {
+      const songs = songData;
+      if (!songs.length) return;
+
+
+      await TrackPlayer.reset();
+
+      const orderedQueue = [
+        songs[index],
+        ...songs.slice(index + 1),
+        ...songs.slice(0, index),
+      ].map(s => ({
+        id: s?.id,
+        title: s?.name,
+        artist: s?.artists?.primary[0]?.name && s?.artists?.primary[1]?.name || 'Unknown',
+        url: s?.downloadUrl[4]?.url || 'Unknown',
+        artwork: s?.image[2]?.url,
+      }));
+      console.log('orderqueqe', orderedQueue);
+
+      await TrackPlayer.add(orderedQueue);
+      await TrackPlayer.skip(0);
       await TrackPlayer.play();
 
-      const track = await TrackPlayer.getTrack(index);
-      setCurrentSong(track);
-      setCurrentIndex(index);
+      setTimeout(() => {
+        sheetRef.current?.snapToIndex(0);
+      }, 10);
 
-      sheetRef.current?.snapToIndex(0);
-    } catch (err) {
-      console.log("Play error:", err);
+    } catch (error) {
+      console.log('handlePlay error:', error);
     }
   };
-
-
-
-  useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async (event) => {
-    if (event.type === Event.PlaybackActiveTrackChanged) {
-      console.log('Event fired:', event.index);
-      if (event.index != null) {
-        // Only respond if event matches the intended track
-        if (pendingTrackRef.current === null || pendingTrackRef.current === event.index) {
-          const track = await TrackPlayer.getTrack(event.index);
-          setCurrentSong(track);
-          setCurrentIndex(event.index);
-          pendingTrackRef.current = null; // clear after match
-        }
-      } else {
-        setCurrentSong(null);
-        setCurrentIndex(null);
-        pendingTrackRef.current = null;
-      }
-    }
-  });
-
-
 
 
   const handleDownload = async (url, fileName) => {
@@ -267,7 +225,7 @@ const Rresult = () => {
       Alert.alert("Error", "Something went wrong");
     }
   };
-  
+
 
   const handleCopy = () => {
     Clipboard.setString(lyrics || "");
@@ -294,13 +252,17 @@ const Rresult = () => {
     }
   };
 
-  const GradientBackground = ({ style }: BottomSheetBackgroundProps) => (
-    <LinearGradient
-      colors={[backgroundColors, "#000"]}
-      style={[style, { borderRadius: 0 }]} // keep BottomSheet’s rounded corners
-    />
-  );
 
+
+  const GradientBackground = useCallback(
+    ({ style }: BottomSheetBackgroundProps) => (
+      <LinearGradient
+        colors={[backgroundColors, "#000"]}
+        style={[style, { borderRadius: 0 }]}
+      />
+    ),
+    [backgroundColors]
+  );
 
 
 
@@ -404,6 +366,17 @@ const Rresult = () => {
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 35 }} className='w-10 mt-5'>
               <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} className="ml-2" />
             </TouchableOpacity>
+            {currentSong?.artwork && (
+              <AverageColorExtractor
+                key={currentSong?.id}
+                imageUrl={currentSong.artwork}
+                onColorExtracted={(color) => {
+                  if (color) setBackgroundColors(color);
+                  console.log('backgroundcolor', backgroundColors);
+
+                }}
+              />
+            )}
             {loading ? (
               <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
             ) : (
@@ -494,17 +467,7 @@ const Rresult = () => {
               >
                 <Entypo name="chevron-thin-down" size={30} color="white" />
               </TouchableOpacity>
-              {currentSong?.artwork && (
-                <AverageColorExtractor
-                  key={currentSong?.id}
-                  imageUrl={currentSong.artwork}
-                  onColorExtracted={(color) => {
-                    if (color) setBackgroundColors(color);
-                    console.log('backgroundcolor', backgroundColors);
 
-                  }}
-                />
-              )}
               {/* 🔥 NO FlatList, NO heavy components */}
               {currentSong && (
                 <View style={styles.songContainer}>
@@ -557,7 +520,6 @@ const Rresult = () => {
                     </View>
                   </View>
                   <Music />
-                  {/* ⚡ Move Music Controls Outside BottomSheet */}
                 </View>
               )}
             </BottomSheet>
@@ -566,7 +528,7 @@ const Rresult = () => {
               index={-1}
               snapPoints={lyricsSnapPoints}
               enableDynamicSizing={false}
-              enablePanDownToClose={true} F
+              enablePanDownToClose={true}
               handleIndicatorStyle={{
                 backgroundColor: 'grey',
                 width: 45,

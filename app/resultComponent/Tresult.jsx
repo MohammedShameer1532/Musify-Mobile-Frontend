@@ -1,5 +1,5 @@
 import { ActivityIndicator, Alert, FlatList, Image, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { SearchContext } from '../contextProvider/searchContext';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,13 +18,13 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import Entypo from "react-native-vector-icons/Entypo";
 import MaterialDesignIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Clipboard from '@react-native-clipboard/clipboard';
-import TrackPlayer, { Capability, Event, useTrackPlayerEvents } from 'react-native-track-player';
+import TrackPlayer, { useActiveTrack } from 'react-native-track-player';
 import Music from '../common/Music';
 import RNBlobUtil from "react-native-blob-util";
 
 
 const Tresult = () => {
-  const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, currentSong } = useContext(SearchContext);
+  const { dataSearch } = useContext(SearchContext);
   const [loading, setLoading] = useState(true);
   const [tdata, setTdata] = useState();
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
@@ -40,7 +40,7 @@ const Tresult = () => {
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
   const pendingTrackRef = useRef(null);
   console.log('dataSearch in Tresult', dataSearch);
-
+  const currentSong = useActiveTrack();
 
   const matchIds = async (id) => {
     try {
@@ -67,43 +67,28 @@ const Tresult = () => {
 
 
 
-  useEffect(() => {
-    async function setupPlayer() {
-      await TrackPlayer.setupPlayer();
-      await TrackPlayer.updateOptions({
-        stopWithApp: true,
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.Stop,
-          Capability.SkipToNext,
-          Capability.SkipToPrevious,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-        ],
-        jumpInterval: 10,
-      });
-    }
-
-    setupPlayer();
-  }, []);
-
 
   const handlePlay = async (song, index) => {
     if (!song) return;
 
+    // If same song → just open player
     if (currentSong?.id === song.id) {
       sheetRef.current?.snapToIndex(0);
       return;
     }
-    pendingTrackRef.current = index;
-    const queue = await TrackPlayer.getQueue();
-    const isArtistMismatch = queue.length === 0 || queue[0].artist !== tdata?.songs[0]?.artists?.primary[0]?.name;
 
-    if (isArtistMismatch) {
+    try {
+      const songs = tdata?.songs || [];
+      if (!songs.length) return;
+
+      // Reset player
       await TrackPlayer.reset();
-
-      const tracks = tdata?.songs?.map((s) => ({
+      // Reorder queue so clicked song plays first
+      const orderedQueue = [
+        songs[index],                 // clicked song
+        ...songs.slice(index + 1),     // next songs
+        ...songs.slice(0, index),      // previous songs
+      ].map((s) => ({
         id: s.id,
         url: s.downloadUrl[4]?.url,
         title: s.name,
@@ -111,54 +96,34 @@ const Tresult = () => {
         artwork: s.image[2]?.url,
       }));
 
-      await TrackPlayer.add(tracks);
+      // Add reordered queue
+      await TrackPlayer.add(orderedQueue);
 
-      // 🔐 Wait for queue to stabilize before skipping
-      await new Promise((resolve) => setTimeout(resolve, 100)); // tweak if needed
+      // Play clicked song
+      await TrackPlayer.skip(0);
+      await TrackPlayer.play();
+      setTimeout(() => {
+        sheetRef.current?.snapToIndex(0);
+      }, 10);
+
+
+    } catch (error) {
+      console.log('handlePlay error:', error);
     }
-
-    await TrackPlayer.skip(index);
-    await TrackPlayer.play();
-
-    // Wait for the player to actually switch tracks
-    const activeIndex = await TrackPlayer.getActiveTrackIndex();
-    const activeTrack = await TrackPlayer.getTrack(activeIndex);
-
-    console.log('handlePlay finished:', activeIndex);
-
-    setCurrentSong(activeTrack);
-    setCurrentIndex(activeIndex);
-
-    setTimeout(() =>
-      sheetRef.current?.snapToIndex(0)
-      , 50);
   };
 
-  useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async (event) => {
-    if (event.type === Event.PlaybackActiveTrackChanged) {
-      console.log('Event fired:', event.index);
-      if (event.index != null) {
-        // Only respond if event matches the intended track
-        if (pendingTrackRef.current === null || pendingTrackRef.current === event.index) {
-          const track = await TrackPlayer.getTrack(event.index);
-          setCurrentSong(track);
-          setCurrentIndex(event.index);
-          pendingTrackRef.current = null; // clear after match
-        }
-      } else {
-        setCurrentSong(null);
-        setCurrentIndex(null);
-        pendingTrackRef.current = null;
-      }
-    }
-  });
 
-  const GradientBackground = ({ style }: BottomSheetBackgroundProps) => (
-    <LinearGradient
-      colors={[backgroundColor, "#000"]}
-      style={[style, { borderRadius: 20 }]} // keep BottomSheet’s rounded corners
-    />
+
+  const GradientBackground = useCallback(
+    ({ style }: BottomSheetBackgroundProps) => (
+      <LinearGradient
+        colors={[backgroundColor, "#000"]}
+        style={[style, { borderRadius: 0 }]}
+      />
+    ),
+    [backgroundColor]
   );
+
 
 
   const handleDownload = async (url, fileName) => {
@@ -257,6 +222,14 @@ const Tresult = () => {
                   if (color) {
                     setBackgroundColor(color);  // Only set if a valid color is received
                   }
+                }}
+              />
+            )}
+            {currentSong?.artwork && (
+              <AverageColorExtractor
+                imageUrl={currentSong.artwork}
+                onColorExtracted={(color) => {
+                  if (color) setBackgroundColor(color);
                 }}
               />
             )}
@@ -443,76 +416,61 @@ const Tresult = () => {
               <TouchableOpacity onPress={() => sheetRef.current?.close()} style={{ width: 50 }} className='w-10 mt-0 ml-5'>
                 <Entypo name="chevron-thin-down" size={30} color="white" style={styles.backIcon} className="ml-5" />
               </TouchableOpacity>
-              {currentSong?.artwork && (
-                <AverageColorExtractor
-                  imageUrl={currentSong.artwork}
-                  onColorExtracted={(color) => {
-                    if (color) setBackgroundColor(color);
-                  }}
+              <View style={styles.songContainer} >
+                <Image
+                  source={{ uri: currentSong?.artwork }}
+                  style={styles.songImage}
+                  className="rounded-xl"
                 />
-              )}
-
-              <FlatList
-                data={currentSong ? [currentSong] : []}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item, index }) => (
-                  <View style={styles.songContainer} key={index}>
-                    <Image
-                      source={{ uri: item?.artwork }}
-                      style={styles.songImage}
-                      className="rounded-xl"
-                    />
-                    <View style={styles.textContainer}>
-                      <Text
-                        style={[
-                          styles.songTitle,
-                          {
-                            maxWidth:
-                              currentSong?.id === item.id && item?.title.length > 20 ? "80%" : "100%",
-                          },
-                        ]}
-                        numberOfLines={item?.title.length > 25 ? 1 : undefined}
-                        ellipsizeMode={item?.title.length > 25 ? "tail" : "clip"}
-                      >
-                        {item?.title.replace(/\s*\(.*?\)\s*/g, '')}
-                      </Text>
-                      <Text style={styles.artist}>{item?.artist?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                      <View style={styles.icons}>
-                        <View style={{ alignItems: 'flex-end', padding: 16 }}>
-                          <Menu>
-                            <MenuTrigger>
-                              <Icon name="dots-three-vertical" size={24} color="white" />
-                            </MenuTrigger>
-                            <MenuOptions
-                              customStyles={{
-                                optionsContainer: {
-                                  padding: 10,
-                                  borderRadius: 8,
-                                  backgroundColor: '#1f1f1f',
-                                },
-                              }}
-                            >
-                              <MenuOption onSelect={fetchLyrics}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                  <MaterialIcons name="lyrics" size={18} color="white" />
-                                  <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
-                                </View>
-                              </MenuOption>
-                              <MenuOption onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                  <FontAwesome6 name="download" size={18} color="white" />
-                                  <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
-                                </View>
-                              </MenuOption>
-                            </MenuOptions>
-                          </Menu>
-                        </View>
-                      </View>
+                <View style={styles.textContainer}>
+                  <Text
+                    style={[
+                      styles.songTitle,
+                      {
+                        maxWidth:
+                          currentSong?.id === currentSong?.id && currentSong?.title.length > 20 ? "80%" : "100%",
+                      },
+                    ]}
+                    numberOfLines={currentSong?.title.length > 25 ? 1 : undefined}
+                    ellipsizeMode={currentSong?.title.length > 25 ? "tail" : "clip"}
+                  >
+                    {currentSong?.title.replace(/\s*\(.*?\)\s*/g, '')}
+                  </Text>
+                  <Text style={styles.artist}>{currentSong?.artist?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                  <View style={styles.icons}>
+                    <View style={{ alignItems: 'flex-end', padding: 16 }}>
+                      <Menu>
+                        <MenuTrigger>
+                          <Icon name="dots-three-vertical" size={24} color="white" />
+                        </MenuTrigger>
+                        <MenuOptions
+                          customStyles={{
+                            optionsContainer: {
+                              padding: 10,
+                              borderRadius: 8,
+                              backgroundColor: '#1f1f1f',
+                            },
+                          }}
+                        >
+                          <MenuOption onSelect={fetchLyrics}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                              <MaterialIcons name="lyrics" size={18} color="white" />
+                              <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+                            </View>
+                          </MenuOption>
+                          <MenuOption onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                              <FontAwesome6 name="download" size={18} color="white" />
+                              <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
+                            </View>
+                          </MenuOption>
+                        </MenuOptions>
+                      </Menu>
                     </View>
-                    <Music />
                   </View>
-                )}
-              />
+                </View>
+                <Music />
+              </View>
             </BottomSheet>
             <BottomSheet
               ref={sheet}

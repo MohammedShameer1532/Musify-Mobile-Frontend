@@ -9,28 +9,51 @@ const Topartist = () => {
   const navigation = useNavigation();
   const { globalSearch, setDataSearch } = useContext(SearchContext);
 
-  const trendingData = async () => {
-    const response = await axios.get(`https://www.jiosaavn.com/api.php?__call=social.getTopArtists&api_version=4&_format=json&_marker=0&ctx=wap6dot0`)
-    setTrend(response.data.top_artists);
-    console.log("Topartist", response.data.top_artists);
-  }
+
 
   useEffect(() => {
+    const trendingData = async () => {
+      try {
+        const response = await axios.get(`https://www.jiosaavn.com/api.php?__call=social.getTopArtists&api_version=4&_format=json&_marker=0&ctx=wap6dot0`
+        );
+        setTrend(response.data.top_artists);
+        console.log("Topartist", response.data.top_artists);
+      } catch (error) {
+        console.error('Error fetching artist:', error);
+      }
+    };
+
     trendingData();
   }, []);
 
-  const getHighResImage = (url) => url?.replace(/-\d+x\d+/, '-500x500');
 
-  const handlePress = (songId) => {
-    setDataSearch(songId);
-    // If songId is only digits, navigate to Tresult
-    if (/^\d+$/.test(songId)) {
-      navigation.navigate('Tresult', { id: songId });
+
+  const getHighResImage = (image) => {
+    if (!image) return null;
+
+    // ✅ Case 1: JioSaavn image array
+    if (Array.isArray(image)) {
+      return (
+        image.find(img => img.quality === '500x500')?.link ||
+        image.find(img => img.quality === '150x150')?.link ||
+        image[image.length - 1]?.link
+      );
     }
-    // If songId contains letters, navigate to Tsongs
-    else {
-      navigation.navigate('Tsongs', { id: songId });
+
+    // ✅ Case 2: String image (Playlists, Artist)
+    if (typeof image === 'string') {
+      return image
+        .replace(/_\d+x\d+/, '_500x500')
+        .replace(/-\d+x\d+/, '-500x500');
     }
+
+    return null;
+  };
+
+  const handlePress = (artistid) => {
+    setDataSearch(artistid);
+
+    navigation.navigate('Tartist', { id: artistid });
   };
   return (
     <View>
@@ -44,7 +67,7 @@ const Topartist = () => {
         keyExtractor={(song, index) => `${song.id}-${index}`}
         renderItem={({ item: song, index }) => (
           <View style={styles.songContainer} key={index}>
-            <TouchableOpacity onPress={() => handlePress(song.id)} >
+            <TouchableOpacity onPress={() => handlePress(song.artistid)} >
               <Image
                 source={{ uri: getHighResImage(song?.image) }}
                 className="rounded-xl w-48 h-48 p-4"

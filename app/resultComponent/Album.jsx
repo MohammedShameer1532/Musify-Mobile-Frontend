@@ -11,7 +11,7 @@ import { SearchContext } from '../contextProvider/searchContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import Music from '../common/Music';
-import TrackPlayer, { Capability, Event } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event, useActiveTrack } from 'react-native-track-player';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 import Icon from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -21,7 +21,6 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialDesignIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import RNBlobUtil from "react-native-blob-util";
-import { useTrackPlayerEvents } from 'react-native-track-player';
 
 
 const Album = () => {
@@ -29,18 +28,19 @@ const Album = () => {
   const [loading, setLoading] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
   const navigation = useNavigation();
-  const { setCurrentSong, dataSearch, setCurrentIndex, currentSong } = useContext(SearchContext);
+  const { dataSearch } = useContext(SearchContext);
   const id = dataSearch;
   const sheetRef = useRef(null);
   const sheet = useRef(null);
   const snapPoints = useMemo(() => ["100%"]);
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
+  const currentSong = useActiveTrack();
   const songId = currentSong?.id;
   const [lyrics, setLyrics] = useState();
   const [copied, setCopied] = useState(false);
   const [showDownloadAnim, setShowDownloadAnim] = useState(false);
-  const pendingTrackRef = useRef(null);
 
+  console.log('activetrack', currentSong);
   console.log("songData", dataSearch);
   console.log("currentSong", currentSong);
 
@@ -69,91 +69,50 @@ const Album = () => {
   }, [id]);
 
 
-  useEffect(() => {
-    async function setupPlayer() {
-      await TrackPlayer.setupPlayer();
-      await TrackPlayer.updateOptions({
-        stopWithApp: true,
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.Stop,
-          Capability.SkipToNext,
-          Capability.SkipToPrevious,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-        ],
-        jumpInterval: 10,
-      });
-    }
-
-    setupPlayer();
-  }, []);
-
 
   const handlePlay = async (song, index) => {
     if (!song) return;
 
+    // If same song → just open player
     if (currentSong?.id === song.id) {
       sheetRef.current?.snapToIndex(0);
       return;
     }
-    pendingTrackRef.current = index;
-    const queue = await TrackPlayer.getQueue();
-    const isArtistMismatch = queue.length === 0 || queue[0].artist !== albumData[0]?.songs[0]?.artists?.primary[0]?.name;
 
-    if (isArtistMismatch) {
+    try {
+      const songs = albumData[0]?.songs || [];
+      if (!songs.length) return;
+
+      // Reset player
       await TrackPlayer.reset();
 
-      const tracks = albumData[0]?.songs?.map((s) => ({
+      // Reorder queue so clicked song plays first
+      const orderedQueue = [
+        songs[index],                 // clicked song
+        ...songs.slice(index + 1),     // next songs
+        ...songs.slice(0, index),      // previous songs
+      ].map((s) => ({
         id: s.id,
         url: s.downloadUrl[4]?.url,
         title: s.name,
         artist: s.artists?.primary[0]?.name,
         artwork: s.image[2]?.url,
+        hasArtwork: true,
       }));
 
-      await TrackPlayer.add(tracks);
+      // Add reordered queue
+      await TrackPlayer.add(orderedQueue);
 
-      // 🔐 Wait for queue to stabilize before skipping
-      await new Promise((resolve) => setTimeout(resolve, 100)); // tweak if needed
+      // Play clicked song
+      await TrackPlayer.skip(0);
+      await TrackPlayer.play();
+
+      sheetRef.current?.snapToIndex(0);
+
+    } catch (error) {
+      console.log('handlePlay error:', error);
     }
-
-    await TrackPlayer.skip(index);
-    await TrackPlayer.play();
-
-    // Wait for the player to actually switch tracks
-    const activeIndex = await TrackPlayer.getActiveTrackIndex();
-    const activeTrack = await TrackPlayer.getTrack(activeIndex);
-
-    console.log('handlePlay finished:', activeIndex);
-
-    setCurrentSong(activeTrack);
-    setCurrentIndex(activeIndex);
-
-    setTimeout(() =>
-      sheetRef.current?.snapToIndex(0)
-      , 50);
   };
-
-  useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async (event) => {
-    if (event.type === Event.PlaybackActiveTrackChanged) {
-      console.log('Event fired:', event.index);
-      if (event.index != null) {
-        // Only respond if event matches the intended track
-        if (pendingTrackRef.current === null || pendingTrackRef.current === event.index) {
-          const track = await TrackPlayer.getTrack(event.index);
-          setCurrentSong(track);
-          setCurrentIndex(event.index);
-          pendingTrackRef.current = null; // clear after match
-        }
-      } else {
-        setCurrentSong(null);
-        setCurrentIndex(null);
-        pendingTrackRef.current = null;
-      }
-    }
-  });
 
 
 

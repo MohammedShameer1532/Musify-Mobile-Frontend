@@ -15,6 +15,7 @@ import RNBlobUtil from "react-native-blob-util";
 import Clipboard from '@react-native-clipboard/clipboard';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import { LegendList } from '@legendapp/list';
 
 
 const Artistsongs = () => {
@@ -34,37 +35,33 @@ const Artistsongs = () => {
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
 
 
+
   const fetchAlbumPage = async (page = 0) => {
     if (!token) return;
-    if (loadingMore) return; // prevent multiple triggers
-
+    const startTime = Date.now();
     try {
       page === 0 ? setLoading(true) : setLoadingMore(true);
+      const res = await axios.get(`https://www.jiosaavn.com/api.php?__call=webapi.get&token=${token}&type=artist&p=${page}&n_song=30&n_album=30&ctx=wap6dot0&api_version=4&_format=json&_marker=0`)
+      const endTime = Date.now(); // ⏱ end
+      console.log(`API response time (page ${page}):`, endTime - startTime, "ms");
 
-      const res = await axios.get(
-        `https://www.jiosaavn.com/api.php?__call=webapi.get&token=${token}&type=artist&p=${page}&n_song=50&n_album=50&ctx=wap6dot0&api_version=4&_format=json&_marker=0`
-      );
-
-      setTopSongs(prev => {
-        const merged = [...prev, ...(res?.data?.topSongs || [])];
-        return merged.filter(
-          (song, index, self) =>
-            index === self.findIndex(s => s.id === song.id)
-        );
-      });
+      console.log('res', res.data);
       setAlbumData(res?.data);
+      const song = res?.data?.topSongs;
+      setTopSongs(prev =>
+        page === 0 ? song : [...prev, ...song] // ✅ append
+      );
       setTopSongsPage(page);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.log(error);
+    } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }
 
   const handleLoadMore = async () => {
     if (loading || loadingMore) return; // exit if already loading
-    setLoadingMore(true);
 
     try {
       await fetchAlbumPage(topSongsPage + 1);
@@ -83,7 +80,14 @@ const Artistsongs = () => {
     }
   }, [token]);
 
-  console.log('log', topSongs);
+  useEffect(() => {
+    console.log('topSongs length:', topSongs.length);
+  }, [topSongs]);
+
+
+
+
+
 
 
   const getHighResImage = (image) => {
@@ -240,7 +244,7 @@ const Artistsongs = () => {
                   {/* Song Title */}
                   <Text
                     style={{
-                      color: currentSong?.id === song.id ? "limegreen" : "white",
+                      color: currentSong?.id === song?.id ? "limegreen" : "white",
                     }}
                     className="text-base font-normal"
                     numberOfLines={1}
@@ -318,12 +322,27 @@ const Artistsongs = () => {
 
 
 
+
+  const renderSongItem = React.useCallback(
+    ({ item, index }) => (
+      <SongItem
+        song={item}
+        index={index}
+      // currentSong={currentSong}
+      // handlePlay={handlePlay}
+      />
+    ),
+    []
+  );
+
+
+
   return (
     <MenuProvider>
       <GestureHandlerRootView style={styles.container}>
         <LinearGradient colors={[backgroundColor, "#000"]} style={styles.background}>
           <SafeAreaView style={styles.safeArea} className="flex-1 ">
-            <View>
+            <View className="flex-1">
               <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 35 }} className='w-10 mt-5'>
                 <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} className="ml-2" />
               </TouchableOpacity>
@@ -331,45 +350,35 @@ const Artistsongs = () => {
                 <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
               ) : (
                 <View >
-                  <FlatList
+                  <LegendList
                     data={topSongs}
-                    keyExtractor={(item, index) => `${item.id}-${index}`}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 125 }}
-                    initialNumToRender={20}           // only render first 3 items initially
-                    maxToRenderPerBatch={20}          // render in small batches
-                    windowSize={21}                    // keep window size small
-                    removeClippedSubviews={false}
-                    renderItem={({ item: song, index }) => (
-                      <SongItem
-                        song={song}
-                        index={index}
-                      // currentSong={currentSong}
-                      // handlePlay={handlePlay}
-                      />
-                    )}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderSongItem}
+                    onItemSizeChanged={({ size }) => {
+                      console.log('Rendered item size:', size);
+                    }}
 
-                    // Updated Load More button in ListFooterComponent
-                    ListFooterComponent={
-                      <View style={{ paddingVertical: 25 }}>
-                        <TouchableOpacity
-                          onPress={handleLoadMore}
-                          disabled={loadingMore} // ✅ disable button while loading
-                          style={{
-                            padding: 15,
-                            backgroundColor: loadingMore ? 'grey' : '#1DB954',
-                            borderRadius: 8,
-                            alignItems: 'center',
-                            marginVertical: 20,
-                            marginHorizontal: 60,
-                          }}
-                        >
-                          <Text style={{ color: 'black', fontWeight: 'bold', fontSize: 16 }}>
-                            Load More
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    }
+                    // Pagination
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.6}
+
+                    // 🎯 Layout & sizing (MOST IMPORTANT)
+                    estimatedItemSize={100}
+                    getEstimatedItemSize={() => 100}
+
+                    // 🚀 Rendering behavior
+                    recycleItems
+                    removeClippedSubviews
+                    drawDistance={200}
+                    windowSize={15}
+                    waitForInitialLayout
+
+                    // Batch tuning
+                    initialNumToRender={12}
+                    maxToRenderPerBatch={10}
+
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 40 }}
 
                     ListHeaderComponent={
                       <View>
@@ -397,6 +406,14 @@ const Artistsongs = () => {
                         </View>
                       </View>
                     }
+
+                    ListFooterComponent={
+                      loadingMore ? (
+                        <View style={{ paddingVertical: 20 }}>
+                          <ActivityIndicator size="large" color="white" />
+                        </View>
+                      ) : null
+                    }
                   />
                 </View>
               )}
@@ -408,7 +425,7 @@ const Artistsongs = () => {
   )
 }
 
-export default Artistsongs
+export default Artistsongs;
 
 
 const styles = StyleSheet.create({
@@ -494,4 +511,3 @@ const styles = StyleSheet.create({
   },
 
 });
-

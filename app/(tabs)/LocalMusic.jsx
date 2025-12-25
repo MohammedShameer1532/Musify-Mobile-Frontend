@@ -16,14 +16,11 @@ import LottieView from 'lottie-react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
 import Music from '../common/Music';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import TrackPlayer, { Capability, Event, useTrackPlayerEvents } from 'react-native-track-player';
-import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
-import Icon from 'react-native-vector-icons/Entypo';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import TrackPlayer, { Capability, Event, useActiveTrack } from 'react-native-track-player';
+import { MenuProvider } from 'react-native-popup-menu';
 import Entypo from "react-native-vector-icons/Entypo";
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -128,7 +125,7 @@ const LocalMusic = () => {
   const [audioFiles, setAudioFiles] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { setCurrentSong, setCurrentIndex, setSongsList, currentSong } = useContext(SearchContext);
+  const { setSongsList } = useContext(SearchContext);
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["100%"]);
   const navigation = useNavigation();
@@ -136,22 +133,10 @@ const LocalMusic = () => {
   const [showUp, setShowUp] = useState(false);
   const [filteredFiles, setFilteredFiles] = useState([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const currentSong = useActiveTrack();
+  console.log('activetrack', currentSong);
 
 
-
-  useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async (event) => {
-    if (event.type === Event.PlaybackActiveTrackChanged) {
-      if (event.index != null) {
-        // event.index is the track index
-        const track = await TrackPlayer.getTrack(event.index);
-        setCurrentSong(track);
-        setCurrentIndex(event.index);
-      } else {
-        setCurrentSong(null);
-        setCurrentIndex(null);
-      }
-    }
-  });
 
   useEffect(() => {
     const fetchAudio = async () => {
@@ -206,9 +191,9 @@ const LocalMusic = () => {
   }, []);
 
 
+
   const handlePlay = async (song) => {
     if (!song) return;
-
     // If same song, just open sheet
     if (currentSong?.id === song.id) {
       sheetRef.current?.snapToIndex(0);
@@ -216,35 +201,40 @@ const LocalMusic = () => {
     }
 
     try {
-      const queue = await TrackPlayer.getQueue();
+      const index = audioFiles.findIndex(s => s.id === song.id);
+      if (index === -1) return;
 
-      // If queue is empty, add all songs only once
-      if (queue.length === 0) {
-        await TrackPlayer.add(audioFiles.map((s) => ({
-          id: s.id,
-          title: s.title,
-          artist: s.artist,
-          url: s.path || "",
-          artwork: s.artwork || "",
-          hasArtwork: true,
-        })));
-      }
+      await TrackPlayer.reset();
 
-      // Find the correct index in audioFiles
-      const indexInAudioFiles = audioFiles.findIndex(a => a.id === song.id);
+      // Build queue in correct order
+      const orderedQueue = [
+        audioFiles[index],                       // clicked song first
+        ...audioFiles.slice(index + 1),          // songs after clicked
+        ...audioFiles.slice(0, index)            // songs before clicked
+      ].map(s => ({
+        id: s.id,
+        title: s.title,
+        artist: s.artist,
+        url: s.path,
+        artwork: s.artwork,
+        hasArtwork: true
+      }));
 
-      if (indexInAudioFiles !== -1) {
-        await TrackPlayer.skip(indexInAudioFiles);
-        await TrackPlayer.play();
+      // Add queue
+      await TrackPlayer.add(orderedQueue);
 
-        sheetRef.current?.snapToIndex(0);
-        setCurrentSong(audioFiles[indexInAudioFiles]);
-        setCurrentIndex(indexInAudioFiles);
-      }
-    } catch (error) {
-      console.log("Error playing track:", error);
+      // Play first (clicked song)
+      await TrackPlayer.skip(0);
+      sheetRef.current?.snapToIndex(0);
+      await TrackPlayer.play();
+
+
+    } catch (err) {
+      console.log("Error:", err);
     }
   };
+
+
 
 
   const handleScroll = (event) => {

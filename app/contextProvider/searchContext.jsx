@@ -10,6 +10,8 @@ export const SearchProvider = ({ children }) => {
   const [currentIndex, setCurrentIndex] = useState(null);
   const [songsList, setSongsList] = useState([]);
   const [songsuggest, setSongsuggest] = useState([]);
+  const [poddata,setPoddata] = useState([]);
+  const [tokens,setTokens] = useState([]);
   
 
 
@@ -27,6 +29,10 @@ export const SearchProvider = ({ children }) => {
       setSongsList,
       songsuggest,
       setSongsuggest,
+      poddata,
+      setPoddata,
+      tokens,
+      setTokens,
     }}>
       {children}
     </SearchContext.Provider>

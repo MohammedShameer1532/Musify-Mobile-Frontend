@@ -11,7 +11,7 @@ import { SearchContext } from '../contextProvider/searchContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import Music from '../common/Music';
-import TrackPlayer, { Capability, Event } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event, useActiveTrack } from 'react-native-track-player';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 import Icon from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -26,7 +26,7 @@ import { ScrollView } from 'react-native';
 
 
 const Podresult = () => {
-  const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, currentSong } = useContext(SearchContext);
+  const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, setPoddata } = useContext(SearchContext);
   const [loading, setLoading] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
   const [backgroundColors, setBackgroundColors] = useState("rgb(30, 30, 30)");
@@ -37,12 +37,13 @@ const Podresult = () => {
   const [lyrics, setLyrics] = useState();
   const [copied, setCopied] = useState(false);
   const [showDownloadAnim, setShowDownloadAnim] = useState(false);
+  const currentSong = useActiveTrack();
   const songId = currentSong?.id;
   const navigation = useNavigation();
-  const pendingTrackRef = useRef(null);
   const [visible, setVisible] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState();
   const [episodedata, setEpisodedata] = useState();
+  const [songData, setSongData] = useState([]);
   console.log('dataSearch in Tresult', dataSearch);
 
   const url = dataSearch?.permurl;
@@ -95,6 +96,80 @@ const Podresult = () => {
     poddata();
     loadSeason(1);
   }, []);
+
+
+
+
+
+  const preloadAllSongs = async () => {
+    try {
+      const ids = episodedata?.episodes.map(item => item?.id).join(",");
+      const res = await axios.get(
+        `https://musify-api-inky.vercel.app/api/songs?ids=${ids}`
+      );
+
+      const apiSongs = res.data.data;
+      setSongData(apiSongs);
+
+      console.log("🔥 All songs preloaded", apiSongs);
+    } catch (e) {
+      console.log("Preload error:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (episodedata?.episodes?.length > 0) {
+      preloadAllSongs();
+    }
+    console.log('espisodedata', episodedata);
+
+  }, [episodedata]);
+
+
+
+  const handlePlay = async (song, index) => {
+    if (!song?.id) return;
+
+    if (currentSong?.id === song?.id) {
+      sheetRef.current?.snapToIndex(0);
+      return;
+    }
+
+    try {
+      const songs = songData;
+      if (!songs.length) return;
+
+
+      await TrackPlayer.reset();
+
+      const orderedQueue = [
+        songs[index],
+        ...songs.slice(index + 1),
+        ...songs.slice(0, index),
+      ].map(s => ({
+        id: s?.id,
+        title: s?.name,
+        url: s?.downloadUrl[4]?.url || 'Unknown',
+        artwork: s?.image[2]?.url,
+        header: song.header_desc,
+        Description: song?.more_info?.description,
+        year: song?.more_info?.release_date,
+        episode_number: song?.more_info?.episode_number,
+      }));
+
+
+      await TrackPlayer.add(orderedQueue);
+      await TrackPlayer.skip(0);
+      await TrackPlayer.play();
+
+      setTimeout(() => {
+        sheetRef.current?.snapToIndex(0);
+      }, 10);
+
+    } catch (error) {
+      console.log('handlePlay error:', error);
+    }
+  };
 
 
 
@@ -153,6 +228,7 @@ const Podresult = () => {
     }
   };
 
+
   const fetchLyrics = async () => {
     try {
       const res = await axios.get(`https://jiosaavn-api.vercel.app/lyrics?id=${songId}`);
@@ -194,10 +270,20 @@ const Podresult = () => {
       [song?.title]
     );
 
-    // const artist = useMemo(() =>
-    //   song?.song?.more_info?.music?.replace(/\s*\(.*?\)\s*/g, "") ?? "Unknown",
-    //   [song?.song?.more_info?.music]
-    // );
+
+
+    const handlePress = (title, imageUrl, id, header, description, year, episode_number) => {
+      setPoddata({
+        title,
+        imageUrl,
+        id,
+        header,
+        description,
+        year,
+        episode_number
+      });
+      navigation.navigate('Podplay', { id: songId });
+    };
 
     return (
       <TouchableOpacity
@@ -386,7 +472,7 @@ const Podresult = () => {
                       song={item}
                       index={index}
                       currentSong={currentSong}
-                    // handlePlay={handlePlay}
+                      handlePlay={handlePlay}
                     />
                   )}
                   ListFooterComponent={() => (
@@ -463,23 +549,44 @@ const Podresult = () => {
               )}
               {/* 🔥 NO FlatList, NO heavy components */}
               {currentSong && (
-                <View style={styles.songContainer}>
+                <View style={{ marginTop: -15, flex: 1 }}>
 
+                  {/* Image */}
                   <Image
-                    source={{ uri: currentSong.artwork }}
-                    style={styles.songImage}
+                    source={{ uri: currentSong?.artwork }}
+                    style={styles.songImagee}
                     className="rounded-xl"
                   />
 
+                  {/* Header */}
+                  <Text
+                    style={{
+                      color: "white",
+                      fontSize: 15,
+                      fontWeight: "700",
+                      marginTop: 20,
+                      paddingHorizontal: 20,
+                      lineHeight: 28,
+                    }}
+                  >
+                    {currentSong?.header}
+                  </Text>
+
+                  {/* Episode Number + Year */}
+                  <Text
+                    style={{
+                      color: "#bbb",
+                      fontSize: 14,
+                      marginTop: 10,
+                      paddingHorizontal: 20,
+                    }}
+                  >
+                    Episode-{currentSong?.episode_number} / Year - {currentSong?.year}
+                  </Text>
                   <View style={styles.textContainer}>
                     <Text style={styles.songTitle}>
                       {currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '')}
                     </Text>
-
-                    <Text style={styles.artist}>
-                      {currentSong?.artist?.replace(/\s*\(.*?\)\s*/g, '')}
-                    </Text>
-
                     <View style={styles.icons}>
                       <Menu>
                         <MenuTrigger>
@@ -513,7 +620,27 @@ const Podresult = () => {
                     </View>
                   </View>
                   <Music />
-                  {/* ⚡ Move Music Controls Outside BottomSheet */}
+                  <View className='mt-[-5%] flex-1'>
+                    <Text style={{ color: "white", fontSize: 20, fontWeight: "bold", marginLeft: 20 }}>Description</Text>
+                    <BottomSheetScrollView
+                      style={{ marginTop: 0, marginBottom: 22 }}
+                      showsVerticalScrollIndicator={false}
+
+                    >
+                      <Text
+                        style={{
+                          color: "white",
+                          opacity: 0.7,
+                          marginTop: 15,
+                          paddingHorizontal: 20,
+                          fontSize: 15,
+                          lineHeight: 22,
+                        }}
+                      >
+                        {currentSong?.Description}
+                      </Text>
+                    </BottomSheetScrollView>
+                  </View>
                 </View>
               )}
             </BottomSheet>
@@ -612,15 +739,15 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 30,
-    marginTop: 35,
+    paddingLeft: 20,
+    marginTop: 5,
   },
   songImage: {
     width: 290,
     height: 290,
   },
   songTitle: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: '700',
     color: 'white',
     marginTop: 10,

@@ -19,10 +19,38 @@ import Tsongs from './resultComponent/Tsongs';
 import Sresult from './resultComponent/Sresult';
 import Rresult from './resultComponent/Rresult';
 import Podresult from './resultComponent/Podresult';
+import TrackPlayer, {Capability} from 'react-native-track-player';
+import {useEffect} from 'react';
+import Tartist from './resultComponent/Tartist';
+import Artistsongs from './resultComponent/Artistsongs';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const Stack = createNativeStackNavigator();
+  // ✅ TrackPlayer setup
+  useEffect(() => {
+    const setupPlayer = async () => {
+      try {
+        await TrackPlayer.setupPlayer();
+        await TrackPlayer.updateOptions({
+          stopWithApp: true,
+          capabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+            Capability.JumpForward,
+            Capability.JumpBackward,
+          ],
+          jumpInterval: 10,
+        });
+      } catch (e) {
+        console.log('TrackPlayer setup error:', e);
+      }
+    };
+
+    setupPlayer();
+  }, []);
 
   return (
     <SearchProvider>
@@ -87,6 +115,16 @@ export default function RootLayout() {
             <Stack.Screen
               name="Podresult"
               component={Podresult}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="Tartist"
+              component={Tartist}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="Artistsongs"
+              component={Artistsongs}
               options={{headerShown: false}}
             />
           </Stack.Navigator>

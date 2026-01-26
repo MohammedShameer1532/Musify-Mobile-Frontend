@@ -1,6 +1,4 @@
-import { createContext, useEffect, useRef, useState } from "react";
-import TrackPlayer, { Capability } from "react-native-track-player";
-
+import { createContext, useState } from "react";
 export const SearchContext = createContext({});
 
 export const SearchProvider = ({ children }) => {
@@ -10,9 +8,11 @@ export const SearchProvider = ({ children }) => {
   const [currentIndex, setCurrentIndex] = useState(null);
   const [songsList, setSongsList] = useState([]);
   const [songsuggest, setSongsuggest] = useState([]);
-  const [poddata,setPoddata] = useState([]);
-  const [tokens,setTokens] = useState([]);
-  
+  const [poddata, setPoddata] = useState([]);
+  const [tokens, setTokens] = useState([]);
+  const [playlistDatas, setPlaylistDatas] = useState([]);
+  const [outerdata, setOuterdata] = useState([]);
+
 
 
   return (
@@ -33,6 +33,10 @@ export const SearchProvider = ({ children }) => {
       setPoddata,
       tokens,
       setTokens,
+      playlistDatas,
+      setPlaylistDatas,
+      outerdata,
+      setOuterdata,
     }}>
       {children}
     </SearchContext.Provider>

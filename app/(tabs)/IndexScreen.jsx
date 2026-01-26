@@ -1,6 +1,7 @@
 import {
   FlatList,
   KeyboardAvoidingView,
+  Platform,
   Text,
   View,
 } from 'react-native';
@@ -14,6 +15,7 @@ import Tplaylist from '../resultComponent/Tplaylist';
 import Radio from '../resultComponent/Radio';
 import Podcast from '../resultComponent/Podcast';
 import Topartist from '../resultComponent/Topartist';
+import { LegendList } from '@legendapp/list';
 
 const IndexScreen = () => {
   console.log('Rendering IndexScreen');
@@ -30,10 +32,13 @@ const IndexScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-stone-950 h-full" >
-      <KeyboardAvoidingView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View className="flex-row items-center gap-3 p-2 ml-4">
           <Icon name="music-box" size={40} color="white" />
-          <Text className="text-[22px] font-semibold text-white">Musify</Text>
+          <Text className="text-[22px] font-semibold text-white">LysernFy</Text>
         </View>
         <View>
           <Navbar />
@@ -45,15 +50,28 @@ const IndexScreen = () => {
             </Text>
           </View>
         )}
-        <FlatList
+        <LegendList
+          estimatedItemSize={150}
+          getEstimatedItemSize={() => 150}
+
+          // 🚀 Rendering behavior
+          recycleItems
+          removeClippedSubviews={false}
+          drawDistance={500}
+          windowSize={17}
+
+          // Batch tuning
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          showsVerticalScrollIndicator={false}
           data={sections}
           keyExtractor={(item, index) => `${item.id}-${index}`}
           renderItem={({ item }) => item.component}
-          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 110, marginTop: 10 }}
           ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
         />
-        {/* <App /> */}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

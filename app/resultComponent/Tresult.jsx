@@ -24,23 +24,22 @@ import RNBlobUtil from "react-native-blob-util";
 
 
 const Tresult = () => {
-  const { dataSearch } = useContext(SearchContext);
+  const { dataSearch, playlistDatas } = useContext(SearchContext);
   const [loading, setLoading] = useState(true);
   const [tdata, setTdata] = useState();
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
   const navigation = useNavigation();
-  const id = dataSearch;
+  const id = playlistDatas || dataSearch;
   const [showDownloadAnim, setShowDownloadAnim] = useState(false);
   const sheetRef = useRef(null);
   const sheet = useRef(null);
   const [lyrics, setLyrics] = useState();
   const [copied, setCopied] = useState(false);
-  const [songData, setSongData] = useState([]);
   const snapPoints = useMemo(() => ["100%"]);
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
-  const pendingTrackRef = useRef(null);
   console.log('dataSearch in Tresult', dataSearch);
   const currentSong = useActiveTrack();
+  const songId = currentSong?.id;
 
   const matchIds = async (id) => {
     try {
@@ -139,7 +138,7 @@ const Tresult = () => {
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
             title: 'Storage Permission',
-            message: 'Musify needs access to storage to save songs.',
+            message: 'lysernfy needs access to storage to save songs.',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',
@@ -243,7 +242,8 @@ const Tresult = () => {
                   className="rounded-xl mt-0"
                 />
                 <View className='flex-row items-center mt-5 justify-between '>
-                  <Text className="text-white font-bold text-2xl line-clamp-2 text-start ml-5 ">
+                  <Text className="text-white font-bold text-2xl line-clamp-2 text-start ml-5 "
+                    style={{ width: 280 }}>
                     {tdata?.name}
                   </Text>
                   <LottieView
@@ -259,113 +259,87 @@ const Tresult = () => {
                   data={tdata?.songs || tdata?.downloadUrl}
                   keyExtractor={song => song.id}
                   renderItem={({ item: song, index }) => (
-                    <View className="flex-row mt-5 ml-5 items-center justify-between pr-5 w-full">
-                      <TouchableOpacity onPress={() => handlePlay(song, index)}
-                        className="flex-1">
-                        <View className="flex-row items-center justify-between w-full">
-
-                          {/* Left Section: Image + Text */}
-                          <View className="flex-row items-center flex-1">
-                            {/* Song Image */}
-                            {tdata?.image?.[2]?.url ? (
-                              <Image
-                                source={{ uri: tdata.image[2].url }}
-                                className="rounded-xl w-14 h-14"
-                                resizeMode="cover"
-                              />
-                            ) : (
-                              <Image
-                                source={require("../assets/musicphoto.jpg")}
-                                className="rounded-xl w-14 h-14"
-                                resizeMode="cover"
-                              />
-                            )}
-                            {/* Space between image and text */}
-                            <View className="ml-3 flex-1">
-                              {/* Title + Playing Animation in a Row */}
-                              <View className="flex-row items-center">
-                                {/* Playing Animation: only shows for current song */}
-                                {currentSong?.id === song?.id && (
-                                  <LottieView
-                                    source={require("../assets/playing.json")}
-                                    style={{ width: 20, height: 18, marginRight: 6 }}
-                                    autoPlay
-                                    loop
-                                  />
-                                )}
-
-                                {/* Song Title */}
-                                <Text
-                                  style={{
-                                    color: currentSong?.id === song.id ? "limegreen" : "white",
-                                  }}
-                                  className="text-base font-normal"
-                                  numberOfLines={1}
-                                  ellipsizeMode="tail"
-                                >
-                                  {song?.name ? song?.name?.replace(/\s*\(.*?\)\s*/g, '') : 'Unknown'}
-                                </Text>
-                              </View>
-
-                              {/* Artist stays below the title */}
-                              <Text
-                                className="text-gray-500 text-sm font-medium mt-1"
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                              >
-                                {song?.artists?.primary[0]?.name ? song?.artists?.primary[0]?.name?.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
-                              </Text>
-                            </View>
-                          </View>
-                          {/* Right Section: Lottie + Play Button */}
-                          <View className="flex-row items-center">
-                            <View className="pr-1">
+                    <View style={{ paddingHorizontal: 14, paddingVertical: 4, }}>
+                      <TouchableOpacity onPress={() => handlePlay(song, index)} activeOpacity={0.8} style={styles.songCard}>
+                        <View style={styles.songLeft}>
+                          {tdata?.image?.[2]?.url ? (
+                            <Image
+                              source={{ uri: tdata.image[2].url }}
+                              className="rounded-xl w-14 h-14"
+                              resizeMode="cover"
+                              style={[styles.songImage, { borderColor: currentSong?.id === song?.id ? "#1DB954" : "transparent" }]}
+                            />
+                          ) : (
+                            <Image
+                              source={require("../assets/musicphoto.jpg")}
+                              className="rounded-xl w-14 h-14"
+                              resizeMode="cover"
+                              style={[styles.songImage, { borderColor: currentSong?.id === song?.id ? "#1DB954" : "transparent" }]}
+                            />
+                          )}
+                          <View style={styles.songText} >
+                            <View className="flex-row items-center">
+                              {/* Playing Animation: only shows for current song */}
                               {currentSong?.id === song?.id && (
                                 <LottieView
-                                  source={require("../assets/music.json")}
-                                  style={{ width: 60, height: 60 }}
+                                  source={require("../assets/playing.json")}
+                                  style={{ width: 20, height: 20, marginRight: 5 }}
                                   autoPlay
                                   loop
                                 />
                               )}
+
+                              {/* Song Title */}
+                              <Text
+                                style={[styles.songTitle, currentSong?.id === song?.id && { color: "#1DB954" }]}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                              >
+                                {song?.name ? song?.name?.replace(/\s*\(.*?\)\s*/g, '') : 'Unknown'}
+                              </Text>
                             </View>
-                            <View className="mr-3 w-12 h-12 bg-[#1DB954] rounded-full items-center justify-center shadow-lg">
-                              <FontAwesome
-                                name="play"
-                                size={20}
-                                color="black"
-                                style={{ marginLeft: 4 }}
-                              />
-                            </View>
-                            <View style={{ alignItems: 'flex-end', padding: 16 }}>
-                              <Menu>
-                                <MenuTrigger>
-                                  <Icon name="dots-three-vertical" size={24} color="white" />
-                                </MenuTrigger>
-                                <MenuOptions
-                                  customStyles={{
-                                    optionsContainer: {
-                                      padding: 10,
-                                      borderRadius: 8,
-                                      backgroundColor: '#1f1f1f',
-                                    },
-                                  }}
-                                >
-                                  <MenuOption onSelect={fetchLyrics}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                      <MaterialIcons name="lyrics" size={18} color="white" />
-                                      <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
-                                    </View>
-                                  </MenuOption>
-                                  <MenuOption onSelect={() => handleDownload(song.downloadUrl[4]?.url, `${song?.name}.mp3`)}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                      <FontAwesome6 name="download" size={18} color="white" />
-                                      <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
-                                    </View>
-                                  </MenuOption>
-                                </MenuOptions>
-                              </Menu>
-                            </View>
+                            <Text style={styles.artist} numberOfLines={1}>
+                              {song?.artists?.primary[0]?.name ? song?.artists?.primary[0]?.name?.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.songRight}>
+                          <View style={styles.playButton}>
+                            <FontAwesome
+                              name="play"
+                              size={20}
+                              color="black"
+                              style={{ marginLeft: 4 }}
+                            />
+                          </View>
+                          <View style={{ alignItems: 'flex-end', padding: 5, marginRight: -10 }}>
+                            <Menu>
+                              <MenuTrigger>
+                                <Icon name="dots-three-vertical" size={24} color="white" />
+                              </MenuTrigger>
+                              <MenuOptions
+                                customStyles={{
+                                  optionsContainer: {
+                                    padding: 10,
+                                    borderRadius: 8,
+                                    backgroundColor: '#1f1f1f',
+                                  },
+                                }}
+                              >
+                                <MenuOption onSelect={fetchLyrics}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                    <MaterialIcons name="lyrics" size={18} color="white" />
+                                    <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+                                  </View>
+                                </MenuOption>
+                                <MenuOption onSelect={() => handleDownload(song.downloadUrl[4]?.url, `${song?.name}.mp3`)}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                    <FontAwesome6 name="download" size={18} color="white" />
+                                    <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
+                                  </View>
+                                </MenuOption>
+                              </MenuOptions>
+                            </Menu>
                           </View>
                         </View>
                       </TouchableOpacity>
@@ -419,57 +393,68 @@ const Tresult = () => {
               <View style={styles.songContainer} >
                 <Image
                   source={{ uri: currentSong?.artwork }}
-                  style={styles.songImage}
+                  style={styles.songImagess}
                   className="rounded-xl"
                 />
-                <View style={styles.textContainer}>
-                  <Text
-                    style={[
-                      styles.songTitle,
-                      {
-                        maxWidth:
-                          currentSong?.id === currentSong?.id && currentSong?.title.length > 20 ? "80%" : "100%",
-                      },
-                    ]}
-                    numberOfLines={currentSong?.title.length > 25 ? 1 : undefined}
-                    ellipsizeMode={currentSong?.title.length > 25 ? "tail" : "clip"}
-                  >
-                    {currentSong?.title.replace(/\s*\(.*?\)\s*/g, '')}
-                  </Text>
-                  <Text style={styles.artist}>{currentSong?.artist?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                  <View style={styles.icons}>
-                    <View style={{ alignItems: 'flex-end', padding: 16 }}>
-                      <Menu>
-                        <MenuTrigger>
-                          <Icon name="dots-three-vertical" size={24} color="white" />
-                        </MenuTrigger>
-                        <MenuOptions
-                          customStyles={{
-                            optionsContainer: {
-                              padding: 10,
-                              borderRadius: 8,
-                              backgroundColor: '#1f1f1f',
-                            },
-                          }}
-                        >
-                          <MenuOption onSelect={fetchLyrics}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                              <MaterialIcons name="lyrics" size={18} color="white" />
-                              <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
-                            </View>
-                          </MenuOption>
-                          <MenuOption onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                              <FontAwesome6 name="download" size={18} color="white" />
-                              <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
-                            </View>
-                          </MenuOption>
-                        </MenuOptions>
-                      </Menu>
+                <View
+                  style={{
+                    marginTop: 35,
+                    paddingVertical: 15,
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderRadius: 20,
+                    marginHorizontal: 16,
+                    alignSelf: 'stretch',
+                  }}
+                >
+                  <View style={styles.textContainer}>
+                    <Text
+                      style={[
+                        styles.songTitless,
+                        {
+                          maxWidth:
+                            currentSong?.id === currentSong?.id && currentSong?.title.length > 20 ? "80%" : "100%",
+                        },
+                      ]}
+                      numberOfLines={currentSong?.title.length > 25 ? 1 : undefined}
+                      ellipsizeMode={currentSong?.title.length > 25 ? "tail" : "clip"}
+                    >
+                      {currentSong?.title.replace(/\s*\(.*?\)\s*/g, '')}
+                    </Text>
+                    <Text style={styles.artistss}>{currentSong?.artist?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                    <View style={styles.icons}>
+                      <View style={{ alignItems: 'flex-end', padding: 0 }}>
+                        <Menu>
+                          <MenuTrigger>
+                            <Icon name="dots-three-vertical" size={24} color="white" />
+                          </MenuTrigger>
+                          <MenuOptions
+                            customStyles={{
+                              optionsContainer: {
+                                padding: 10,
+                                borderRadius: 8,
+                                backgroundColor: '#1f1f1f',
+                              },
+                            }}
+                          >
+                            <MenuOption onSelect={fetchLyrics}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                <MaterialIcons name="lyrics" size={18} color="white" />
+                                <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+                              </View>
+                            </MenuOption>
+                            <MenuOption onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                <FontAwesome6 name="download" size={18} color="white" />
+                                <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
+                              </View>
+                            </MenuOption>
+                          </MenuOptions>
+                        </Menu>
+                      </View>
                     </View>
                   </View>
+                  <Music />
                 </View>
-                <Music />
               </View>
             </BottomSheet>
             <BottomSheet
@@ -539,6 +524,35 @@ const Tresult = () => {
 export default Tresult;
 
 const styles = StyleSheet.create({
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1DB954',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  // Song item
+  songCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
+  songText: { flex: 1 },
+  songTitle: { fontSize: 16, fontWeight: '600', color: 'white' },
+  artist: { fontSize: 12, color: 'gray', marginTop: 4 },
+  songRight: { flexDirection: 'row', alignItems: 'center' },
   songImagee: {
     width: 290,
     height: 290,
@@ -567,24 +581,25 @@ const styles = StyleSheet.create({
   textContainer: {
     alignSelf: 'flex-start',
     paddingLeft: 30,
-    marginTop: 35,
+    marginTop: 10,
   },
-  songImage: {
-    width: 290,
-    height: 290,
+  songImagess: {
+    width: 300,
+    height: 300,
   },
-  songTitle: {
-    fontSize: 25,
+  songTitless: {
+    fontSize: 22,
     fontWeight: '700',
     color: 'white',
     marginTop: 10,
+    width: 300,
   },
   album: {
     fontSize: 16,
     color: 'grey',
     marginTop: 5,
   },
-  artist: {
+  artistss: {
     fontSize: 14,
     color: 'grey',
     marginTop: 5,

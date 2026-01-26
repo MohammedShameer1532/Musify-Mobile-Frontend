@@ -57,6 +57,7 @@ const Suggestion = () => {
     <View>
       <Text className="text-2xl font-bold text-white ml-5 mt-5">For you</Text>
       <FlatList
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
         horizontal
         data={suggestion}

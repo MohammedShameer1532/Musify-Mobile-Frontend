@@ -143,7 +143,7 @@ const Artist = () => {
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
             title: 'Storage Permission',
-            message: 'Musify needs access to storage to save songs.',
+            message: 'lysernfy needs access to storage to save songs.',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',

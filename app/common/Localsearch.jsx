@@ -1,34 +1,60 @@
 import { StyleSheet, TextInput, View, TouchableOpacity } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import debounce from 'lodash.debounce';
 
 const Localsearch = ({ audioFiles, setFilteredFiles }) => {
   const [search, setSearch] = useState('');
 
+  // debounce filter function (for typing)
+  const debouncedFilter = useMemo(
+    () =>
+      debounce((text) => {
+        const filtered = audioFiles.filter(
+          (song) =>
+            song.title.toLowerCase().includes(text.toLowerCase()) ||
+            song.artist.toLowerCase().includes(text.toLowerCase())
+        );
+        setFilteredFiles(filtered);
+      }, 200),
+    [audioFiles]
+  );
+
+  // handle search updates
   useEffect(() => {
     if (search === '') {
+      // ✅ clear immediately without debounce
       setFilteredFiles(audioFiles);
+      debouncedFilter.cancel(); // cancel any pending debounce
     } else {
-      const filtered = audioFiles.filter(song =>
-        song.title.toLowerCase().includes(search.toLowerCase()) ||
-        song.artist.toLowerCase().includes(search.toLowerCase())
-      );
-      setFilteredFiles(filtered);
+      debouncedFilter(search);
     }
-  }, [search, audioFiles]);
+
+    return () => debouncedFilter.cancel();
+  }, [search, audioFiles, debouncedFilter]);
+
+  // instant clear function
+  const handleClear = () => {
+    setSearch('');
+    setFilteredFiles(audioFiles); // immediately show full list
+    debouncedFilter.cancel();
+  };
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.inputContainer}>
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={20} color="gray" />
         <TextInput
           style={styles.input}
-          placeholder="Search by title or artist"
+          placeholder="Search songs, albums, artists..."
           placeholderTextColor="gray"
           value={search}
+          autoCorrect={true}
+          autoComplete="off"
           onChangeText={setSearch}
         />
         {search.length > 0 && (
-          <TouchableOpacity style={styles.clearIcon} onPress={() => setSearch('')}>
+          <TouchableOpacity style={styles.clearIcon} onPress={handleClear}>
             <Ionicons name="close-circle" size={22} color="gray" />
           </TouchableOpacity>
         )}
@@ -44,20 +70,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  inputContainer: {
-    width: '80%',
-    position: 'relative',
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    marginHorizontal: 10,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    width: '90%',
   },
   input: {
-    backgroundColor: '#1f1f1f',
+    flex: 1,
     color: 'white',
+    marginLeft: 8,
     fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#444',
-    paddingRight: 40,
   },
   clearIcon: {
     position: 'absolute',

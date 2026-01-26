@@ -1,5 +1,5 @@
-import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, PermissionsAndroid, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchContext } from '../contextProvider/searchContext';
 import axios from 'axios';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,11 +9,23 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
-
+import { LegendList } from '@legendapp/list';
+import TrackPlayer, { useActiveTrack } from 'react-native-track-player';
+import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import AverageColorExtractor from '../common/AverageColorExtractor';
+import LottieView from 'lottie-react-native';
+import Entypo from "react-native-vector-icons/Entypo";
+import MaterialDesignIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from 'react-native-vector-icons/Entypo';
+import Clipboard from '@react-native-clipboard/clipboard';
+import RNBlobUtil from "react-native-blob-util";
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Music from '../common/Music';
 
 
 const Tartist = () => {
-  const { dataSearch, setTokens } = useContext(SearchContext);
+  const { dataSearch, setTokens, setPlaylistDatas } = useContext(SearchContext);
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
@@ -23,11 +35,28 @@ const Tartist = () => {
   const [artistToken, setArtistToken] = useState(null);
   const id = dataSearch;
   const [topSongs, setTopSongs] = useState([]);
+  const sheetRef = useRef(null);
+  const currentSong = useActiveTrack();
+  const songId = currentSong?.id;
+  const [songData, setSongData] = useState([]);
+  const [showDownloadAnim, setShowDownloadAnim] = useState(false);
+  const sheet = useRef(null);
+  const snapPoints = useMemo(() => ["100%"]);
+  const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
+  const [lyrics, setLyrics] = useState();
+  const [copied, setCopied] = useState(false);
+  const [backgroundColors, setBackgroundColors] = useState("rgb(30, 30, 30)");
+  const [artistLoading, setArtistLoading] = useState(true);
+  const [albumsLoading, setAlbumsLoading] = useState(false);
+  console.log('id', id);
+
+
+
 
   useEffect(() => {
     const fetchArtist = async () => {
       try {
-        setLoading(true);
+        setArtistLoading(true);
         const res = await axios.get(
           `https://www.jiosaavn.com/api.php?__call=artist.getArtistPageDetails&artistId=${id}&type=songs&n_song=50&category=&sort_order=&ctx=wap6dot0&api_version=4&_format=json&_marker=0`
         );
@@ -45,12 +74,10 @@ const Tartist = () => {
 
           setArtistToken(extractedToken);
         }
-
-        setTimeout(() => {
-          setLoading(false);
-        }, 400);
       } catch (error) {
         console.error('Error fetching artist:', error);
+      } finally {
+        setArtistLoading(false);
       }
     };
 
@@ -58,32 +85,101 @@ const Tartist = () => {
   }, [id]);
 
 
-  const fetchAlbumPage = async () => {
+  const fetchAlbumPage = useCallback(async (page = 0) => {
     if (!artistToken) return;
 
     try {
-      setLoading(true);
+      setAlbumsLoading(true);
 
       const res = await axios.get(
-        `https://www.jiosaavn.com/api.php?__call=webapi.get&token=${artistToken}&type=artist&p=0&n_song=50&n_album=50&ctx=wap6dot0&api_version=4&_format=json&_marker=0`
+        `https://www.jiosaavn.com/api.php?__call=webapi.get&token=${artistToken}&type=artist&p=${page}&n_song=50&n_album=50&ctx=wap6dot0&api_version=4&_format=json&_marker=0`
       );
 
       setTopSongs(res?.data?.topSongs || []);
       setAlbumData(res?.data);
-      setLoading(false);
     } catch (err) {
       console.error(err);
-      setLoading(false);
+    } finally {
+      setAlbumsLoading(false); // ⚠️ fix: was true
     }
-  };
-
+  }, [artistToken]);
 
 
   useEffect(() => {
     if (artistToken) {
-      fetchAlbumPage(0); // fetch first page
+      fetchAlbumPage(0);
     }
-  }, [artistToken]);
+  }, [artistToken, fetchAlbumPage]);
+
+
+
+
+  const preloadAllSongs = async () => {
+    try {
+      const ids = topSongs.map(item => item?.id).join(",");
+      const res = await axios.get(
+        `https://musify-api-inky.vercel.app/api/songs?ids=${ids}`
+      );
+
+      const apiSongs = res.data.data;
+      setSongData(apiSongs);
+
+      console.log("🔥 All songs preloaded", apiSongs);
+    } catch (e) {
+      console.log("Preload error:", e);
+    }
+  };
+
+
+  useEffect(() => {
+    if (topSongs?.length > 0) {
+      preloadAllSongs();
+    }
+  }, [topSongs]);
+
+
+
+  const handlePlay = useCallback(async (song, index) => {
+    if (!song?.id) return;
+
+    if (currentSong?.id === song?.id) {
+      sheetRef.current?.snapToIndex(0);
+      return;
+    }
+
+    try {
+      const ids = topSongs.map(item => item?.id).join(",");
+      const res = await axios.get(
+        `https://musify-api-inky.vercel.app/api/songs?ids=${ids}`
+      );
+
+      const songs = res.data.data;
+      if (!songs) return;
+
+      await TrackPlayer.reset();
+
+      const orderedQueue = [
+        songs[index],
+        ...songs.slice(index + 1),
+        ...songs.slice(0, index),
+      ].map(s => ({
+        id: s?.id,
+        title: s?.name,
+        url: s?.downloadUrl[4]?.url,
+        artwork: s?.image[2]?.url,
+        artist: s.artists?.primary[0]?.name,
+      }));
+
+      await TrackPlayer.add(orderedQueue);
+      await TrackPlayer.play();
+      setTimeout(() => {
+        sheetRef.current?.snapToIndex(0);
+      }, 10);
+    } catch (error) {
+      console.log('handlePlay error:', error);
+    }
+  }, [topSongs, currentSong?.id]);
+
 
 
   const getHighResImage = (image) => {
@@ -109,87 +205,492 @@ const Tartist = () => {
   };
 
 
-  const sections = [
-    { title: 'Dedicated Playlists', data: artist?.dedicated_artist_playlist },
-    { title: 'Featured Playlists', data: artist?.featured_artist_playlist },
-    { title: 'Top Albums', data: albumData?.topAlbums },
-    { title: 'Singles', data: artist?.singles },
-    { title: 'Latest Release', data: artist?.latest_release },
-  ].filter(section => section.data?.length > 0);
+  const handleDownload = async (url, fileName) => {
+    try {
+      if (!url) {
+        Alert.alert("Error", "No download URL available");
+        return;
+      }
 
-  const HorizontalList = React.memo(({ title, data }) => (
-    <View>
-      <Text className="text-2xl font-bold text-white ml-5 mt-10 ">
-        {title}
-      </Text>
-      <FlatList
-        horizontal
-        data={data}
-        keyExtractor={item => item.id}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10 }}
-        ItemSeparatorComponent={() => <View style={{ width: 25 }} />}
-        renderItem={({ item }) => (
-          <TouchableOpacity>
-            <View className="gap-2">
-              <Image
-                source={{ uri: getHighResImage(item?.image) }}
-                style={styles.decImages}
-                className="rounded-xl"
-              />
-              <Text
-                style={{ color: 'white', fontSize: 12, width: 110 }}
-                numberOfLines={2}
-              >
-                {item?.title?.replace(/\s*\(.*?\)\s*/g, '')}
-              </Text>
+      // Request permission for Android < 13
+      if (Platform.OS === 'android' && Platform.Version < 33) {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'lysernfy needs access to storage to save songs.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission denied', 'Cannot download without storage permission');
+          return;
+        }
+      }
+
+      const filePath = `/storage/emulated/0/Download/${fileName || 'Song.mp3'}`;
+
+      RNBlobUtil.config({
+        path: filePath,
+        fileCache: true,
+        addAndroidDownloads: {
+          notification: true,
+          title: fileName || "Song",
+          description: "Downloading music file...",
+          mime: "audio/mpeg",
+          mediaScannable: true,
+        },
+      })
+        .fetch("GET", url)
+        .then((res) => {
+          console.log("✅ Saved to:", res.path());
+          Alert.alert("Download Complete", "Saved in Downloads folder.");
+          RNBlobUtil.fs.scanFile([{ path: res.path(), mime: "audio/mpeg" }]);
+        })
+        .catch((err) => {
+          console.error("Download error:", err);
+          Alert.alert("Error", "Download failed.");
+        });
+    } catch (error) {
+      console.error("Download error:", error);
+      Alert.alert("Error", "Something went wrong");
+    }
+  };
+
+
+  const fetchLyrics = async () => {
+    try {
+      const res = await axios.get(`https://jiosaavn-api.vercel.app/lyrics?id=${songId}`);
+      const cleanLyrics = res?.data?.lyrics.replace(/<br\s*\/?>/gi, "\n"); // convert <br> to \n
+      setLyrics(cleanLyrics);
+      sheet.current?.snapToIndex(0);
+      console.log("lyriii", cleanLyrics);
+
+    } catch (error) {
+      console.log(error);
+      sheet.current?.snapToIndex(0);
+      setLyrics("Failed to load lyrics");
+
+    }
+  };
+
+
+  const handleCopy = () => {
+    Clipboard.setString(lyrics || "");
+    setCopied(true);
+
+    // Reset back to copy icon after 2 sec
+    setTimeout(() => setCopied(false), 1000);
+  };
+
+
+
+
+
+  const GradientBackground = ({ style }: BottomSheetBackgroundProps) => (
+    <LinearGradient
+      colors={[backgroundColors, "#000"]}
+      style={[style, { borderRadius: 0 }]} // keep BottomSheet’s rounded corners
+    />
+  );
+
+  const SCREEN_DATA = [{ id: 'screen-root' }];
+
+
+  return (
+    <MenuProvider>
+      <GestureHandlerRootView style={styles.container}>
+        <LinearGradient colors={[backgroundColor, "#000"]} style={styles.background}>
+          <SafeAreaView style={styles.safeArea} className="flex-1 ">
+            <View>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 35 }} className='w-10 mt-5'>
+                <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} className="ml-2" />
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-  ));
+            {artistLoading ? (
+              <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
+            ) : (
+              <View >
+                <LegendList
+                  data={SCREEN_DATA}
+                  renderItem={null}
+                  keyExtractor={item => item.title}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 100 }}
+                  initialNumToRender={3}           // only render first 3 items initially
+                  maxToRenderPerBatch={5}          // render in small batches
+                  windowSize={5}                    // keep window size small
+                  removeClippedSubviews={true}
+                  maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+                  ListHeaderComponent={
+                    <View>
+                      {/* Artist Image */}
+                      <View style={{ position: 'relative', alignSelf: 'center' }}>
+                        <Image
+                          source={{ uri: getHighResImage(image) }}
+                          style={styles.songImagee}
+                          className="rounded-xl"
+                        />
+                        <Text
+                          style={{
+                            position: 'absolute',
+                            bottom: 10,
+                            left: 10,
+                            color: 'white',
+                            fontSize: 24,
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {albumData?.name || artist?.name}
+                        </Text>
+                      </View>
+
+                      {/* TOP SONGS */}
+                      {topSongs?.length > 0 && (
+                        <Topsongs
+                          topSongs={topSongs}
+                          handlePlay={handlePlay}
+                          getHighResImage={getHighResImage}
+                          artistToken={artistToken}
+                          setTokens={setTokens}
+                          navigation={navigation}
+                          image={image}
+                          currentSongId={currentSong?.id}
+                        />
+                      )}
+
+                      {/* DEDICATED PLAYLISTS */}
+                      {artist?.dedicated_artist_playlist?.length > 0 && (
+                        <DedicatedPlaylists
+                          dedicatedData={artist.dedicated_artist_playlist}
+                          getHighResImage={getHighResImage}
+                          setPlaylistDatas={setPlaylistDatas}
+                          navigation={navigation}
+                        />
+                      )}
+
+                      {albumData?.topAlbums?.length > 0 && (
+                        <FeaturedPlaylists
+                          Featuredata={artist?.featured_artist_playlist}
+                          getHighResImage={getHighResImage}
+                          setPlaylistDatas={setPlaylistDatas}
+                          navigation={navigation}
+                        />
+                      )}
+
+                      {albumData?.topAlbums?.length > 0 && (
+                        <TopAlbums
+                          albumData={albumData?.topAlbums}
+                          getHighResImage={getHighResImage}
+                          setPlaylistDatas={setPlaylistDatas}
+                          navigation={navigation}
+                        />
+                      )}
+                      {artist?.singles?.length > 0 && (
+                        <Singles
+                          singlesdata={artist?.singles}
+                          getHighResImage={getHighResImage}
+                          setPlaylistDatas={setPlaylistDatas}
+                          navigation={navigation}
+                        />
+                      )}
+
+                      {artist?.latest_release?.length > 0 && (
+                        <LatestRelease
+                          latestdata={artist?.latest_release}
+                          getHighResImage={getHighResImage}
+                          setPlaylistDatas={setPlaylistDatas}
+                          navigation={navigation}
+                        />
+
+                      )}
+
+                    </View>
+
+                  }
+                />
+              </View>
+            )}
+            {showDownloadAnim && (
+              <View style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.6)",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
+              }}>
+                <LottieView
+                  source={require("../assets/Download.json")}
+                  style={{ width: 150, height: 150 }}
+                  autoPlay
+                  loop={false} // play once
+                  onAnimationFinish={() => setShowDownloadAnim(false)}
+                />
+                <Text style={{ color: "white", marginTop: 10, fontSize: 16 }}>
+                  Download Complete 🎵
+                </Text>
+              </View>
+            )}
+
+            <BottomSheet
+              ref={sheetRef}
+              index={-1}
+              snapPoints={snapPoints}
+              enableDynamicSizing={false}
+              enablePanDownToClose={true}
+              handleIndicatorStyle={{
+                backgroundColor: 'grey',
+                width: 45,
+                height: 5,
+                borderRadius: 2,
+              }}
+              backgroundComponent={GradientBackground}
+            >
+              <TouchableOpacity onPress={() => sheetRef.current?.close()} style={{ width: 50 }} className='w-10 mt-0 ml-5'>
+                <Entypo name="chevron-thin-down" size={30} color="white" style={styles.backIcon} className="ml-5" />
+              </TouchableOpacity>
+              {currentSong?.artwork && (
+                <AverageColorExtractor
+                  key={currentSong?.id}
+                  imageUrl={currentSong.artwork}
+                  onColorExtracted={(color) => {
+                    if (color) setBackgroundColors(color);
+                    console.log('backgroundcolor', backgroundColors);
+
+                  }}
+                />
+              )}
+              <View style={styles.songContainer}>
+                {currentSong?.artwork ? (
+                  <Image
+                    source={{ uri: currentSong.artwork }}
+                    style={styles.songImage}
+                    className="rounded-xl"
+                  />
+                ) : (
+                  <View style={[styles.songImage, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ color: 'white' }}>No Image</Text>
+                  </View>
+                )}
+                <View
+                  style={{
+                    marginTop: 35,
+                    paddingVertical: 15,
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderRadius: 20,
+                    marginHorizontal: 16,
+                    alignSelf: 'stretch',
+                  }}
+                >
+                  <View style={styles.textContainer}>
+                    <Text style={styles.songTitle}>{currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                    <Text style={styles.artist}>{currentSong?.artist?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                    <View style={styles.icons}>
+                      <View style={{ alignItems: 'flex-end', padding: 0 }}>
+                        <Menu>
+                          <MenuTrigger>
+                            <Icon name="dots-three-vertical" size={24} color="white" />
+                          </MenuTrigger>
+                          <MenuOptions
+                            customStyles={{
+                              optionsContainer: {
+                                padding: 10,
+                                borderRadius: 8,
+                                backgroundColor: '#1f1f1f',
+                              },
+                            }}
+                          >
+                            <MenuOption onSelect={fetchLyrics}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                <MaterialIcons name="lyrics" size={18} color="white" />
+                                <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+                              </View>
+                            </MenuOption>
+                            <MenuOption onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                <FontAwesome6 name="download" size={18} color="white" />
+                                <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
+                              </View>
+                            </MenuOption>
+                          </MenuOptions>
+                        </Menu>
+                      </View>
+                    </View>
+                  </View>
+                  <Music />
+                </View>
+              </View>
+            </BottomSheet>
+            <BottomSheet
+              ref={sheet}
+              index={-1}
+              snapPoints={lyricsSnapPoints}
+              enableDynamicSizing={false}
+              enablePanDownToClose={true}
+              handleIndicatorStyle={{
+                backgroundColor: 'grey',
+                width: 45,
+                height: 5,
+                borderRadius: 2,
+              }}
+              backgroundStyle={{ backgroundColor: '#000' }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  marginLeft: 10,
+                  marginTop: 5.5,
+                  marginBottom: 20,
+                  fontWeight: "bold",
+                  color: "grey",
+                }}
+              >
+                Lyrics 🎶
+              </Text>
+              <TouchableOpacity style={styles.clearIcon} onPress={() => sheet.current?.close()}>
+                <Ionicons name="close-circle" size={25} color="gray" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ position: "absolute", right: 50, top: "2%" }}
+                onPress={handleCopy}
+              >
+                {copied ? (
+                  <Ionicons name="checkbox-outline" size={25} color="grey" />
+                ) : (
+                  <MaterialDesignIcons name="clipboard-text-multiple" size={25} color="grey" />
+                )}
+              </TouchableOpacity>
+              <BottomSheetScrollView
+                contentContainerStyle={{ padding: 16 }}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 14,
+                    textAlign: "center",   // centers text horizontally
+                    lineHeight: 22,
+                    marginBottom: 80,     // better readability
+                  }}
+                >
+                  {lyrics}
+                  -----
+                </Text>
+              </BottomSheetScrollView>
+            </BottomSheet>
+          </SafeAreaView>
+        </LinearGradient>
+      </GestureHandlerRootView>
+    </MenuProvider>
+  )
+}
+
+export default Tartist;
 
 
-  const Topsongs = React.memo(() => {
-    const handleSeeAll = () => {
-      setTokens({ token: artistToken, image: image });
-      navigation.navigate('Artistsongs');
-    };
 
 
-    return (
-      <View className='mt-4'>
-        <TouchableOpacity activeOpacity={0.8}
-          onPress={handleSeeAll}>
-          <View className='flex flex-row justify-between items-center  mt-10 pr-5'>
-            <Text className="text-2xl font-bold text-white ml-5 ">
+const Topsongs = React.memo(({ topSongs, getHighResImage, handlePlay, artistToken, setTokens, navigation, image, currentSongId }) => {
+  const handleSeeAll = () => {
+    setTokens({ token: artistToken, image: image });
+    navigation.navigate('Artistsongs');
+  };
+  return (
+    <View className='flex mt-5'>
+      <View
+        style={{
+          borderRadius: 14,
+          overflow: 'hidden',
+        }}
+      >
+        <Pressable
+          onPress={handleSeeAll}
+          android_ripple={{
+            color: 'rgba(255,255,255,0.15)',
+            borderless: false,
+          }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: '#000',
+
+
+            // iOS fallback (pressed-in feel)
+            ...(Platform.OS === 'ios' && {
+              transform: [{ scale: pressed ? 0.97 : 1 }],
+              opacity: pressed ? 0.9 : 1,
+            }),
+          })}
+        >
+          <View className='flex flex-row justify-between items-center   pr-5'>
+            <Text className="text-2xl font-bold text-white ml-5 " style={{
+              color: 'white', fontSize: 22, fontWeight: 'bold',
+              paddingVertical: 6,
+            }}>
               Top Songs
             </Text>
             <MaterialCommunityIcons name="chevron-down-box" size={25} color="white" />
           </View>
-        </TouchableOpacity>
-        <FlatList
+        </Pressable>
+      </View >
+      <View style={{ height: 170 }}>
+        <LegendList
           horizontal
+          recycleItems
           data={topSongs}
+          extraData={currentSongId}
           keyExtractor={item => item.id}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10 }}
+          contentContainerStyle={{ paddingHorizontal: 20 }}
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
           ItemSeparatorComponent={() => <View style={{ width: 25 }} />}
-          renderItem={({ item }) => (
-            <TouchableOpacity>
-              <View className="gap-2">
+          estimatedItemSize={160}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity onPress={() => handlePlay(item, index)} >
+              <View className="gap-2 mt-4 " >
                 <Image
                   source={{ uri: getHighResImage(item?.image) }}
-                  style={styles.decImages}
+                  style={{
+                    width: 120,
+                    height: 120,
+                    resizeMode: 'cover',
+                    borderRadius: 12,
+                  }}
                   className="rounded-xl"
                 />
-                <Text
-                  style={{ color: 'white', fontSize: 12, width: 110 }}
-                  numberOfLines={2}
-                >
-                  {item?.title?.replace(/\s*\(.*?\)\s*/g, '')}
-                </Text>
+                <View className="flex-row items-center">
+                  {/* Playing Animation: only shows for current song */}
+                  {currentSongId === item?.id && (
+                    <LottieView
+                      source={require("../assets/playing.json")}
+                      style={{ width: 20, height: 18, marginRight: 6 }}
+                      autoPlay
+                      loop
+                    />
+                  )}
+
+                  {/* Song Title */}
+                  <Text
+                    style={{
+                      color: currentSongId === item?.id ? "limegreen" : "white",
+                      fontSize: 12,
+                      lineHeight: 16,
+                      width: 100,
+                      marginTop: 6,
+                    }}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {item?.title ? item?.title?.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
           )}
@@ -207,78 +708,250 @@ const Tartist = () => {
             </TouchableOpacity>
           } />
       </View>
-    );
-  });
+    </View >
+  );
+});
 
 
+
+
+const DedicatedPlaylists = React.memo(({ getHighResImage, setPlaylistDatas, navigation, dedicatedData }) => {
+  const handlePlaylist = (item) => {
+    setPlaylistDatas(item.id);
+    navigation.navigate('Playlist');
+  };
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <LinearGradient colors={[backgroundColor, "#000"]} style={styles.background}>
-        <SafeAreaView style={styles.safeArea} className="flex-1 ">
-          <View>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 35 }} className='w-10 mt-5'>
-              <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} className="ml-2" />
-            </TouchableOpacity>
-          </View>
-          {loading ? (
-            <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
-          ) : (
-            <View >
-              <FlatList
-                data={sections}
-                keyExtractor={item => item.title}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 80 }}
-                initialNumToRender={3}           // only render first 3 items initially
-                maxToRenderPerBatch={5}          // render in small batches
-                windowSize={5}                    // keep window size small
-                removeClippedSubviews={true}
-                renderItem={({ item }) => (
-                  <HorizontalList title={item.title} data={item.data} />
-                )}
-                ListHeaderComponent={
-                  <View>
-                    <View style={{ position: 'relative', alignSelf: 'center' }}>
-                      <Image
-                        source={{ uri: getHighResImage(image) }}
-                        style={styles.songImagee}
-                        className="rounded-xl"
-                      />
-                      <Text
-                        style={{
-                          position: 'absolute',      // makes it overlay the image
-                          bottom: 10,                // distance from bottom
-                          left: 10,                  // distance from left
-                          color: 'white',
-                          fontSize: 24,
-                          fontWeight: 'bold',
-                          textShadowColor: 'rgba(0,0,0,0.7)', // optional shadow for readability
-                          textShadowOffset: { width: 1, height: 1 },
-                          textShadowRadius: 5,
-                        }}
-                      >
-                        {albumData?.name || artist?.name}
-                      </Text>
-                    </View>
-                    <Topsongs />
-                  </View>
-                }
+    <View className='flex '>
+      <View className='flex flex-row justify-between items-center  mt-10 pr-5'>
+        <Text className="text-2xl font-bold text-white ml-5 ">
+          Dedicated Playlists
+        </Text>
+      </View>
+      <LegendList
+        horizontal={true}
+        recycleItems
+        data={dedicatedData}
+        estimatedItemSize={130}
+        keyExtractor={item => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+        ItemSeparatorComponent={() => <View style={{ width: 25 }} />}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => handlePlaylist(item)}>
+            <View className="gap-2 mt-5">
+              <Image
+                source={{ uri: getHighResImage(item?.image) }}
+                style={styles.decImages}
+                className="rounded-xl"
               />
+              <Text
+                style={{ color: 'white', fontSize: 12, width: 120 }}
+                numberOfLines={3}
+              >
+                {item?.title?.replace(/\s*\(.*?\)\s*/g, '')}
+              </Text>
             </View>
-          )}
-        </SafeAreaView>
-      </LinearGradient>
-    </GestureHandlerRootView>
-  )
-}
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+});
 
-export default Tartist;
+
+
+const FeaturedPlaylists = React.memo(({ getHighResImage, setPlaylistDatas, navigation, Featuredata }) => {
+  const handlePlaylist = (item) => {
+    setPlaylistDatas(item.id);
+    navigation.navigate('Playlist');
+  };
+  return (
+    <View className='flex '>
+      <View className='flex flex-row justify-between items-center  mt-10 pr-5'>
+        <Text className="text-2xl font-bold text-white ml-5 ">
+          Featured Playlists
+        </Text>
+      </View>
+      <LegendList
+        horizontal={true}
+        recycleItems
+        data={Featuredata}
+        estimatedItemSize={130}
+        keyExtractor={item => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+        ItemSeparatorComponent={() => <View style={{ width: 25 }} />}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => handlePlaylist(item)}>
+            <View className="gap-2 mt-5">
+              <Image
+                source={{ uri: getHighResImage(item?.image) }}
+                style={styles.decImages}
+                className="rounded-xl"
+              />
+              <Text
+                style={{ color: 'white', fontSize: 12, width: 120 }}
+                numberOfLines={3}
+              >
+                {item?.title?.replace(/\s*\(.*?\)\s*/g, '')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+});
+
+
+
+
+const TopAlbums = React.memo(({ getHighResImage, setPlaylistDatas, navigation, albumData }) => {
+  const handlePlaylist = (item) => {
+    setPlaylistDatas(item.id);
+    navigation.navigate('Tresult');
+  };
+  return (
+    <View className='flex '>
+      <View className='flex flex-row justify-between items-center  mt-10 pr-5'>
+        <Text className="text-2xl font-bold text-white ml-5 ">
+          Top Albums
+        </Text>
+      </View>
+      <LegendList
+        horizontal={true}
+        recycleItems
+        data={albumData}
+        estimatedItemSize={130}
+        keyExtractor={item => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+        ItemSeparatorComponent={() => <View style={{ width: 25 }} />}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => handlePlaylist(item)}>
+            <View className="gap-2 mt-5">
+              <Image
+                source={{ uri: getHighResImage(item?.image) }}
+                style={styles.decImages}
+                className="rounded-xl"
+              />
+              <Text
+                style={{ color: 'white', fontSize: 12, width: 120 }}
+                numberOfLines={3}
+              >
+                {item?.title?.replace(/\s*\(.*?\)\s*/g, '')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+});
+
+
+
+const Singles = React.memo(({ getHighResImage, setPlaylistDatas, navigation, singlesdata }) => {
+  const handlePlaylist = (item) => {
+    setPlaylistDatas(item.id);
+    navigation.navigate('Tresult');
+  };
+  return (
+    <View className='flex '>
+      <View className='flex flex-row justify-between items-center  mt-10 pr-5'>
+        <Text className="text-2xl font-bold text-white ml-5 ">
+          Singles
+        </Text>
+      </View>
+      <LegendList
+        horizontal={true}
+        recycleItems
+        data={singlesdata}
+        estimatedItemSize={130}
+        keyExtractor={item => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+        ItemSeparatorComponent={() => <View style={{ width: 25 }} />}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => handlePlaylist(item)}>
+            <View className="gap-2 mt-5">
+              <Image
+                source={{ uri: getHighResImage(item?.image) }}
+                style={styles.decImages}
+                className="rounded-xl"
+              />
+              <Text
+                style={{ color: 'white', fontSize: 12, width: 120 }}
+                numberOfLines={3}
+              >
+                {item?.title?.replace(/\s*\(.*?\)\s*/g, '')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+});
+
+
+
+
+
+const LatestRelease = React.memo(({ getHighResImage, setPlaylistDatas, navigation, latestdata }) => {
+  const handlePlaylist = (item) => {
+    setPlaylistDatas(item.id);
+    navigation.navigate('Tresult');
+  };
+  return (
+    <View className='flex '>
+      <View className='flex flex-row justify-between items-center  mt-10 pr-5'>
+        <Text className="text-2xl font-bold text-white ml-5 ">
+          Latest Release
+        </Text>
+      </View>
+      <LegendList
+        horizontal={true}
+        recycleItems
+        data={latestdata}
+        estimatedItemSize={130}
+        keyExtractor={item => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+        ItemSeparatorComponent={() => <View style={{ width: 25 }} />}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => handlePlaylist(item)}>
+            <View className="gap-2 mt-5">
+              <Image
+                source={{ uri: getHighResImage(item?.image) }}
+                style={styles.decImages}
+                className="rounded-xl"
+              />
+              <Text
+                style={{ color: 'white', fontSize: 12, width: 120 }}
+                numberOfLines={3}
+              >
+                {item?.title?.replace(/\s*\(.*?\)\s*/g, '')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+});
+
 
 
 const styles = StyleSheet.create({
   decImages: {
     width: 120,
     height: 120,
+    resizeMode: 'cover'
 
   },
   songImagee: {
@@ -309,11 +982,11 @@ const styles = StyleSheet.create({
   textContainer: {
     alignSelf: 'flex-start',
     paddingLeft: 30,
-    marginTop: 35,
+    marginTop: 10,
   },
   songImage: {
-    width: 290,
-    height: 290,
+    width: 300,
+    height: 300,
   },
   songTitle: {
     flexShrink: 1,

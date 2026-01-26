@@ -1,11 +1,9 @@
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { SearchContext } from '../contextProvider/searchContext';
 import axios from 'axios';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import debounce from 'lodash.debounce';
-
 
 const Navbar = () => {
   const [search, setSearch] = useState('');
@@ -13,12 +11,11 @@ const Navbar = () => {
   const navigation = useNavigation();
   const { setGlobalSearch } = useContext(SearchContext);
 
-  // Debounced search function
+  // Actual search function
   const fetchSearch = async (query) => {
     if (!query.trim()) return;
 
     try {
-      // Call both endpoints simultaneously
       const [songRes, playlistRes] = await Promise.all([
         axios.get(`https://musify-api-inky.vercel.app/api/search?query=${encodeURIComponent(query)}`),
         axios.get(`https://musify-api-inky.vercel.app/api/search/playlists?query=${encodeURIComponent(query)}&limit=10`),
@@ -27,32 +24,13 @@ const Navbar = () => {
       const songs = songRes.data || [];
       const playlists = playlistRes.data || [];
 
-      // Combine results
-      const combinedResults = {
-        songs,
-        playlists,
-      };
-
-      setSearchResult(combinedResults);
-      console.log('Search results:', combinedResults);
+      setSearchResult({ songs, playlists });
+      console.log('Search results:', { songs, playlists });
     } catch (error) {
       console.error('Error fetching search results:', error);
     }
   };
 
-  // Wrap with debounce
-  const debouncedSearch = useCallback(
-    debounce((text) => {
-      fetchSearch(text);
-    }, 1500),
-    []
-  );
-
-  // Trigger search when user types
-  const handleSearchChange = (text) => {
-    setSearch(text);
-    debouncedSearch(text);
-  };
 
   // Push results to global context and navigate
   useEffect(() => {
@@ -62,20 +40,28 @@ const Navbar = () => {
     }
   }, [searchResult]);
 
+
+
   return (
     <View style={styles.wrapper}>
-      <View style={styles.inputContainer}>
+      {/* 🔎 Search Bar */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={20} color="gray" />
         <TextInput
           style={styles.input}
-          placeholder="What you want to play?"
-          returnKeyType="search"
+          placeholder="Search songs, albums, artists..."
           placeholderTextColor="gray"
           value={search}
-          onChangeText={handleSearchChange}
+          autoCorrect={true}
+          autoComplete="off"
+          onChangeText={(text) => {
+            setSearch(text);
+          }}
+          onSubmitEditing={() => fetchSearch(search)}
         />
         {search.length > 0 && (
-          <TouchableOpacity style={styles.clearIcon} onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={22} color="gray" />
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Ionicons name="close-circle" size={25} color="gray" />
           </TouchableOpacity>
         )}
       </View>
@@ -90,25 +76,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  inputContainer: {
-    width: '80%',
-    position: 'relative',
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222',   // flat bar style
+    marginHorizontal: 10,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    width: '90%',
   },
   input: {
-    backgroundColor: '#1f1f1f',
+    flex: 1,
     color: 'white',
+    marginLeft: 8,
     fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#444',
-    paddingRight: 40, // leave space for the icon
-  },
-  clearIcon: {
-    position: 'absolute',
-    right: 10,
-    top: '50%',
-    transform: [{ translateY: -11 }],
   },
 });

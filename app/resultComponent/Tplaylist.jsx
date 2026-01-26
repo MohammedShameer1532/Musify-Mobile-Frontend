@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { SearchContext } from '../contextProvider/searchContext';
+import { LegendList } from '@legendapp/list';
 
 
 
@@ -88,7 +89,20 @@ const Tplaylist = () => {
     <View>
       <View>
         <Text className='text-2xl font-bold text-white ml-5 mt-5'>Top Playlists</Text>
-        <FlatList
+        <LegendList
+          estimatedItemSize={150}
+          getEstimatedItemSize={() => 150}
+
+          // 🚀 Rendering behavior
+          recycleItems
+          removeClippedSubviews={false}
+          drawDistance={500}
+          windowSize={17}
+
+          // Batch tuning
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+
           data={LANGUAGES}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -111,6 +125,7 @@ const Tplaylist = () => {
         />
       </View>
       <FlatList
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
         horizontal
         data={trend}

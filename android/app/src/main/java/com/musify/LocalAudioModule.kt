@@ -1,4 +1,4 @@
-package com.musify
+package com.lysernfy
 
 import android.content.ContentResolver
 import android.content.ContentUris

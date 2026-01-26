@@ -1,4 +1,4 @@
-package com.musify
+package com.lysernfy
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

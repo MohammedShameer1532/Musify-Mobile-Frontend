@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { SearchContext } from '../contextProvider/searchContext';
+import { LegendList } from '@legendapp/list';
 
 const Topartist = () => {
   const [trend, setTrend] = useState([]);
@@ -60,29 +61,33 @@ const Topartist = () => {
       <View>
         <Text className='text-2xl font-bold text-white ml-5 mt-5'>Top Artists</Text>
       </View>
-      <FlatList
-        contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
-        horizontal={true}
-        data={trend}
-        keyExtractor={(song, index) => `${song.id}-${index}`}
-        renderItem={({ item: song, index }) => (
-          <View style={styles.songContainer} key={index}>
-            <TouchableOpacity onPress={() => handlePress(song.artistid)} >
-              <Image
-                source={{ uri: getHighResImage(song?.image) }}
-                className="rounded-xl w-48 h-48 p-4"
-                resizeMode='cover'
-              />
-              <View>
-                <Text
-                  style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
-                  numberOfLines={2}
-                  ellipsizeMode="tail">{song?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+      <View style={{ height: 240 }}>
+        <LegendList
+          showsHorizontalScrollIndicator={false}
+          recycleItems
+          contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
+          horizontal={true}
+          data={trend}
+          keyExtractor={(song, index) => `${song.id}-${index}`}
+          renderItem={({ item: song, index }) => (
+            <View style={styles.songContainer} key={index}>
+              <TouchableOpacity onPress={() => handlePress(song.artistid)} >
+                <Image
+                  source={{ uri: getHighResImage(song?.image) }}
+                  className="rounded-xl w-48 h-48 p-4"
+                  resizeMode='cover'
+                />
+                <View>
+                  <Text
+                    style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
+                    numberOfLines={2}
+                    ellipsizeMode="tail">{song?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      </View>
     </View>
   )
 }

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -20,107 +20,111 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TrackPlayer, { Capability, Event, useActiveTrack } from 'react-native-track-player';
-import { MenuProvider } from 'react-native-popup-menu';
 import Entypo from "react-native-vector-icons/Entypo";
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SearchContext } from '../contextProvider/searchContext';
 import Localsearch from '../common/Localsearch';
+import { LegendList } from '@legendapp/list';
+import Icon from 'react-native-vector-icons/Entypo';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 
 
 const { LocalAudio } = NativeModules;
 
 
-// ====================== Song Item Component ======================
+
+// ====================== Modern Song Item ======================
 const SongItem = React.memo(({ song, currentSong, handlePlay }) => {
+  const isPlaying = currentSong?.id === song?.id;
 
   return (
-    <View className="flex-row mt-5 ml-5 items-center justify-between pr-5 w-full">
-      <TouchableOpacity onPress={() => handlePlay(song)}
-        className="flex-1">
-        <View className="flex-row items-center justify-between w-full">
-
-          {/* Left Section: Image + Text */}
-          <View className="flex-row items-center flex-1">
-            {/* Song Image */}
-            {song?.artist === "<unknown>" ? (
-              <Image
-                source={require("../assets/musicphoto.jpg")}
-                className="rounded-xl w-14 h-14"
-                resizeMode="cover"
-              />
-            ) : (
-              <Image
-                source={{ uri: song.artwork }}
-                className="rounded-xl w-14 h-14"
-                resizeMode="cover"
+    <TouchableOpacity onPress={() => handlePlay(song)} activeOpacity={0.8} style={styles.songCard}>
+      <View style={styles.songLeft}>
+        {song?.artist === "<unknown>" ? (
+          <Image
+            source={require("../assets/musicphoto.jpg")}
+            className="rounded-xl w-14 h-14"
+            resizeMode="cover"
+            style={[styles.songImage, { borderColor: isPlaying ? "#1DB954" : "transparent" }]}
+          />
+        ) : (
+          <Image
+            source={{ uri: song.artwork }}
+            className="rounded-xl w-14 h-14"
+            resizeMode="cover"
+            style={[styles.songImage, { borderColor: isPlaying ? "#1DB954" : "transparent" }]}
+          />
+        )}
+        <View style={styles.songText} >
+          <View className="flex-row items-center">
+            {/* Playing Animation: only shows for current song */}
+            {currentSong?.id === song?.id && (
+              <LottieView
+                source={require("../assets/playing.json")}
+                style={{ width: 20, height: 20, marginRight: 5 }}
+                autoPlay
+                loop
               />
             )}
 
-            {/* Space between image and text */}
-            <View className="ml-3 flex-1">
-              {/* Title + Playing Animation in a Row */}
-              <View className="flex-row items-center">
-                {/* Playing Animation: only shows for current song */}
-                {currentSong?.id === song?.id && (
-                  <LottieView
-                    source={require("../assets/playing.json")}
-                    style={{ width: 20, height: 18, marginRight: 6 }}
-                    autoPlay
-                    loop
-                  />
-                )}
-
-                {/* Song Title */}
-                <Text
-                  style={{
-                    color: currentSong?.id === song.id ? "limegreen" : "white",
-                  }}
-                  className="text-base font-normal"
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {song?.title ? song.title.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
-                </Text>
-              </View>
-
-              {/* Artist stays below the title */}
-              <Text
-                className="text-gray-500 text-sm font-medium mt-1"
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {song?.artist ? song.artist.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
-              </Text>
-            </View>
+            {/* Song Title */}
+            <Text
+              style={[styles.songTitle, isPlaying && { color: "#1DB954" }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {song?.title ? song.title.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
+            </Text>
           </View>
-          {/* Right Section: Lottie + Play Button */}
-          <View className="flex-row items-center">
-            <View className="pr-5">
-              {currentSong?.id === song?.id && (
-                <LottieView
-                  source={require("../assets/music.json")}
-                  style={{ width: 60, height: 60 }}
-                  autoPlay
-                  loop
-                />
-              )}
-            </View>
-            <View className="mr-3 w-12 h-12 bg-[#1DB954] rounded-full items-center justify-center shadow-lg">
-              <FontAwesome
-                name="play"
-                size={20}
-                color="black"
-                style={{ marginLeft: 4 }}
-              />
-            </View>
-          </View>
+          <Text style={styles.artist} numberOfLines={1}>
+            {song?.artist ? song.artist.replace(/\s*\(.*?\)\s*/g, "") : "Unknown Artist"}
+          </Text>
         </View>
-      </TouchableOpacity>
-    </View>
+      </View>
+
+      <View style={styles.songRight}>
+        <View style={styles.playButton}>
+          <FontAwesome
+            name="play"
+            size={20}
+            color="black"
+            style={{ marginLeft: 4 }}
+          />
+        </View>
+        <View style={{ alignItems: 'flex-end', padding: 5, marginRight: -10 }}>
+          <Menu>
+            <MenuTrigger>
+              <Icon name="dots-three-vertical" size={24} color="white" />
+            </MenuTrigger>
+            <MenuOptions
+              customStyles={{
+                optionsContainer: {
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: '#1f1f1f',
+                },
+              }}
+            >
+              <MenuOption >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                  <MaterialIcons name="lyrics" size={18} color="white" />
+                  <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+                </View>
+              </MenuOption>
+            </MenuOptions>
+          </Menu>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 });
+
+
+
+
 const LocalMusic = () => {
   const [audioFiles, setAudioFiles] = useState([]);
   const [error, setError] = useState(null);
@@ -136,6 +140,7 @@ const LocalMusic = () => {
   const currentSong = useActiveTrack();
   console.log('activetrack', currentSong);
 
+  console.log(currentSong?.artwork?.slice(0, 30));
 
 
   useEffect(() => {
@@ -168,31 +173,7 @@ const LocalMusic = () => {
     fetchAudio();
   }, []);
 
-
-  useEffect(() => {
-    async function setupPlayer() {
-      await TrackPlayer.setupPlayer();
-      await TrackPlayer.updateOptions({
-        stopWithApp: true,
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.Stop,
-          Capability.SkipToNext,
-          Capability.SkipToPrevious,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-        ],
-        jumpInterval: 10,
-      });
-    }
-
-    setupPlayer();
-  }, []);
-
-
-
-  const handlePlay = async (song) => {
+  const handlePlay = useCallback(async (song) => {
     if (!song) return;
     // If same song, just open sheet
     if (currentSong?.id === song.id) {
@@ -232,7 +213,7 @@ const LocalMusic = () => {
     } catch (err) {
       console.log("Error:", err);
     }
-  };
+  }, [audioFiles, currentSong]);
 
 
 
@@ -251,34 +232,61 @@ const LocalMusic = () => {
       <GestureHandlerRootView style={styles.container}>
         <LinearGradient colors={['#1a1a1a', '#000']} style={styles.background}>
           <SafeAreaView style={styles.safeArea} className="flex-1 ">
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 35 }} className='w-10 mt-5'>
-              <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} className="ml-2" />
-            </TouchableOpacity>
-            <View className="px-5">
-              <View className="flex-row items-center justify-start gap-3 px-4 py-4 bg-purple-900 rounded-md">
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={28} color="white" />
+              </TouchableOpacity>
+              <View className='ml-2'>
                 <MaterialCommunityIcons name="music-box" size={40} color="white" />
-                <Text className="text-[22px] font-semibold text-white flex-1">
-                  On This Device Songs
-                </Text>
               </View>
+              <Text style={styles.headerTitle}>Local Music</Text>
             </View>
-            <View>
-              <Localsearch audioFiles={audioFiles} setFilteredFiles={setFilteredFiles} />
-            </View>
+            <Localsearch audioFiles={audioFiles} setFilteredFiles={setFilteredFiles} />
             {loading ? (
-              <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
+              <LottieView
+                source={require("../assets/music.json")}
+                style={{ width: 40, height: 40 }}
+                autoPlay
+                loop
+                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}
+              />
             ) : (
               <View className='flex-1'>
-                <FlatList
-                  ref={flatListRef}
-                  onScroll={handleScroll}
-                  scrollEventThrottle={16}
+                <LegendList
                   data={filteredFiles}
                   keyExtractor={(item) => item.id}
-                  initialNumToRender={10}     // render only a few rows first
-                  maxToRenderPerBatch={10}
-                  windowSize={7}
-                  removeClippedSubviews
+
+                  // ✅ Fixed height optimization (MOST IMPORTANT)
+                  estimatedItemSize={96}
+
+                  // ✅ Rendering window
+                  windowSize={10}
+                  drawDistance={1200}
+
+                  // ✅ Initial render
+                  initialNumToRender={8}
+                  maxToRenderPerBatch={8}
+
+                  // ✅ Memory optimization
+                  recycleItems
+                  removeClippedSubviews={true}
+
+                  // ✅ Smooth scrolling
+                  scrollEventThrottle={16}
+                  showsVerticalScrollIndicator={false}
+
+                  // ✅ Padding (important for bottom sheet overlap)
+                  contentContainerStyle={{
+                    padding: 15,
+                    paddingBottom: 140,
+                  }}
+
+                  // ✅ Re-render ONLY when song changes
+                  extraData={currentSong?.id}
+
+                  ref={flatListRef}
+                  onScroll={handleScroll}
+
                   renderItem={({ item }) => (
                     <SongItem
                       song={item}
@@ -286,7 +294,6 @@ const LocalMusic = () => {
                       handlePlay={handlePlay}
                     />
                   )}
-                  contentContainerStyle={{ paddingBottom: 90 }}
                 />
                 {!isSheetOpen && showUp && (
                   <TouchableOpacity
@@ -321,21 +328,41 @@ const LocalMusic = () => {
               </TouchableOpacity>
               {currentSong && (
                 <View style={styles.songContainer}>
-                  <Image
-                    source={{ uri: currentSong?.artwork }}
-                    style={styles.songImage}
-                    className="rounded-xl"
-                    resizeMode="cover"
-                  />
-                  <View style={styles.textContainer}>
-                    <Text style={styles.songTitle}>
-                      {currentSong?.title ? currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '') : 'Unknown'}
-                    </Text>
-                    <Text style={styles.artist}>
-                      {currentSong?.artist ? currentSong?.artist?.split(',')[0].trim().replace(/\s*\(.*?\)\s*/g, '') : 'Unknown Artist'}
-                    </Text>
+                  {currentSong?.artist !== "<unknown>" ? (
+                    <Image
+                      source={{ uri: currentSong?.artwork }}
+                      style={styles.songImages}
+                      className="rounded-xl"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Image
+                      source={require("../assets/musicphoto.jpg")}
+                      className="rounded-xl"
+                      style={styles.songImages}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View
+                    style={{
+                      marginTop: 35,
+                      paddingVertical: 15,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderRadius: 20,
+                      marginHorizontal: 16,
+                      alignSelf: 'stretch',
+                    }}
+                  >
+                    <View style={styles.textContainer}>
+                      <Text style={styles.songTitles}>
+                        {currentSong?.title ? currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '') : 'Unknown'}
+                      </Text>
+                      <Text style={styles.artist}>
+                        {currentSong?.artist ? currentSong?.artist?.split(',')[0].trim().replace(/\s*\(.*?\)\s*/g, '') : 'Unknown Artist'}
+                      </Text>
+                    </View>
+                    <Music />
                   </View>
-                  <Music />
                 </View>
               )}
             </BottomSheet>
@@ -349,11 +376,55 @@ const LocalMusic = () => {
 export default LocalMusic;
 
 const styles = StyleSheet.create({
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    marginBottom: 8,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  // Song item
+  songCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
+  songText: { flex: 1 },
+  songTitle: { fontSize: 16, fontWeight: '600', color: 'white' },
+  artist: { fontSize: 12, color: 'gray', marginTop: 4 },
+  songRight: { flexDirection: 'row', alignItems: 'center' },
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1DB954',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
   upIcon: {
     position: "absolute",
     bottom: 100,
-    right: 10,
     zIndex: 10,
+    alignSelf: "center",
   },
   lottie: {
     position: 'absolute',
@@ -374,25 +445,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 30,
   },
-  textContainer: {
-    alignSelf: 'flex-start',
-    paddingLeft: 30,
-    marginTop: 35,
-  },
-  songImage: {
+  songImages: {
     width: 290,
     height: 290,
   },
-  songTitle: {
-    fontSize: 25,
-    fontWeight: '700',
+  songTitles: {
+    fontSize: 20,
+    fontWeight: '600',
     color: 'white',
     marginTop: 10,
+    width: 300,
   },
-  artist: {
-    fontSize: 14,
-    color: 'grey',
-    marginTop: 5,
+  textContainer: {
+    alignSelf: 'flex-start',
+    paddingLeft: 30,
+    marginTop: 10,
   },
   icons: {
     paddingTop: 20,

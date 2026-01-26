@@ -13,6 +13,7 @@ const Setting = () => {
       </TouchableOpacity>
       <View>
         <Text className="text-white">settings</Text>
+        <Text>Coming Soon</Text>
       </View>
     </SafeAreaView>
   );

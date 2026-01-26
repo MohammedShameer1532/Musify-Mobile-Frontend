@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
@@ -70,6 +70,30 @@ const handleSkipToPrevious = async () => {
   } catch (err) {
     console.warn("No previous track available:", err);
   }
+};
+const CircleButton = ({ onPress, children, size = 56, rippleColor }) => {
+  return (
+    <Pressable
+      onPress={onPress}
+      android_ripple={{
+        color: rippleColor || 'rgba(255,255,255,0.25)',
+        borderless: false, // IMPORTANT
+      }}
+      style={({ pressed }) => ({
+        width: size,
+        height: size,
+        borderRadius: size / 2, // ✅ dynamic
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden', // ✅ REQUIRED for circular ripple
+        backgroundColor: pressed
+          ? 'rgba(255,255,255,0.12)'
+          : 'transparent',
+      })}
+    >
+      {children}
+    </Pressable>
+  );
 };
 
   

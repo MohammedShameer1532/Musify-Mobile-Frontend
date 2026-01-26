@@ -1,7 +1,7 @@
 import {DarkTheme, DefaultTheme, ThemeProvider} from '@react-navigation/native';
-import {StatusBar} from 'react-native';
+import {NativeEventEmitter, NativeModules, StatusBar} from 'react-native';
 import 'react-native-reanimated';
-import {SearchProvider} from './contextProvider/searchContext';
+import {SearchContext, SearchProvider} from './contextProvider/searchContext';
 import {useColorScheme} from 'react-native';
 import '../global.css';
 import {NavigationContainer} from '@react-navigation/native';
@@ -20,116 +20,100 @@ import Sresult from './resultComponent/Sresult';
 import Rresult from './resultComponent/Rresult';
 import Podresult from './resultComponent/Podresult';
 import TrackPlayer, {Capability} from 'react-native-track-player';
-import {useEffect} from 'react';
+import {useContext, useEffect} from 'react';
 import Tartist from './resultComponent/Tartist';
 import Artistsongs from './resultComponent/Artistsongs';
+import Outersong from './resultComponent/Outersong';
+import {navigate, navigationRef} from './resultComponent/RootNavigation';
 
+const Stack = createNativeStackNavigator();
+
+/* -------------------- App Navigator -------------------- */
+function AppNavigator() {
+  const {setOuterdata} = useContext(SearchContext);
+
+  // TrackPlayer setup
+  useEffect(() => {
+    TrackPlayer.setupPlayer().then(() => {
+      TrackPlayer.updateOptions({
+        stopWithApp: true,
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.JumpForward,
+          Capability.JumpBackward,
+        ],
+        jumpInterval: 10,
+      });
+    });
+  }, []);
+
+  // Audio intent listener
+  useEffect(() => {
+    const eventEmitter = new NativeEventEmitter(
+      NativeModules.DeviceEventManagerModule,
+    );
+
+    const subscription = eventEmitter.addListener(
+      'OpenAudioFile',
+      async meta => {
+        try {
+          await TrackPlayer.reset();
+          await TrackPlayer.add({
+            url: meta.uri,
+            title: meta.title || 'Unknown',
+            artist: meta.artist || 'Unknown',
+            album: meta.album || '',
+            artwork: meta.artwork,
+          });
+
+          await TrackPlayer.play();
+          setOuterdata(meta);
+          navigate('Outersong', {metadata: meta});
+        } catch (e) {
+          console.log('Error playing file:', e);
+        }
+      },
+    );
+
+    return () => subscription.remove();
+  }, []);
+
+  return (
+    <NavigationContainer ref={navigationRef}>
+      <Stack.Navigator screenOptions={{headerShown: false}}>
+        <Stack.Screen name="TabsLayout" component={TabsLayout} />
+        <Stack.Screen name="Search" component={Search} />
+        <Stack.Screen name="Song" component={Song} />
+        <Stack.Screen name="Artist" component={Artist} />
+        <Stack.Screen name="Album" component={Album} />
+        <Stack.Screen name="Playlist" component={Playlist} />
+        <Stack.Screen name="Tresult" component={Tresult} />
+        <Stack.Screen name="Suggestion" component={Suggestion} />
+        <Stack.Screen name="Tsongs" component={Tsongs} />
+        <Stack.Screen name="Sresult" component={Sresult} />
+        <Stack.Screen name="Rresult" component={Rresult} />
+        <Stack.Screen name="Podresult" component={Podresult} />
+        <Stack.Screen name="Tartist" component={Tartist} />
+        <Stack.Screen name="Artistsongs" component={Artistsongs} />
+        <Stack.Screen name="Outersong" component={Outersong} />
+      </Stack.Navigator>
+
+      <StatusBar style="auto" />
+    </NavigationContainer>
+  );
+}
+
+/* -------------------- Root Layout -------------------- */
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const Stack = createNativeStackNavigator();
-  // ✅ TrackPlayer setup
-  useEffect(() => {
-    const setupPlayer = async () => {
-      try {
-        await TrackPlayer.setupPlayer();
-        await TrackPlayer.updateOptions({
-          stopWithApp: true,
-          capabilities: [
-            Capability.Play,
-            Capability.Pause,
-            Capability.SkipToNext,
-            Capability.SkipToPrevious,
-            Capability.JumpForward,
-            Capability.JumpBackward,
-          ],
-          jumpInterval: 10,
-        });
-      } catch (e) {
-        console.log('TrackPlayer setup error:', e);
-      }
-    };
-
-    setupPlayer();
-  }, []);
 
   return (
     <SearchProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <NavigationContainer>
-          <Stack.Navigator>
-            <Stack.Screen
-              name="TabsLayout"
-              component={TabsLayout}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Search"
-              component={Search}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Song"
-              component={Song}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Artist"
-              component={Artist}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Album"
-              component={Album}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Playlist"
-              component={Playlist}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Tresult"
-              component={Tresult}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Suggestion"
-              component={Suggestion}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Tsongs"
-              component={Tsongs}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Sresult"
-              component={Sresult}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Rresult"
-              component={Rresult}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Podresult"
-              component={Podresult}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Tartist"
-              component={Tartist}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Artistsongs"
-              component={Artistsongs}
-              options={{headerShown: false}}
-            />
-          </Stack.Navigator>
-          <StatusBar style="auto" />
-        </NavigationContainer>
+        <AppNavigator />
       </ThemeProvider>
     </SearchProvider>
   );

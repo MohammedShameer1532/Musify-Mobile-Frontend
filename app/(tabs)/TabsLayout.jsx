@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -6,11 +6,26 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import IndexScreen from './IndexScreen';
 import LocalMusic from './LocalMusic';
 import Setting from './Setting';
-import { View } from 'react-native';
+import { Keyboard, View } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
 export default function TabsLayout() {
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () =>
+      setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener('keyboardDidHide', () =>
+      setKeyboardVisible(false)
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
   return (
     <Tab.Navigator
       screenOptions={{
@@ -21,18 +36,20 @@ export default function TabsLayout() {
         tabBarBackground: () => (
           <View style={{ flex: 1, backgroundColor: '#0f0D23', borderRadius: 50 }} />
         ),
-        tabBarStyle: {
-          backgroundColor: '#0f0D23',
-          borderRadius: 50,
-          marginHorizontal: 20,
-          marginBottom: 10,
-          height: 60,
-          position: 'absolute',
-          overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: '#0f0D23',
-          bottom: 0,
-        },
+        tabBarStyle: keyboardVisible
+          ? { display: 'none' }   // 👈 HIDE
+          : {
+            backgroundColor: '#0f0D23',
+            borderRadius: 50,
+            marginHorizontal: 20,
+            marginBottom: 10,
+            height: 60,
+            position: 'absolute',
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: '#0f0D23',
+            bottom: 0,
+          },
         tabBarItemStyle: {
           width: '100%',
           height: '100%',

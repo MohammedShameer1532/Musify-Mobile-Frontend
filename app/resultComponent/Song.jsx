@@ -81,7 +81,7 @@ const Song = () => {
 
     setupPlayer();
   }, []);
-  
+
   useEffect(() => {
     if (songData.length > 0) {
       handlePlay(); // Call after songData is available
@@ -125,7 +125,7 @@ const Song = () => {
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
             title: 'Storage Permission',
-            message: 'Musify needs access to storage to save songs.',
+            message: 'lysernfy needs access to storage to save songs.',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',
@@ -210,48 +210,59 @@ const Song = () => {
             <FlatList
               data={songData}
               keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => (
-                <View style={styles.songContainer} key={index}>
+              renderItem={({ item }) => (
+                <View style={styles.songContainer} >
                   <Image source={{ uri: item?.image[2]?.url }} style={styles.songImage} className="rounded-xl" />
-                  <View style={styles.textContainer}>
-                    <TouchableOpacity  className="w-[100%]">
-                      <Text style={styles.songTitle}>{item?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                      <Text style={styles.album}>{item?.album?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                      <Text style={styles.artist}>{item?.artists?.all[0]?.name}</Text>
-                    </TouchableOpacity>
-                    <View style={styles.icons}>
-                      <View style={{ alignItems: 'flex-end', padding: 16 }}>
-                        <Menu>
-                          <MenuTrigger>
-                            <Icon name="dots-three-vertical" size={24} color="white" />
-                          </MenuTrigger>
-                          <MenuOptions
-                            customStyles={{
-                              optionsContainer: {
-                                padding: 10,
-                                borderRadius: 8,
-                                backgroundColor: '#1f1f1f',
-                              },
-                            }}
-                          >
-                            <MenuOption onSelect={fetchLyrics}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                <MaterialIcons name="lyrics" size={18} color="white" />
-                                <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
-                              </View>
-                            </MenuOption>
-                            <MenuOption onSelect={() => handleDownload(item?.downloadUrl[4]?.url, `${item?.name}.mp3`)}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                <FontAwesome6 name="download" size={18} color="white" />
-                                <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
-                              </View>
-                            </MenuOption>
-                          </MenuOptions>
-                        </Menu>
+                  <View
+                    style={{
+                      marginTop: 35,
+                      paddingVertical: 15,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderRadius: 20,
+                      marginHorizontal: 16,
+                      alignSelf: 'stretch',
+                    }}
+                  >
+                    <View style={styles.textContainer}>
+                      <TouchableOpacity className="w-[100%]">
+                        <Text style={styles.songTitle}>{item?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                        <Text style={styles.album}>{item?.album?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                        <Text style={styles.artist}>{item?.artists?.all[0]?.name}</Text>
+                      </TouchableOpacity>
+                      <View style={styles.icons}>
+                        <View style={{ alignItems: 'flex-end', padding: 0 }}>
+                          <Menu>
+                            <MenuTrigger>
+                              <Icon name="dots-three-vertical" size={24} color="white" />
+                            </MenuTrigger>
+                            <MenuOptions
+                              customStyles={{
+                                optionsContainer: {
+                                  padding: 10,
+                                  borderRadius: 8,
+                                  backgroundColor: '#1f1f1f',
+                                },
+                              }}
+                            >
+                              <MenuOption onSelect={fetchLyrics}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                  <MaterialIcons name="lyrics" size={18} color="white" />
+                                  <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+                                </View>
+                              </MenuOption>
+                              <MenuOption onSelect={() => handleDownload(item?.downloadUrl[4]?.url, `${item?.name}.mp3`)}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
+                                  <FontAwesome6 name="download" size={18} color="white" />
+                                  <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
+                                </View>
+                              </MenuOption>
+                            </MenuOptions>
+                          </Menu>
+                        </View>
                       </View>
                     </View>
+                    <Music />
                   </View>
-                  <Music />
                 </View>
               )}
             />
@@ -336,12 +347,12 @@ const styles = StyleSheet.create({
   textContainer: {
     alignSelf: 'flex-start',
     paddingLeft: 30,
-    marginTop: 35,
+    marginTop: 10,
     width: '100%',
   },
   songImage: {
-    width: 290,
-    height: 290,
+    width: 300,
+    height: 300,
   },
   songTitle: {
     fontSize: 25,

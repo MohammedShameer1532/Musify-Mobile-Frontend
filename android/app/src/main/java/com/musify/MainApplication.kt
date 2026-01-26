@@ -1,5 +1,5 @@
-package com.musify
-import com.musify.LocalAudioModule
+package com.lysernfy
+import com.lysernfy.LocalAudioModule
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager

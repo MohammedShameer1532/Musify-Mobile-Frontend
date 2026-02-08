@@ -1,24 +1,407 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { getAuth, signOut } from '@react-native-firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LinearGradient from 'react-native-linear-gradient';
+import { getFirestore, collection, doc, onSnapshot } from '@react-native-firebase/firestore';
+
 
 const Setting = () => {
   const navigation = useNavigation();
+  const [userInfo, setUserInfo] = useState(null);
+
+  useEffect(() => {
+    const authInstance = getAuth();
+    const user = authInstance.currentUser;
+
+    if (!user) {
+      console.log('❌ No authenticated user');
+      return;
+    }
+
+    console.log('✅ Firebase UID:', user.uid);
+
+    const db = getFirestore();
+    const userRef = doc(collection(db, 'users'), user.uid);
+
+    const unsubscribe = onSnapshot(userRef, snapshot => {
+      if (snapshot.exists) {
+        const data = snapshot.data();
+        console.log('🔥 Firestore user data (realtime):', data);
+        setUserInfo(data);
+      } else {
+        console.log('⚠️ User document does not exist');
+      }
+    }, error => {
+      console.log('❌ Firestore listener error:', error);
+    });
+
+    return unsubscribe;
+  }, []);
+
+
+  const handleSignOut = async () => {
+    try {
+      const authInstance = getAuth();
+      const user = authInstance.currentUser;
+      if (user) {
+        await AsyncStorage.removeItem(`welcome_shown_${user.uid}`);
+      }
+      await signOut(authInstance);
+      await GoogleSignin.signOut();
+
+      console.log('User signed out successfully ✅');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.log('Sign out error 👉', error);
+    }
+  };
+
+
   return (
-    <SafeAreaView className="flex-1  bg-stone-950">
-      <TouchableOpacity onPress={() => navigation.goBack()} className='w-10'>
-        <Ionicons name="arrow-back" size={30} color="white" style={{ marginLeft: 10 }} />
-      </TouchableOpacity>
-      <View>
-        <Text className="text-white">settings</Text>
-        <Text>Coming Soon</Text>
-      </View>
-    </SafeAreaView>
+    <LinearGradient colors={['#050505', '#0b0b0b']} style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          <Text style={styles.title}>Settings</Text>
+
+          <View style={{ width: 40 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={{ paddingVertical: 12 }} showsVerticalScrollIndicator={false}>
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <Image
+              source={
+                userInfo?.photo
+                  ? { uri: userInfo.photo }
+                  : require('../assets/avatar.png')
+              }
+              style={styles.avatar}
+            />
+            <View style={{ marginLeft: 14, flex: 1 }}>
+              <Text style={styles.name}>{userInfo?.name || 'Guest User'}</Text>
+              {/* <Text style={styles.email}>{userInfo?.email || 'Not signed in'}</Text> */}
+              <Text style={styles.email}>
+                {userInfo?.email && userInfo.email.trim() !== ''
+                  ? userInfo.email
+                  : userInfo?.name
+                    ? 'Signed in via Facebook'
+                    : 'Not signed in'}
+              </Text>
+
+            </View>
+            <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('ProfileEdit')}>
+              <Ionicons name="pencil-outline" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Sections */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>General</Text>
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Account')}>
+              <Ionicons name="person-circle-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Account Details</Text>
+                <Text style={styles.optionSubtitle}>Manage your account</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Share')}>
+              <Ionicons name="share-social-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Share</Text>
+                <Text style={styles.optionSubtitle}>Tell friends about the app</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Aboutus')}>
+              <Ionicons name="information-circle-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>About Us</Text>
+                <Text style={styles.optionSubtitle}>App & company info</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Support</Text>
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('SocialLink')} // or open a URL with Linking
+            >
+              <Ionicons name="people-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Connect With Us</Text>
+                <Text style={styles.optionSubtitle}>Follow, join our community, or collaborate</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('HelpSupport')}>
+              <Ionicons name="help-circle-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Help & Support</Text>
+                <Text style={styles.optionSubtitle}>Help Centre</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Contactus')}>
+              <Ionicons name="call-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Contact Us</Text>
+                <Text style={styles.optionSubtitle}>Get help or feedback</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Contactus')}>
+              <Ionicons name="star-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Rate on Google Play</Text>
+                <Text style={styles.optionSubtitle}>Leave a review</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Donateus')}>
+              <Ionicons name="heart-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Donate Us</Text>
+                <Text style={styles.optionSubtitle}>Support development</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>App</Text>
+
+            <View style={styles.optionCard}>
+              <Ionicons name="apps-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Version</Text>
+                <Text style={styles.optionSubtitle}>1.0.0</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Actions */}
+          <View style={{ marginTop: 18, marginBottom: 100 }}>
+            <TouchableOpacity style={[styles.btn, { marginTop: 12 }]} onPress={handleSignOut}>
+              <LinearGradient colors={['#2196f3', '#3f51b5']} style={styles.signOutBtn}>
+                <Ionicons name="log-out-outline" size={23} color="#fff" style={{ marginRight: 5 }} />
+                <Text style={styles.btnText}>Sign Out</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient >
   );
 };
 
 export default Setting;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#050505',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 8,
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+
+  profileCard: {
+    marginHorizontal: 18,
+    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 3,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: '#222',
+  },
+  name: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  email: {
+    color: '#bdbdbd',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  editBtn: {
+    marginLeft: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    padding: 8,
+    borderRadius: 10,
+  },
+
+  section: {
+    marginTop: 18,
+    paddingHorizontal: 18,
+  },
+  sectionTitle: {
+    color: '#bdbdbd',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  optionIcon: {
+    marginRight: 12,
+    width: 36,
+    textAlign: 'center',
+  },
+  optionTextWrap: {
+    flex: 1,
+  },
+  optionTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  optionSubtitle: {
+    color: '#9e9e9e',
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  btn: {
+    marginHorizontal: 18,
+  },
+  dangerBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#ff1744',
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  signOutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowColor: '#2196f3',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  btnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertBox: {
+    width: 320,
+    padding: 20,
+    backgroundColor: '#1e1e1e',
+    borderRadius: 14,
+    elevation: 6,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#ccc',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+});

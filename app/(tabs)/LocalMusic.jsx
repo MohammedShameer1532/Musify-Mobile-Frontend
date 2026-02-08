@@ -198,7 +198,7 @@ const LocalMusic = () => {
         artist: s.artist,
         url: s.path,
         artwork: s.artwork,
-        hasArtwork: true
+        hasArtwork: true,
       }));
 
       // Add queue
@@ -230,16 +230,22 @@ const LocalMusic = () => {
   return (
     <MenuProvider>
       <GestureHandlerRootView style={styles.container}>
-        <LinearGradient colors={['#1a1a1a', '#000']} style={styles.background}>
-          <SafeAreaView style={styles.safeArea} className="flex-1 ">
+        <LinearGradient colors={['#050505', '#050505']} style={styles.background}>
+          <SafeAreaView style={styles.safeArea} className="flex-1">
             <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={28} color="white" />
+              {/* Back Button on the left */}
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
-              <View className='ml-2'>
-                <MaterialCommunityIcons name="music-box" size={40} color="white" />
+
+              {/* Centered Logo + Title */}
+              <View style={styles.centerContainer}>
+              
+                <Text style={styles.headerTitle}>Local Music</Text>
               </View>
-              <Text style={styles.headerTitle}>Local Music</Text>
+
+              {/* Spacer on the right to balance layout */}
+              <View style={{ width: 40 }} />
             </View>
             <Localsearch audioFiles={audioFiles} setFilteredFiles={setFilteredFiles} />
             {loading ? (
@@ -376,20 +382,42 @@ const LocalMusic = () => {
 export default LocalMusic;
 
 const styles = StyleSheet.create({
-
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
-    marginBottom: 8,
+    marginBottom: 10,
   },
+
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  centerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+
   headerTitle: {
     color: 'white',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    marginLeft: 4,
   },
   // Song item
   songCard: {

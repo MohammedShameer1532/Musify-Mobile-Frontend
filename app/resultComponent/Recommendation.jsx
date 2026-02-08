@@ -1,53 +1,35 @@
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SearchContext } from '../contextProvider/searchContext';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-const Suggestion = () => {
+const Recommendation = () => {
   const [suggestion, setSuggestion] = useState([]);
   const navigation = useNavigation();
   const { setDataSearch, songsuggest } = useContext(SearchContext);
 
-  const DEFAULT_ID = "Ecy1FJ5s";
+  const DEFAULT_ID = "Omwz5JtQ";
   const id = songsuggest[0]?.id || DEFAULT_ID;
 
-  useEffect(() => {
-    getSuggestions();
-  }, [id]);
-
+  useFocusEffect(
+    useCallback(() => {
+      getSuggestions();
+    }, [id])
+  );
   const getSuggestions = async () => {
     try {
-      // If ID is a number, use default
       const validId = /^\d+$/.test(id) ? DEFAULT_ID : id;
 
-      // Check cache
-      const cache = await AsyncStorage.getItem(`suggestion_${validId}`);
-      if (cache) {
-        const { data, time } = JSON.parse(cache);
-        const isFresh = Date.now() - time < 24 * 60 * 60 * 1000; // 1 day
-        if (isFresh) {
-          setSuggestion(data);
-          console.log('Loaded from cache ✅', data);
-          return;
-        }
-      }
-
-      // Fetch from API
       const res = await axios.get(
-        `https://jiosavan-api2.vercel.app/api/songs/${validId}/suggestions?limit=20`
+        `https://www.jiosaavn.com/api.php?__call=reco.getreco&api_version=4&_format=json&_marker=0&ctx=wap6dot0&pid=${validId}&language=tamil`
       );
-      const data = res.data?.data || [];
+
+      const data = res.data || [];
       setSuggestion(data);
 
-      // Save to cache
-      await AsyncStorage.setItem(
-        `suggestion_${validId}`,
-        JSON.stringify({ data, time: Date.now() })
-      );
-
-      console.log('Fetched new data ✅', res);
+      console.log('Fetched fresh data ✅', data);
     } catch (err) {
       console.log('Error:', err);
     }
@@ -77,7 +59,7 @@ const Suggestion = () => {
 
   return (
     <View>
-      <Text className="text-2xl font-bold text-white ml-5 mt-5">ForYouList</Text>
+      <Text className="text-2xl font-bold text-white ml-5 mt-5">Recommendation</Text>
       <FlatList
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
@@ -90,7 +72,7 @@ const Suggestion = () => {
               onPress={() => navigation.navigate('Sresult', setDataSearch(song.id))}
             >
               <Image
-                source={{ uri: getHighResImage(song?.image[2]?.url) }}
+                source={{ uri: getHighResImage(song?.image) }}
                 className="rounded-xl w-48 h-48 p-4"
                 resizeMode="cover"
               />
@@ -98,7 +80,7 @@ const Suggestion = () => {
                 numberOfLines={2}
                 ellipsizeMode="tail"
               >
-                {song?.name?.replace(/\s*\(.*?\)\s*/g, '')}
+                {song?.title?.replace(/\s*\(.*?\)\s*/g, '')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -108,7 +90,7 @@ const Suggestion = () => {
   );
 };
 
-export default Suggestion;
+export default Recommendation;
 
 const styles = StyleSheet.create({
   songContainer: {

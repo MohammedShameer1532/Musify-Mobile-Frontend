@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">lysernfy</string>
+    <string name="app_name">LysernFy</string>
+    <string name="facebook_app_id">4163946630534522</string>
+    <string name="facebook_client_token">cb0765eecad5551e3f28c3f2cf6dea37</string>
 </resources>

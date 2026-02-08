@@ -3,12 +3,20 @@ import React, { useEffect, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import Slider from '@react-native-community/slider';
-import TrackPlayer, { State, usePlaybackState, useProgress } from 'react-native-track-player';
+import TrackPlayer, { RepeatMode, State, usePlaybackState, useProgress } from 'react-native-track-player';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const Music = () => {
   const { position, duration } = useProgress();
   const playbackState = usePlaybackState();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [isRepeatOne, setIsRepeatOne] = useState(false);
+
+  // const [repeatMode, setRepeatMode] = useState(RepeatMode.Off);
+
+
+
 
   useEffect(() => {
     setIsPlaying(playbackState?.state === State.Playing);
@@ -54,49 +62,57 @@ const Music = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-const handleSkipToNext = async () => {
-  try {
-    await TrackPlayer.skipToNext();
-    await TrackPlayer.play(); // start playback after skipping
-  } catch (err) {
-    console.warn("No next track available:", err);
-  }
-};
+  const handleSkipToNext = async () => {
+    try {
+      await TrackPlayer.skipToNext();
+      await TrackPlayer.play(); // start playback after skipping
+    } catch (err) {
+      console.warn("No next track available:", err);
+    }
+  };
 
-const handleSkipToPrevious = async () => {
-  try {
-    await TrackPlayer.skipToPrevious();
-    await TrackPlayer.play(); // start playback after skipping
-  } catch (err) {
-    console.warn("No previous track available:", err);
-  }
-};
-const CircleButton = ({ onPress, children, size = 56, rippleColor }) => {
-  return (
-    <Pressable
-      onPress={onPress}
-      android_ripple={{
-        color: rippleColor || 'rgba(255,255,255,0.25)',
-        borderless: false, // IMPORTANT
-      }}
-      style={({ pressed }) => ({
-        width: size,
-        height: size,
-        borderRadius: size / 2, // ✅ dynamic
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden', // ✅ REQUIRED for circular ripple
-        backgroundColor: pressed
-          ? 'rgba(255,255,255,0.12)'
-          : 'transparent',
-      })}
-    >
-      {children}
-    </Pressable>
-  );
-};
+  const handleSkipToPrevious = async () => {
+    try {
+      await TrackPlayer.skipToPrevious();
+      await TrackPlayer.play(); // start playback after skipping
+    } catch (err) {
+      console.warn("No previous track available:", err);
+    }
+  };
+
+  const handleShuffleToggle = async () => {
+    setIsShuffle(prev => !prev);
+
+    if (!isShuffle) {
+      // Shuffle ON → pick a random track
+      const queue = await TrackPlayer.getQueue();
+      if (queue.length > 0) {
+        const randomIndex = Math.floor(Math.random() * queue.length);
+        await TrackPlayer.skip(randomIndex);
+        await TrackPlayer.play();
+      }
+    } else {
+      // Shuffle OFF → do nothing special, normal order resumes
+      console.log("Shuffle disabled");
+    }
+  };
 
   
+
+  const handleRepeatToggle = async () => {
+    if (!isRepeatOne) {
+      await TrackPlayer.setRepeatMode(RepeatMode.Track);
+      setIsRepeatOne(true);
+      console.log('Repeat ONE enabled');
+    } else {
+      await TrackPlayer.setRepeatMode(RepeatMode.Off);
+      setIsRepeatOne(false);
+      console.log('Repeat disabled');
+    }
+  };
+
+
+
   return (
     <View style={styles.container}>
       <Slider
@@ -136,6 +152,30 @@ const CircleButton = ({ onPress, children, size = 56, rippleColor }) => {
           <FontAwesome6 name="forward-step" size={32} color="#fff" />
         </TouchableOpacity>
       </View>
+      <View style={styles.modesRow}>
+        <TouchableOpacity onPress={handleShuffleToggle} style={styles.modeBtn}>
+          <Ionicons name="shuffle" size={20} color={isShuffle ? '#1DB954' : '#bbb'} />
+          <Text style={[styles.modeText, { color: isShuffle ? '#1DB954' : '#bbb' }]}>Shuffle</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleRepeatToggle} style={styles.modeBtn}>
+          <MaterialIcons
+            name="repeat-one-on"
+            size={20}
+            color={isRepeatOne ? '#1DB954' : '#bbb'}
+          />
+          <Text style={[styles.modeText, { color: isRepeatOne ? '#1DB954' : '#bbb' }]}>
+            Repeat
+          </Text>
+
+        </TouchableOpacity>
+
+        <View style={{ flex: 1 }} />
+
+        <TouchableOpacity style={styles.smallAction}>
+          <Ionicons name="heart-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -169,5 +209,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     marginTop: 20,
+  },
+  modesRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 18,
+  },
+  modeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  modeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  smallAction: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
 });

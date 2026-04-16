@@ -25,6 +25,8 @@ import { usePlaylistSheetStore } from '../store/playlistSheetStore';
 import { decode } from 'html-entities';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
+
+
 const Tresult = () => {
   const { dataSearch, playlistDatas, setQrdata } = useContext(SearchContext);
   const [loading, setLoading] = useState(true);

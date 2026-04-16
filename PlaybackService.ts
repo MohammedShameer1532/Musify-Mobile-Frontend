@@ -32,8 +32,13 @@ export const PlaybackService = async () => {
       const {position} = await TrackPlayer.getProgress();
       await TrackPlayer.seekTo(Math.max(position - SEEK_INTERVAL, 0));
     }),
+    TrackPlayer.addEventListener(Event.RemoteSeek, async event => {
+      await TrackPlayer.seekTo(event.position);
+    }),
   ];
-
+  TrackPlayer.addEventListener(Event.RemoteStop, async () => {
+    await TrackPlayer.stop();
+  });
   return () => {
     subscriptions.forEach(sub => sub.remove());
   };

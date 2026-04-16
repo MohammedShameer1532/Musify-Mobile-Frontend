@@ -59,7 +59,6 @@ import {MenuProvider} from 'react-native-popup-menu';
 import Qrsheet from './common/Qrsheet';
 import Scansheet from './common/Scansheet';
 import Qrscanner from './common/Qrscanner';
-
 const Stack = createNativeStackNavigator();
 
 /* -------------------- App Navigator -------------------- */
@@ -72,7 +71,7 @@ function AppNavigator() {
   useEffect(() => {
     TrackPlayer.setupPlayer().then(() => {
       TrackPlayer.updateOptions({
-        stopWithApp: true,
+        stopWithApp: false,
 
         capabilities: [
           Capability.Play,

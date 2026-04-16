@@ -18,11 +18,26 @@ import { getAuth, signOut } from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import { getFirestore, collection, doc, onSnapshot } from '@react-native-firebase/firestore';
+import axios from 'axios';
+import DeviceInfo from 'react-native-device-info';
+import { GOOGLE_CLIENT_ID, API_URL } from '@env';
+import { Animated } from 'react-native';
+
 
 
 const Setting = () => {
   const navigation = useNavigation();
   const [userInfo, setUserInfo] = useState(null);
+  const [deviceId, setDeviceId] = useState(null);
+  const [deviceName, setDeviceName] = useState(null);
+
+
+
+  useEffect(() => {
+    DeviceInfo.getUniqueId().then(setDeviceId);
+    setDeviceName(DeviceInfo.getModel());
+  }, []);
+
 
   useEffect(() => {
     const authInstance = getAuth();
@@ -54,6 +69,29 @@ const Setting = () => {
   }, []);
 
 
+
+
+  const handleLogedout = async (uid) => {
+    try {
+      const res = await axios.post(`${API_URL}/api/session/logout`, {
+        userId: uid,
+        deviceId: deviceId
+      });
+
+      console.log("SERVER RESPONSE 👉", res.data);
+
+      if (!res.data.success) {
+        throw new Error("Session creation failed");
+      }
+
+      console.log("Active devices:", res.data);
+    } catch (err) {
+      console.log("Session API error 👉", err.response?.data || err.message);
+      throw err;
+    }
+  };
+
+
   const handleSignOut = async () => {
     try {
       const authInstance = getAuth();
@@ -63,7 +101,7 @@ const Setting = () => {
       }
       await signOut(authInstance);
       await GoogleSignin.signOut();
-
+      await handleLogedout(user.uid);
       console.log('User signed out successfully ✅');
       navigation.reset({
         index: 0,
@@ -75,20 +113,46 @@ const Setting = () => {
   };
 
 
+  function AnimatedIcon({ children, focused }) {
+    const scale = new Animated.Value(focused ? 1.15 : 1);
+    const opacity = new Animated.Value(focused ? 1 : 0.7);
+
+    useEffect(() => {
+      Animated.parallel([
+        Animated.spring(scale, {
+          toValue: focused ? 1.15 : 1,
+          useNativeDriver: true,
+          friction: 5,
+        }),
+        Animated.timing(opacity, {
+          toValue: focused ? 1 : 0.7,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [focused]);
+
+    return (
+      <Animated.View style={{ transform: [{ scale }], opacity }}>
+        {children}
+      </Animated.View>
+    );
+  }
+
+
   return (
     <LinearGradient colors={['#050505', '#0b0b0b']} style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
-
+          <AnimatedIcon focused={true}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={25} color="white" />
+            </TouchableOpacity>
+          </AnimatedIcon>
           <Text style={styles.title}>Settings</Text>
-
           <View style={{ width: 40 }} />
         </View>
-
         <ScrollView contentContainerStyle={{ paddingVertical: 12 }} showsVerticalScrollIndicator={false}>
           {/* Profile Card */}
           <View style={styles.profileCard}>
@@ -247,8 +311,8 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -266,7 +330,6 @@ const styles = StyleSheet.create({
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    elevation: 3,
   },
   avatar: {
     width: 72,

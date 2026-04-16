@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, Modal, ScrollView } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import {
@@ -15,24 +15,83 @@ import {
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import { FacebookAuthProvider } from '@react-native-firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
-
-
+import DeviceInfo from 'react-native-device-info';
+import { useNavigation } from '@react-navigation/native';
+import { GOOGLE_CLIENT_ID, API_URL } from '@env';
+import axios from 'axios';
+import { Platform } from "react-native";
+import { MenuProvider } from 'react-native-popup-menu';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import BottomSheet from '@gorhom/bottom-sheet';
 
 const Login = () => {
   const [fbloading, setFbloading] = useState(false);
   const [gloading, setGloading] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [deviceId, setDeviceId] = useState(null);
+  const [deviceName, setDeviceName] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [showDeviceModal, setShowDeviceModal] = useState(false);
+  const navigation = useNavigation();
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ["100%"]);
 
 
   useEffect(() => {
+    DeviceInfo.getUniqueId().then(setDeviceId);
+    setDeviceName(DeviceInfo.getModel());
+
     GoogleSignin.configure({
-      webClientId:
-        '816091965671-29t50qk9j4re96lf9eatibdj3ilj65nv.apps.googleusercontent.com',
+      webClientId: GOOGLE_CLIENT_ID,
       offlineAccess: false,
     });
   }, []);
 
+
+  const handleLoginSuccess = async (uid) => {
+    if (!deviceId) return;
+
+    try {
+      const res = await axios.post(`${API_URL}/api/session/create`, {
+        userId: uid,
+        deviceId,
+        deviceName,
+        platform: Platform.OS,
+      });
+
+      console.log("API RESPONSE 👉", res.data);
+
+      if (res.data.showModal) {
+        setSessions(res.data.sessions);
+
+        setTimeout(() => {
+          bottomSheetRef.current?.snapToIndex(0);  // 👈 open sheet
+        }, 300);
+      } else {
+        // No modal needed → go to app
+        navigation.replace("TabsLayout");
+      }
+
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+
+  const logoutOtherDevice = async (deviceId) => {
+    try {
+      const user = getAuth().currentUser;
+
+      await axios.post(`${API_URL}/api/session/logout-device`, {
+        userId: user.uid,
+        deviceId: deviceId,
+      })
+      setShowDeviceModal(true);
+      // refresh session list
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
 
 
@@ -54,6 +113,8 @@ const Login = () => {
       const result = await signInWithCredential(authInstance, googleCredential);
 
       const { user } = result;
+      await handleLoginSuccess(result.user.uid, true);
+
 
       if (user.metadata.creationTime === user.metadata.lastSignInTime) {
         console.log('User just signed up ✅');
@@ -104,6 +165,9 @@ const Login = () => {
       const auth = getAuth();
       const resultAuth = await signInWithCredential(auth, credential);
       const { user } = resultAuth;
+      await handleLoginSuccess(user.uid);
+
+
 
       // Get Facebook Graph ID
       const facebookId = user.providerData[0].uid;
@@ -132,100 +196,164 @@ const Login = () => {
     } catch (e) {
       console.log('Facebook Sign-In error 👉', e);
     } finally {
-      setGloading(false);
+      setFbloading(true);
     }
   };
 
 
 
   return (
-    <View style={styles.root}>
-      <View style={styles.card}>
-        <Text style={styles.logo}>LysernFy</Text>
-        <Text style={styles.subtitle}>
-          Music that moves with you
-        </Text>
+    <MenuProvider skipInstanceCheck>
+      <GestureHandlerRootView style={styles.container}>
+        <View style={styles.root}>
+          <View style={styles.card}>
+            <Text style={styles.logo}>LysernFy</Text>
+            <Text style={styles.subtitle}>
+              Music that moves with you
+            </Text>
 
-        {/* Google */}
-        <TouchableOpacity
-          style={[
-            styles.googleBtn,
-            gloading && { opacity: 0.6 }
-          ]}
-          onPress={signInWithGoogle}
-          disabled={gloading}
-          activeOpacity={0.85}
-        >
-          <Image source={require('../assets/google_logo.png')} style={styles.googleLogo} />
-          <Text style={styles.googleBtnText}>
-            {gloading ? 'Please wait...' : 'Continue with Google'}
-          </Text>
-        </TouchableOpacity>
-
-
-        {/* Facebook */}
-        <TouchableOpacity
-          style={[
-            styles.fbBtn,
-            fbloading && { opacity: 0.6 }
-          ]}
-          onPress={signInWithFacebook}
-          disabled={fbloading}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="logo-facebook" size={25} color="#fff" style={{ marginRight: 10 }} />
-          <Text style={styles.fbBtnText}>
-            {fbloading ? 'Please wait...' : 'Continue with Facebook'}
-          </Text>
-        </TouchableOpacity>
+            {/* Google */}
+            <TouchableOpacity
+              style={[
+                styles.googleBtn,
+                gloading && { opacity: 0.6 }
+              ]}
+              onPress={signInWithGoogle}
+              disabled={gloading}
+              activeOpacity={0.85}
+            >
+              <Image source={require('../assets/google_logo.png')} style={styles.googleLogo} />
+              <Text style={styles.googleBtnText}>
+                {gloading ? 'Please wait...' : 'Continue with Google'}
+              </Text>
+            </TouchableOpacity>
 
 
-        <TouchableOpacity onPress={() => setShowTermsModal(true)} activeOpacity={0.8}>
-          <Text style={styles.footerLink}>
-            By continuing, you agree to our Terms & Privacy Policy
-          </Text>
-        </TouchableOpacity>
+            {/* Facebook */}
+            <TouchableOpacity
+              style={[
+                styles.fbBtn,
+                fbloading && { opacity: 0.6 }
+              ]}
+              onPress={signInWithFacebook}
+              disabled={fbloading}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="logo-facebook" size={25} color="#fff" style={{ marginRight: 10 }} />
+              <Text style={styles.fbBtnText}>
+                {fbloading ? 'Please wait...' : 'Continue with Facebook'}
+              </Text>
+            </TouchableOpacity>
 
-        <Modal visible={showTermsModal} transparent animationType="slide">
-          <View style={styles.overlay}>
-            <View style={styles.termsModalBox}>
-              <Text style={styles.termsTitle}>Your Data & Privacy</Text>
 
-              <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
-                <Text style={styles.termsDescription}>
-                  We use your information only to create and manage your profile inside
-                  the app. This helps us personalize your experience and keep your account
-                  secure.
-                </Text>
+            <TouchableOpacity onPress={() => setShowTermsModal(true)} activeOpacity={0.8}>
+              <Text style={styles.footerLink}>
+                By continuing, you agree to our Terms & Privacy Policy
+              </Text>
+            </TouchableOpacity>
 
-                <Text style={styles.termsDescription}>
-                  Your basic details such as name, email, and profile photo are used to
-                  identify your account. We do not sell or share your personal data with
-                  third parties.
-                </Text>
+            <Modal visible={showTermsModal} transparent animationType="slide">
+              <View style={styles.overlay}>
+                <View style={styles.termsModalBox}>
+                  <Text style={styles.termsTitle}>Your Data & Privacy</Text>
 
-                <Text style={styles.termsDescription}>
-                  You are always in control — you can update your profile or delete your
-                  account at any time.
-                </Text>
+                  <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+                    <Text style={styles.termsDescription}>
+                      We use your information only to create and manage your profile inside
+                      the app. This helps us personalize your experience and keep your account
+                      secure.
+                    </Text>
 
-                <TouchableOpacity style={styles.linkItem}>
-                  <Text style={styles.linkText}>📄 Terms of Service</Text>
-                </TouchableOpacity>
+                    <Text style={styles.termsDescription}>
+                      Your basic details such as name, email, and profile photo are used to
+                      identify your account. We do not sell or share your personal data with
+                      third parties.
+                    </Text>
 
-                <TouchableOpacity style={styles.linkItem}>
-                  <Text style={styles.linkText}>🔒 Privacy Policy</Text>
-                </TouchableOpacity>
-              </ScrollView>
+                    <Text style={styles.termsDescription}>
+                      You are always in control — you can update your profile or delete your
+                      account at any time.
+                    </Text>
 
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowTermsModal(false)}>
-                <Text style={styles.closeText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+                    <TouchableOpacity style={styles.linkItem}>
+                      <Text style={styles.linkText}>📄 Terms of Service</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.linkItem}>
+                      <Text style={styles.linkText}>🔒 Privacy Policy</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+
+                  <TouchableOpacity style={styles.closeBtn} onPress={() => setShowTermsModal(false)}>
+                    <Text style={styles.closeText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+            <Modal visible={showDeviceModal} transparent animationType="fade">
+              <View style={styles.overlay}>
+                <View style={styles.successBox}>
+                  <Ionicons name="checkmark-circle" size={48} color="#4CAF50" style={{ marginBottom: 12 }} />
+                  <Text style={styles.successTitle}>Device Logged Out</Text>
+                  <Text style={styles.successSubtitle}>Your Last session has been securely removed.</Text>
+                  <TouchableOpacity
+                    style={styles.okBtn}
+                    onPress={() => {
+                      bottomSheetRef.current?.close();
+                      navigation.replace("TabsLayout");
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.okBtnText}>OK</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
           </View>
-        </Modal>
-      </View>
-    </View>
+        </View>
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={-1}
+          snapPoints={snapPoints}
+          enablePanDownToClose
+          enableDynamicSizing={false}
+          backgroundStyle={{ backgroundColor: '#121212', borderTopLeftRadius: 20, borderTopRightRadius: 20 }}
+          handleIndicatorStyle={{ backgroundColor: '#666' }}
+        >
+          <View style={{ flex: 1, padding: 20 }}>
+            <Text style={styles.sheetTitle}>Your Active Devices</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {sessions.map((item) => (
+                <TouchableOpacity
+                  key={item.device_id}
+                  style={styles.deviceCard}
+                  activeOpacity={0.8}
+                >
+                  <View>
+                    <Text style={styles.deviceName}>
+                      {item.device_name}
+                      {item.device_id === deviceId && " (This Device)"}
+                    </Text>
+                    <Text style={styles.deviceTime}>
+                      Last login: {new Date(item.last_login).toLocaleString()}
+                    </Text>
+                  </View>
+                  {item.device_id !== deviceId && (
+                    <TouchableOpacity
+                      style={styles.logoutBtn}
+                      onPress={() => logoutOtherDevice(item.device_id)}
+                    >
+                      <Text style={styles.logoutText}>Logout</Text>
+                    </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </BottomSheet>
+
+      </GestureHandlerRootView>
+    </MenuProvider>
   );
 
 };
@@ -434,6 +562,95 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
+  deviceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  deviceName: { color: '#fff', fontWeight: '700' },
+  deviceTime: { color: '#aaa', fontSize: 12 },
+  logoutBtn: {
+    backgroundColor: '#ff4444',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  sheetTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  deviceCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#1e1e1e',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  deviceName: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  deviceTime: { color: '#aaa', fontSize: 12, marginTop: 4 },
+  logoutBtn: {
+    backgroundColor: '#ff4444',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  logoutText: { color: '#fff', fontWeight: '600' },
+  primaryBtn: {
+    backgroundColor: '#1a73e8',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  successBox: {
+    width: '80%',
+    backgroundColor: '#1e1e1e',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  successTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  successSubtitle: {
+    color: '#bbb',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  okBtn: {
+    backgroundColor: '#1a73e8',   // Hotstar-style primary blue
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 30,             // pill-shaped button
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
+    marginTop: 20,
+  },
+
+  okBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',   // modern CTA feel
+  },
+
 
 });
 

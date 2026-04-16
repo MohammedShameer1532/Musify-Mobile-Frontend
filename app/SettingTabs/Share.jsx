@@ -28,7 +28,7 @@ export default function ShareScreenSimple() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Edit Username</Text>
+        <Text style={styles.title}>share</Text>
         <View style={{ width: 40 }} />
       </View>
       <View className='pl-10 pr-10 mt-20'>

@@ -59,7 +59,7 @@ const Topartist = () => {
   return (
     <View>
       <View>
-        <Text className='text-2xl font-bold text-white ml-5 mt-5'>Top Artists</Text>
+        <Text style={styles.header}>Top Artists</Text>
       </View>
       <View style={{ height: 240 }}>
         <LegendList
@@ -74,12 +74,12 @@ const Topartist = () => {
               <TouchableOpacity onPress={() => handlePress(song.artistid)} >
                 <Image
                   source={{ uri: getHighResImage(song?.image) }}
-                  className="rounded-xl w-48 h-48 p-4"
+                  className="rounded-3xl w-44 h-48 p-4"
                   resizeMode='cover'
                 />
                 <View>
                   <Text
-                    style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
+                    style={styles.songTitle}
                     numberOfLines={2}
                     ellipsizeMode="tail">{song?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
                 </View>
@@ -94,22 +94,26 @@ const Topartist = () => {
 
 export default Topartist;
 
+
 const styles = StyleSheet.create({
-  songContainer: {
-    marginRight: 15,
-    alignItems: 'center',
-    marginTop: 30,
+  header: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 20,
+    color: 'white',
+    marginLeft: 20,
+    marginTop: -5,
+    letterSpacing: 0.2
   },
-  songImage: {
-    width: 290,
-    height: 290,
-    borderRadius: 16,
+  songContainer: {
+    marginTop: 10,
+    alignItems: 'flex-start',
+    marginRight: 16,
   },
   songTitle: {
+    fontSize: 14,
     color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 12,
-    textAlign: 'center',
-  },
+    marginTop: 10,
+    width: 176,       // match image width
+    fontFamily: 'Poppins-Bold'
+  }
 })

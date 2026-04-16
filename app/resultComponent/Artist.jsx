@@ -333,7 +333,7 @@ const Artist = () => {
 
 
   return (
-    <MenuProvider>
+    <MenuProvider skipInstanceCheck>
       <GestureHandlerRootView style={styles.container}>
         <LinearGradient colors={[backgroundColor, "#000"]} style={styles.background}>
           <SafeAreaView style={styles.safeArea} className="flex-1 ">

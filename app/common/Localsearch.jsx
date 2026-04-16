@@ -36,7 +36,7 @@ const Localsearch = ({ audioFiles, setFilteredFiles }) => {
   // instant clear function
   const handleClear = () => {
     setSearch('');
-    setFilteredFiles(audioFiles); // immediately show full list
+    // setFilteredFiles(audioFiles); // immediately show full list
     debouncedFilter.cancel();
   };
 
@@ -46,7 +46,7 @@ const Localsearch = ({ audioFiles, setFilteredFiles }) => {
         <Ionicons name="search" size={20} color="gray" />
         <TextInput
           style={styles.input}
-          placeholder="Search songs, albums, artists..."
+          placeholder="Search songs, artists..."
           placeholderTextColor="gray"
           value={search}
           autoCorrect={true}

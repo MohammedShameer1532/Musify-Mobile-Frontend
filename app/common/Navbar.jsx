@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
     width: '90%',
   },
   input: {
+    fontFamily: 'Poppins-Medium',
     flex: 1,
     color: 'white',
     marginLeft: 8,

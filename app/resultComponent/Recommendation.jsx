@@ -23,10 +23,10 @@ const Recommendation = () => {
       const validId = /^\d+$/.test(id) ? DEFAULT_ID : id;
 
       const res = await axios.get(
-        `https://www.jiosaavn.com/api.php?__call=reco.getreco&api_version=4&_format=json&_marker=0&ctx=wap6dot0&pid=${validId}&language=tamil`
+        `https://musify-api-inky.vercel.app/api/songs/${validId}/suggestions?limit=30`
       );
 
-      const data = res.data || [];
+      const data = res.data.data || [];
       setSuggestion(data);
 
       console.log('Fetched fresh data ✅', data);
@@ -58,11 +58,11 @@ const Recommendation = () => {
   };
 
   return (
-    <View>
-      <Text className="text-2xl font-bold text-white ml-5 mt-5">Recommendation</Text>
+    <View >
+      <Text style={styles.header} >Recommendation</Text>
       <FlatList
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
+        contentContainerStyle={{ paddingBottom: 0, marginLeft: 20, padding: 5 }}
         horizontal
         data={suggestion}
         keyExtractor={(song) => song.id}
@@ -72,15 +72,16 @@ const Recommendation = () => {
               onPress={() => navigation.navigate('Sresult', setDataSearch(song.id))}
             >
               <Image
-                source={{ uri: getHighResImage(song?.image) }}
-                className="rounded-xl w-48 h-48 p-4"
+                source={{ uri: getHighResImage(song?.image[2]?.url) }}
+                className="rounded-3xl w-44 h-48 p-4"
                 resizeMode="cover"
               />
-              <Text style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
+              <Text
+                style={styles.songTitle}
                 numberOfLines={2}
                 ellipsizeMode="tail"
               >
-                {song?.title?.replace(/\s*\(.*?\)\s*/g, '')}
+                {song?.name?.replace(/\s*\(.*?\)\s*/g, '')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -91,11 +92,27 @@ const Recommendation = () => {
 };
 
 export default Recommendation;
-
 const styles = StyleSheet.create({
-  songContainer: {
-    marginRight: 15,
-    alignItems: 'center',
-    marginTop: 30,
+  header: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 20,
+    color: 'white',
+    marginLeft: 20,
+    marginTop: 5,
+    letterSpacing: 0.2
   },
-});
+
+  songContainer: {
+    marginTop: 0,
+    marginRight: 16,   // ✅ controls gap between images
+    alignItems: 'flex-start',
+  },
+
+  songTitle: {
+    fontSize: 14,
+    color: 'white',
+    marginTop: 10,
+    width: 176,       // match image width
+    fontFamily: 'Poppins-Bold'
+  }
+})

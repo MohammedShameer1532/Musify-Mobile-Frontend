@@ -12,6 +12,9 @@ export const SearchProvider = ({ children }) => {
   const [tokens, setTokens] = useState([]);
   const [playlistDatas, setPlaylistDatas] = useState([]);
   const [outerdata, setOuterdata] = useState([]);
+  const [addtoplaylist, setAddtoplaylist] = useState([]);
+  const [qrdata, setQrdata] = useState(null);
+  const [scaneddata, setScaneddata] = useState(null)
 
 
 
@@ -37,6 +40,12 @@ export const SearchProvider = ({ children }) => {
       setPlaylistDatas,
       outerdata,
       setOuterdata,
+      addtoplaylist,
+      setAddtoplaylist,
+      qrdata,
+      setQrdata,
+      scaneddata,
+      setScaneddata,
     }}>
       {children}
     </SearchContext.Provider>

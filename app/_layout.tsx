@@ -19,7 +19,11 @@ import Tsongs from './resultComponent/Tsongs';
 import Sresult from './resultComponent/Sresult';
 import Rresult from './resultComponent/Rresult';
 import Podresult from './resultComponent/Podresult';
-import TrackPlayer, {Capability, RatingType} from 'react-native-track-player';
+import TrackPlayer, {
+  AppKilledPlaybackBehavior,
+  Capability,
+  RatingType,
+} from 'react-native-track-player';
 import {useContext, useEffect} from 'react';
 import Tartist from './resultComponent/Tartist';
 import Artistsongs from './resultComponent/Artistsongs';
@@ -38,6 +42,23 @@ import SocialLink from './SettingTabs/SocialLink';
 import Contactus from './SettingTabs/Contactus';
 import HelpSupport from './SettingTabs/HelpSupport';
 import Recommendation from './resultComponent/Recommendation';
+import {getAuth, signOut} from '@react-native-firebase/auth';
+import DeviceInfo from 'react-native-device-info';
+import axios from 'axios';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {API_URL} from '@env';
+import Likedsong from './(tabs)/screens/Likedsong';
+import Download from './(tabs)/screens/Download';
+import AddPlaylist from './(tabs)/screens/AddPlaylist';
+import {BottomSheetProvider} from './contextProvider/bottomSheetContext';
+import Testing from './common/Testing';
+import {BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import Viewplaylist from './(tabs)/screens/Viewplaylist';
+import {MenuProvider} from 'react-native-popup-menu';
+import Qrsheet from './common/Qrsheet';
+import Scansheet from './common/Scansheet';
+import Qrscanner from './common/Qrscanner';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,6 +66,7 @@ const Stack = createNativeStackNavigator();
 function AppNavigator() {
   const {setOuterdata} = useContext(SearchContext);
   const {user, loading} = useAuth();
+  console.log('api loggg', API_URL);
 
   // TrackPlayer setup
   useEffect(() => {
@@ -58,21 +80,34 @@ function AppNavigator() {
           Capability.SkipToNext,
           Capability.SkipToPrevious,
           Capability.SetRating, // 👈 required
+          Capability.SeekTo,
+          Capability.JumpForward,
+          Capability.JumpBackward,
         ],
 
         notificationCapabilities: [
           Capability.Play,
           Capability.Pause,
+          Capability.Stop,
           Capability.SkipToNext,
           Capability.SkipToPrevious,
           Capability.SetRating, // 👈 required
+          Capability.SeekTo,
+          Capability.JumpForward,
+          Capability.JumpBackward,
         ],
         android: {
-          appKilledPlaybackBehavior: 'continue-playback',
+          appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
         },
-        ratingType: RatingType.Heart, // 👈 required
-        jumpInterval: 10,
-        progressUpdateEventInterval: 1,
+        ratingType: RatingType.Heart,
+        progressUpdateEventInterval: 2,
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.Stop,
+        ],
+        forwardJumpInterval: 10,
+        backwardJumpInterval: 10,
       });
     });
   }, []);
@@ -108,45 +143,78 @@ function AppNavigator() {
     return () => subscription.remove();
   }, []);
 
-  if (loading) {
-    return null; // or splash screen
-  }
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const users = getAuth().currentUser;
+        if (!users) return;
+
+        const deviceId = await DeviceInfo.getUniqueId();
+
+        const res = await axios.post(`${API_URL}/api/session/validate`, {
+          userId: users.uid,
+          deviceId,
+        });
+
+        if (!res.data.valid) {
+          await signOut(getAuth());
+          navigationRef.reset({
+            index: 0,
+            routes: [{name: 'Login'}],
+          });
+        }
+      } catch (err) {
+        console.log('Session check error:', err);
+      }
+    };
+
+    checkSession();
+
+    const interval = setInterval(checkSession, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return null;
+
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{headerShown: false}}>
-        {!user ? (
-          <Stack.Screen name="Login" component={Login} />
-        ) : (
-          <>
-            <Stack.Screen name="TabsLayout" component={TabsLayout} />
-            <Stack.Screen name="Search" component={Search} />
-            <Stack.Screen name="Song" component={Song} />
-            <Stack.Screen name="Artist" component={Artist} />
-            <Stack.Screen name="Album" component={Album} />
-            <Stack.Screen name="Playlist" component={Playlist} />
-            <Stack.Screen name="Tresult" component={Tresult} />
-            <Stack.Screen name="Suggestion" component={Suggestion} />
-            <Stack.Screen name="Tsongs" component={Tsongs} />
-            <Stack.Screen name="Sresult" component={Sresult} />
-            <Stack.Screen name="Rresult" component={Rresult} />
-            <Stack.Screen name="Podresult" component={Podresult} />
-            <Stack.Screen name="Tartist" component={Tartist} />
-            <Stack.Screen name="Artistsongs" component={Artistsongs} />
-            <Stack.Screen name="Outersong" component={Outersong} />
-            <Stack.Screen name="Setting" component={Setting} />
-            <Stack.Screen name="Account" component={Account} />
-            <Stack.Screen name="ProfileEdit" component={ProfileEdit} />
-            <Stack.Screen name="Share" component={Share} />
-            <Stack.Screen name="Aboutus" component={Aboutus} />
-            <Stack.Screen name="Donateus" component={Donateus} />
-            <Stack.Screen name="SocialLink" component={SocialLink} />
-            <Stack.Screen name="Contactus" component={Contactus} />
-            <Stack.Screen name="HelpSupport" component={HelpSupport} />
-            <Stack.Screen name="Recommendation" component={Recommendation} />
-          </>
-        )}
+      <Stack.Navigator
+        screenOptions={{headerShown: false}}
+        initialRouteName={user ? 'TabsLayout' : 'Login'}>
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="TabsLayout" component={TabsLayout} />
+        <Stack.Screen name="Search" component={Search} />
+        <Stack.Screen name="Song" component={Song} />
+        <Stack.Screen name="Artist" component={Artist} />
+        <Stack.Screen name="Album" component={Album} />
+        <Stack.Screen name="Playlist" component={Playlist} />
+        <Stack.Screen name="Tresult" component={Tresult} />
+        <Stack.Screen name="Suggestion" component={Suggestion} />
+        <Stack.Screen name="Tsongs" component={Tsongs} />
+        <Stack.Screen name="Sresult" component={Sresult} />
+        <Stack.Screen name="Rresult" component={Rresult} />
+        <Stack.Screen name="Podresult" component={Podresult} />
+        <Stack.Screen name="Tartist" component={Tartist} />
+        <Stack.Screen name="Artistsongs" component={Artistsongs} />
+        <Stack.Screen name="Outersong" component={Outersong} />
+        <Stack.Screen name="Setting" component={Setting} />
+        <Stack.Screen name="Account" component={Account} />
+        <Stack.Screen name="ProfileEdit" component={ProfileEdit} />
+        <Stack.Screen name="Share" component={Share} />
+        <Stack.Screen name="Aboutus" component={Aboutus} />
+        <Stack.Screen name="Donateus" component={Donateus} />
+        <Stack.Screen name="SocialLink" component={SocialLink} />
+        <Stack.Screen name="Contactus" component={Contactus} />
+        <Stack.Screen name="HelpSupport" component={HelpSupport} />
+        <Stack.Screen name="Recommendation" component={Recommendation} />
+        <Stack.Screen name="Likedsong" component={Likedsong} />
+        <Stack.Screen name="AddPlaylist" component={AddPlaylist} />
+        <Stack.Screen name="Download" component={Download} />
+        <Stack.Screen name="Viewplaylist" component={Viewplaylist} />
+        <Stack.Screen name="Qrscanner" component={Qrscanner} />
+        <Stack.Screen name="Scansheet" component={Scansheet} />
       </Stack.Navigator>
-
       <StatusBar style="auto" />
     </NavigationContainer>
   );
@@ -160,10 +228,23 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <SearchProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AppNavigator />
-      </ThemeProvider>
-    </SearchProvider>
+    <SafeAreaProvider>
+      <SearchProvider>
+        <GestureHandlerRootView style={{flex: 1}}>
+          <BottomSheetModalProvider>
+            <MenuProvider skipInstanceCheck>
+              <ThemeProvider
+                value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <BottomSheetProvider>
+                  {/* <Testing /> */}
+                  <Qrsheet />
+                  <AppNavigator />
+                </BottomSheetProvider>
+              </ThemeProvider>
+            </MenuProvider>
+          </BottomSheetModalProvider>
+        </GestureHandlerRootView>
+      </SearchProvider>
+    </SafeAreaProvider>
   );
 }

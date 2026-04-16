@@ -8,7 +8,8 @@ import {
   Platform,
   TouchableOpacity,
   ActivityIndicator,
-  Image
+  Image,
+  Animated
 } from 'react-native';
 import { NativeModules } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -30,7 +31,6 @@ import { LegendList } from '@legendapp/list';
 import Icon from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
-
 
 const { LocalAudio } = NativeModules;
 
@@ -143,6 +143,35 @@ const LocalMusic = () => {
   console.log(currentSong?.artwork?.slice(0, 30));
 
 
+
+
+  function AnimatedIcon({ children, focused }) {
+    const scale = new Animated.Value(focused ? 1.15 : 1);
+    const opacity = new Animated.Value(focused ? 1 : 0.7);
+
+    useEffect(() => {
+      Animated.parallel([
+        Animated.spring(scale, {
+          toValue: focused ? 1.15 : 1,
+          useNativeDriver: true,
+          friction: 5,
+        }),
+        Animated.timing(opacity, {
+          toValue: focused ? 1 : 0.7,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [focused]);
+
+    return (
+      <Animated.View style={{ transform: [{ scale }], opacity }}>
+        {children}
+      </Animated.View>
+    );
+  }
+
+
   useEffect(() => {
     const fetchAudio = async () => {
       try {
@@ -228,19 +257,21 @@ const LocalMusic = () => {
   };
 
   return (
-    <MenuProvider>
+    <MenuProvider skipInstanceCheck>
       <GestureHandlerRootView style={styles.container}>
         <LinearGradient colors={['#050505', '#050505']} style={styles.background}>
-          <SafeAreaView style={styles.safeArea} className="flex-1">
+          <SafeAreaView  className="flex-1">
             <View style={styles.header}>
               {/* Back Button on the left */}
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                <Ionicons name="chevron-back" size={24} color="#fff" />
-              </TouchableOpacity>
+              <AnimatedIcon focused={true}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                  <Ionicons name="arrow-back" size={25} color="white"  />
+                </TouchableOpacity>
+              </AnimatedIcon>
 
               {/* Centered Logo + Title */}
               <View style={styles.centerContainer}>
-              
+
                 <Text style={styles.headerTitle}>Local Music</Text>
               </View>
 
@@ -351,7 +382,7 @@ const LocalMusic = () => {
                   )}
                   <View
                     style={{
-                      marginTop: 35,
+                      marginTop: 15,
                       paddingVertical: 15,
                       backgroundColor: 'rgba(255,255,255,0.05)',
                       borderRadius: 20,
@@ -394,7 +425,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -467,11 +498,11 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     marginLeft: 10,
-    marginTop: 10,
+    marginTop: 0,
   },
   songContainer: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 0,
   },
   songImages: {
     width: 290,

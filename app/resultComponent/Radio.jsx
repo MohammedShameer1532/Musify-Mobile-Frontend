@@ -85,11 +85,11 @@ const Radio = () => {
   return (
     <View>
       <View>
-        <Text className='text-2xl font-bold text-white ml-5 mt-5'>Radio Stations</Text>
+        <Text style={styles.header}>Radio Stations</Text>
         <LegendList
           estimatedItemSize={150}
           getEstimatedItemSize={() => 150}
-
+          extraData={selectedLanguage}
           // 🚀 Rendering behavior
           recycleItems
           removeClippedSubviews={false}
@@ -108,16 +108,16 @@ const Radio = () => {
               onPress={() => setSelectedLanguage(item.code)}
               style={{
                 backgroundColor: selectedLanguage === item.code ? '#10b981' : '#1f2937',
-                paddingVertical: 8,
+                paddingVertical: 5,
                 paddingHorizontal: 16,
                 borderRadius: 20,
-                marginHorizontal: 6,
+                marginHorizontal: 8,
               }}
             >
-              <Text style={{ color: 'white', fontSize: 14 }}>{item.name}</Text>
+              <Text style={{ color: 'white', fontSize: 14, fontFamily: 'Poppins-Medium', lineHeight: 20 }}>{item.name}</Text>
             </TouchableOpacity>
           )}
-          contentContainerStyle={{ paddingHorizontal: 10, marginTop: 10 }}
+          contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 10, marginBottom: 20 }}
         />
       </View>
       <FlatList
@@ -131,11 +131,11 @@ const Radio = () => {
             <TouchableOpacity onPress={() => handlePress(song.id, song.more_info, getHighResImage(song?.image))}>
               <Image
                 source={{ uri: getHighResImage(song?.image) }}
-                className="rounded-xl w-48 h-48 p-4"
+                className="rounded-3xl w-44 h-48 p-4"
                 resizeMode="cover"
               />
               <Text
-                style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
+                style={styles.songTitle}
                 numberOfLines={2}
                 ellipsizeMode="tail">
                 {song?.title.replace(/\s*\(.*?\)\s*/g, '')}
@@ -151,21 +151,24 @@ const Radio = () => {
 export default Radio;
 
 const styles = StyleSheet.create({
-  songContainer: {
-    marginRight: 15,
-    alignItems: 'center',
-    marginTop: 30,
+  header: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 20,
+    color: 'white',
+    marginLeft: 20,
+    marginTop: 10,
+    letterSpacing: 0.2
   },
-  songImage: {
-    width: 290,
-    height: 290,
-    borderRadius: 16,
+  songContainer: {
+    marginTop: 15,
+    alignItems: 'flex-start',
+    marginRight: 16,
   },
   songTitle: {
+    fontSize: 14,
     color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 12,
-    textAlign: 'center',
-  },
+    marginTop: 10,
+    width: 176,       // match image width
+    fontFamily: 'Poppins-Bold'
+  }
 })

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { SearchContext } from '../contextProvider/searchContext';
 import { LegendList } from '@legendapp/list';
+import { decode } from 'html-entities';
 
 
 
@@ -85,14 +86,34 @@ const Newrelease = () => {
       navigation.navigate('Tsongs', { id: songId });
     }
   };
+
+
+
+
+  const formatSongTitle = (rawTitle) => {
+    if (!rawTitle) return 'Unknown';
+
+    const decoded = decode(rawTitle); // Converts &quot; to "
+    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+
+    if (titleMatch) {
+      const mainTitle = titleMatch[1].trim();
+      const source = titleMatch[2].trim();
+      return `${mainTitle} from ${source}`;
+    }
+
+    return decoded.trim(); // fallback if pattern doesn't match
+  };
+
+
   return (
     <View>
       <View>
-        <Text className='text-2xl font-bold text-white ml-5 mt-5'>New Releases</Text>
+        <Text style={styles.header} >New Releases</Text>
         <LegendList
           estimatedItemSize={150}
           getEstimatedItemSize={() => 150}
-
+          extraData={selectedLanguage}
           // 🚀 Rendering behavior
           recycleItems
           removeClippedSubviews={false}
@@ -111,21 +132,21 @@ const Newrelease = () => {
               onPress={() => setSelectedLanguage(item.code)}
               style={{
                 backgroundColor: selectedLanguage === item.code ? '#10b981' : '#1f2937',
-                paddingVertical: 8,
+                paddingVertical: 4,
                 paddingHorizontal: 16,
                 borderRadius: 20,
                 marginHorizontal: 6,
               }}
             >
-              <Text style={{ color: 'white', fontSize: 14 }}>{item.name}</Text>
+              <Text style={{ color: 'white', fontSize: 14, fontFamily: 'Poppins-Medium', height: 'auto' }}>{item.name}</Text>
             </TouchableOpacity>
           )}
-          contentContainerStyle={{ paddingHorizontal: 10, marginTop: 10 }}
+          contentContainerStyle={{ paddingHorizontal: 10, marginTop: 5, marginBottom: 0, }}
         />
       </View>
       <FlatList
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
+        contentContainerStyle={{ paddingBottom: 10, marginLeft: 20, padding: 5 }}
         horizontal
         data={trend}
         keyExtractor={(song, index) => `${song.id}-${index}`}
@@ -134,15 +155,15 @@ const Newrelease = () => {
             <TouchableOpacity onPress={() => handlePress(song.id)}>
               <Image
                 source={{ uri: getHighResImage(song?.image) }}
-                className="rounded-xl w-48 h-48 p-4"
+                className="rounded-3xl w-44 h-48 "
                 resizeMode="cover"
               />
               <Text
-                style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
+                style={styles.songTitle}
                 numberOfLines={2}
                 ellipsizeMode="tail"
               >
-                {song?.title.replace(/\s*\(.*?\)\s*/g, '')}
+                {formatSongTitle(song?.title)}
               </Text>
             </TouchableOpacity>
           </View>
@@ -156,20 +177,24 @@ export default Newrelease;
 
 const styles = StyleSheet.create({
   songContainer: {
-    marginRight: 15,
-    alignItems: 'center',
-    marginTop: 30,
-  },
-  songImage: {
-    width: 290,
-    height: 290,
-    borderRadius: 16,
+    alignItems: 'flex-start',
+    marginTop: 15,
+    marginRight: 16,
+    width: 175
   },
   songTitle: {
+    fontSize: 14,
     color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 12,
-    textAlign: 'center',
+    marginTop: 10,
+    width: 162,
+    fontFamily: 'Poppins-Bold'
   },
+  header: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 20,
+    color: 'white',
+    marginLeft: 20,
+    letterSpacing: 0.2,
+    marginTop:5
+  }
 })

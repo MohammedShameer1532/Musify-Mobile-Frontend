@@ -24,16 +24,20 @@ import { getAuth } from '@react-native-firebase/auth';
 import { getFirestore } from '@react-native-firebase/firestore';
 import { doc, getDoc, setDoc } from '@react-native-firebase/firestore';
 import Recommendation from '../resultComponent/Recommendation';
+import { API_URL } from '@env';
+import { useNavigation } from '@react-navigation/native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
 
 const IndexScreen = () => {
   const isConnected = useNetwork();
   const [visible, setVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-
+  const navigation = useNavigation();
+  console.log('api log', API_URL);
   const sections = [
-    { id: '0', component: <Recommendation /> },
-    { id: '1', component: <Suggestion /> },
+    { id: '1', component: <Recommendation /> },
     { id: '2', component: <Newrelease /> },
     { id: '3', component: <Tplaylist /> },
     { id: '4', component: <Radio /> },
@@ -87,61 +91,74 @@ const IndexScreen = () => {
 
 
   return (
-    <SafeAreaView className="flex-1 bg-stone-950">
-      <KeyboardAvoidingView
+    <SafeAreaView style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#3a86ff', '#1a1a2e', '#0d0d0d']} // reversed order
+        start={{ x: 0, y: 0 }}   // top
+        end={{ x: 0, y: 1 }}     // bottom
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View className="flex-row items-center gap-3 p-2 ml-4 mt-10">
-          <Image
-            source={require('../assets/LysernFy.png')}
-            style={styles.avatar}
-            className='w-12 h-12 rounded-md '
-          />
-          <Text className="text-[22px] font-semibold text-white ">
-            LysernFy
-          </Text>
-        </View>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View className="flex-row items-center justify-between p-2 ml-4 mt-4 mr-4">
 
-        <Navbar />
-
-        {/* Offline banner */}
-        {!isConnected && (
-          <View className="bg-orange-500 py-2 px-4 mx-4 mt-2 rounded">
-            <Text className="text-white text-center font-medium">
-              You're offline. Some features may not work.
-            </Text>
-          </View>
-        )}
-
-        {/* Custom Modal */}
-        <Modal transparent visible={visible} animationType="fade">
-          <View style={styles.overlay}>
-            <View style={styles.alertBox}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.message}>{message}</Text>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => setVisible(false)}
-              >
-                <Text style={styles.buttonText}>Continue</Text>
-              </TouchableOpacity>
+            {/* Left section */}
+            <View className="flex-row items-center gap-3">
+              <Image
+                source={require('../assets/LysernFy.png')}
+                style={styles.avatar}
+                className="w-14 h-14 rounded-md"
+              />
+              <Text style={styles.header}>
+                LysernFy
+              </Text>
             </View>
-          </View>
-        </Modal>
 
-        {/* Content */}
-        <LegendList
-          data={sections}
-          estimatedItemSize={150}
-          renderItem={({ item }) => item.component}
-          keyExtractor={(item, index) => `${item.id}-${index}`}
-          contentContainerStyle={{ paddingBottom: 110, marginTop: 10 }}
-          ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
-          showsVerticalScrollIndicator={false}
-        />
-      </KeyboardAvoidingView>
+            {/* Right section */}
+            <TouchableOpacity onPress={() => navigation.navigate('Qrscanner')} className='mr-5'>
+              <MaterialIcons name="qr-code-scanner" color="#fff" size={32} />
+            </TouchableOpacity>
+          </View>
+          <Navbar />
+          {/* Offline banner */}
+          {!isConnected && (
+            <View className="bg-orange-500 py-2 px-4 mx-4 mt-2 rounded">
+              <Text className="text-white text-center font-medium">
+                You're offline. Some features may not work.
+              </Text>
+            </View>
+          )}
+
+          {/* Custom Modal */}
+          <Modal transparent visible={visible} animationType="fade">
+            <View style={styles.overlay}>
+              <View style={styles.alertBox}>
+                <Text style={styles.title}>{title}</Text>
+                <Text style={styles.message}>{message}</Text>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => setVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Continue</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Content */}
+          <LegendList
+            data={sections}
+            estimatedItemSize={150}
+            renderItem={({ item }) => item.component}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
+            contentContainerStyle={{ paddingBottom: 90, marginTop: 0 }}
+            ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
+            showsVerticalScrollIndicator={false}
+          />
+        </KeyboardAvoidingView>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -149,6 +166,12 @@ const IndexScreen = () => {
 export default IndexScreen;
 
 const styles = StyleSheet.create({
+  header: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 26,
+    color: 'white',
+    letterSpacing: 0.2
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

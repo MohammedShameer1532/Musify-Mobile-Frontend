@@ -36,7 +36,7 @@ const Suggestion = () => {
 
       // Fetch from API
       const res = await axios.get(
-        `https://jiosavan-api2.vercel.app/api/songs/${validId}/suggestions?limit=20`
+        `https://musify-api-inky.vercel.app/api/songs/${validId}/suggestions?limit=20`
       );
       const data = res.data?.data || [];
       setSuggestion(data);

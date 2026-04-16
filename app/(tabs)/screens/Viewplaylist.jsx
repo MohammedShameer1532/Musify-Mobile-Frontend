@@ -1,0 +1,478 @@
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { MenuProvider } from 'react-native-popup-menu';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { SearchContext } from '../../contextProvider/searchContext';
+import { FlatList, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { getAuth } from '@react-native-firebase/auth';
+import axios from 'axios';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import TrackPlayer, { useActiveTrack } from 'react-native-track-player';
+import LottieView from 'lottie-react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import BottomSheet from '@gorhom/bottom-sheet';
+import Entypo from "react-native-vector-icons/Entypo";
+import AverageColorExtractor from '../../common/AverageColorExtractor';
+import Music from '../../common/Music';
+import { API_URL } from '@env';
+
+const Viewplaylist = () => {
+  const navigation = useNavigation();
+  const { addtoplaylist } = useContext(SearchContext);
+  const [loading, setLoading] = useState(false);
+  const [playlistsong, SetPlaylistsong] = useState([]);
+  const playlistId = addtoplaylist;
+  console.log('playlistid', addtoplaylist);
+  const currentSong = useActiveTrack();
+  const sheetRef = useRef(null);
+  const snapPoints = useMemo(() => ["100%"]);
+  const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
+
+
+  function AnimatedIcon({ children, focused }) {
+    const scale = new Animated.Value(focused ? 1.15 : 1);
+    const opacity = new Animated.Value(focused ? 1 : 0.7);
+
+    useEffect(() => {
+      Animated.parallel([
+        Animated.spring(scale, {
+          toValue: focused ? 1.15 : 1,
+          useNativeDriver: true,
+          friction: 5,
+        }),
+        Animated.timing(opacity, {
+          toValue: focused ? 1 : 0.7,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [focused]);
+
+    return (
+      <Animated.View style={{ transform: [{ scale }], opacity }}>
+        {children}
+      </Animated.View>
+    );
+  }
+
+
+
+  const getPlaylistsongs = async () => {
+    try {
+      const user = getAuth().currentUser;
+      if (!user) return;
+
+      setLoading(true);
+
+      const res = await axios.get(
+        `${API_URL}/api/users/${user.uid}/playlists/${playlistId}`
+      );
+      SetPlaylistsong(res?.data?.songs)
+      console.log('get playlist', res.data);
+
+    } catch (error) {
+      console.error('API ERROR:', error.response?.data || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getPlaylistsongs();
+  }, []);
+
+
+
+  const handlePlay = useCallback(async (item) => {
+    if (!item) return;
+
+    // If same song, just open sheet
+    if (currentSong?.id === item.song_id) {
+      sheetRef.current?.snapToIndex(0);
+      return;
+    }
+
+    try {
+
+      const index = playlistsong?.findIndex(s => s.song_id === item.song_id);
+      if (index === -1) return;
+
+      await TrackPlayer.reset();
+
+      // Build queue in correct order
+      const orderedQueue = [
+        playlistsong[index],                       // clicked song first
+        ...playlistsong.slice(index + 1),          // songs after clicked
+        ...playlistsong.slice(0, index)            // songs before clicked
+      ].map(s => ({
+        id: s.song_id,
+        title: s.title,
+        artist: s.artist,
+        url: s.url,
+        artwork: s.artwork,
+        hasArtwork: true,
+      }));
+
+      // Add queue
+      await TrackPlayer.add(orderedQueue);
+
+      // Play first (clicked song)
+      await TrackPlayer.skip(0);
+      sheetRef.current?.snapToIndex(0);
+      await TrackPlayer.play();
+
+
+    } catch (err) {
+      console.log("Error:", err);
+    }
+  }, [currentSong, playlistsong]);
+
+
+
+  const handleRemoveSong = async (Id) => {
+    try {
+      const user = getAuth().currentUser;
+      if (!user) return;
+
+      const res = await axios.delete(
+        `${API_URL}/api/users/${user.uid}/playlists/${playlistId}/song/${Id}`);
+      console.log('res for delete', res);
+
+      await getPlaylistsongs();
+    } catch (error) {
+      console.error(error.response?.data || error.message);
+    }
+  };
+
+
+  const GradientBackground = ({ style }: BottomSheetBackgroundProps) => (
+    <LinearGradient
+      colors={[backgroundColor, "#000"]}
+      style={[style, { borderRadius: 0 }]} // keep BottomSheet’s rounded corners
+    />
+  );
+  return (
+    <MenuProvider skipInstanceCheck >
+      <GestureHandlerRootView style={styles.container}>
+        <LinearGradient colors={['#191919', '#1A1A1F']} style={styles.container}>
+          <SafeAreaView style={{ flex: 1 }}>
+            {/* Header */}
+            <View>
+              <View style={styles.header}>
+                <AnimatedIcon focused={true}>
+                  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} >
+                    <Ionicons name="arrow-back" size={22} color="white" />
+                  </TouchableOpacity>
+                </AnimatedIcon>
+                <View style={{ width: 40 }} />
+              </View>
+            </View>
+            {loading ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', }}>
+                <LottieView
+                  source={require("../../assets/playing.json")}
+                  style={{ width: 100, height: 100 }}
+                  autoPlay
+                  loop
+                />
+              </View>
+            ) : playlistsong.length === 0 ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="music-off" size={80} color="gray" />
+                <Text style={{ color: "gray", fontSize: 18, marginTop: 15, fontWeight: 600, letterSpacing: 0.5, }}>
+                  No songs here yet — add your favorites
+                </Text>
+              </View>
+            ) : (
+              <View>
+                <FlatList
+                  data={playlistsong}
+                  keyExtractor={(item) => item.song_id}
+                  contentContainerStyle={{ paddingBottom: 90 }}
+                  ListHeaderComponent={() => (
+                    <View style={styles.iconContainer}>
+                      <LinearGradient
+                        colors={['#ff6a00', '#ee0979']}
+                        style={styles.gradientIconContainer}
+                      >
+                        <MaterialCommunityIcons
+                          name="music-circle"
+                          size={120}
+                          color="#fff"
+                          style={styles.heartIcon}
+                        />
+                        <Text style={styles.overlayText}>Playlist Hub</Text>
+                      </LinearGradient>
+                    </View>
+                  )}
+                  renderItem={({ item }) => {
+
+                    const isPlaying =
+                      String(currentSong?.id) === String(item?.song_id);
+                    return (
+                      <TouchableOpacity style={styles.playlistItem} >
+                        <View style={styles.songCard} activeOpacity={0.7} >
+
+                          {/* LEFT SIDE (Play area) */}
+                          <TouchableOpacity
+                            style={styles.songLeft}
+                            activeOpacity={0.8}
+                            onPress={() => handlePlay(item)}
+                          >
+                            {item?.artist === "<unknown>" ? (
+                              <Image
+                                source={require("../../assets/musicphoto.jpg")}
+                                style={[styles.songImage,
+                                { borderColor: isPlaying ? "#1DB954" : "transparent" }
+                                ]
+                                }
+                              />
+                            ) : (
+                              <Image
+                                source={{ uri: item?.artwork }}
+                                style={[styles.songImage,
+                                { borderColor: isPlaying ? "#1DB954" : "transparent" }
+                                ]
+                                }
+                              />
+                            )}
+
+                            <View style={styles.songTitles}>
+                              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                {isPlaying && (
+                                  <LottieView
+                                    source={require("../../assets/playing.json")}
+                                    style={{ width: 20, height: 20, marginRight: 5 }}
+                                    autoPlay
+                                    loop
+                                  />
+                                )}
+
+                                <Text
+                                  style={[styles.songTitle,
+                                  isPlaying && { color: "#1DB954", width: 200 }
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {item?.title ? item?.title.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
+                                </Text>
+                              </View>
+
+                              <Text style={styles.artist} numberOfLines={1}>
+                                {item?.artist ? item?.artist.replace(/\s*\(.*?\)\s*/g, "") : "Unknown Artist"}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+
+                          {/* RIGHT SIDE (Delete button) */}
+                          <TouchableOpacity
+                            onPress={() => handleRemoveSong(item?.song_id)}
+                            style={styles.deleteBtn}
+                          >
+                            <AntDesign name="delete" color="#fff" size={24} />
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+              </View>
+            )}
+            <BottomSheet
+              ref={sheetRef}
+              index={-1}
+              snapPoints={snapPoints}
+              enableDynamicSizing={false}
+              enablePanDownToClose={true}
+              handleIndicatorStyle={{
+                backgroundColor: 'grey',
+                width: 45,
+                height: 5,
+                borderRadius: 2,
+              }}
+              // backgroundStyle={{
+              //   backgroundColor: 'rgba(30, 30, 30, 0.95)',
+              // }}
+              backgroundComponent={GradientBackground}
+            >
+              {currentSong?.artwork && (
+                <AverageColorExtractor
+                  key={currentSong?.id}
+                  imageUrl={currentSong.artwork}
+                  onColorExtracted={(color) => {
+                    if (color) setBackgroundColor(color);
+                  }}
+                />
+              )}
+              <TouchableOpacity onPress={() => sheetRef.current?.close()} style={{ width: 50 }} className='w-10 mt-0 ml-5'>
+                <Entypo name="chevron-thin-down" size={30} color="white" style={styles.backIcon} className="ml-5" />
+              </TouchableOpacity>
+              {currentSong && (
+                <View style={styles.songContainer}>
+                  {currentSong?.artist !== "<unknown>" ? (
+                    <Image
+                      source={{ uri: currentSong?.artwork }}
+                      style={styles.songImages}
+                      className="rounded-xl"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Image
+                      source={require("../../assets/musicphoto.jpg")}
+                      className="rounded-xl"
+                      style={styles.songImages}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View
+                    style={{
+                      marginTop: 35,
+                      paddingVertical: 15,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderRadius: 20,
+                      marginHorizontal: 16,
+                      alignSelf: 'stretch',
+                    }}
+                  >
+                    <View style={styles.textContainer}>
+                      <Text style={styles.songTitles}>
+                        {currentSong?.title ? currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '') : 'Unknown'}
+                      </Text>
+                      <Text style={styles.artist}>
+                        {currentSong?.artist ? currentSong?.artist?.split(',')[0].trim().replace(/\s*\(.*?\)\s*/g, '') : 'Unknown Artist'}
+                      </Text>
+                    </View>
+                    <Music />
+                  </View>
+                </View>
+              )}
+            </BottomSheet>
+          </SafeAreaView>
+        </LinearGradient>
+      </GestureHandlerRootView>
+    </MenuProvider>
+  )
+}
+
+export default Viewplaylist
+
+const styles = StyleSheet.create({
+  deleteBtn: {
+    position: 'absolute',
+    right: 30,
+  },
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 15,
+    paddingBottom: 8,
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+
+  },
+  title: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    height: 40,
+    letterSpacing: 0.5,
+    marginTop: 12,
+  },
+  songCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    borderBottomWidth: 2,
+    borderBottomColor: '#333333',
+  },
+  songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
+  songText: { flex: 1 },
+  songTitle: { fontSize: 16, fontWeight: '600', color: 'white' },
+  artist: { fontSize: 12, color: 'gray', marginTop: 4 },
+  songRight: { flexDirection: 'row', alignItems: 'center' },
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1DB954',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  songContainer: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  songImages: {
+    width: 290,
+    height: 290,
+  },
+  songTitles: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'white',
+    marginTop: 10,
+    width: 220,
+  },
+  textContainer: {
+    alignSelf: 'flex-start',
+    paddingLeft: 30,
+    marginTop: 10,
+  },
+  icons: {
+    paddingTop: 20,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    letterSpacing: 10,
+    width: 100,
+    position: 'absolute',
+    marginLeft: 320,
+  },
+  iconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 5,
+    marginBottom: 30
+  },
+  heartIcon: {
+    // optional glow effect
+    textShadowColor: 'rgba(255,255,255,0.6)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
+  },
+  overlayText: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '600',
+    marginTop: 16,
+    letterSpacing: 0.5,
+  },
+  gradientIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 80,
+    borderRadius: 24,
+  },
+})

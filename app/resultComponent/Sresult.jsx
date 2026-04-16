@@ -1,4 +1,4 @@
-import React, { useEffect, useContext, useState, useRef } from 'react';
+import React, { useEffect, useContext, useState, useRef, useMemo } from 'react';
 import { View, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Text, Button, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AverageColorExtractor from '../common/AverageColorExtractor';
@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialDesignIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import LinearGradient from 'react-native-linear-gradient';
 import TrackPlayer, { Capability } from 'react-native-track-player';
@@ -19,30 +20,38 @@ import RNBlobUtil from "react-native-blob-util";
 import { SmoothSheet } from 'react-native-smooth-sheet';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { decode } from 'html-entities';
+import { usePlaylistSheetStore } from '../store/playlistSheetStore';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import LottieView from 'lottie-react-native';
 
 
 
 const Sresult = () => {
   const [copied, setCopied] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const sheetRef = useRef(null);
+  const sheet = useRef(null);
+  const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
   const navigation = useNavigation();
   const [backgroundColor, setBackgroundColor] = useState('rgb(30, 30, 30)');
   const [loading, setLoading] = useState(true);
   const [songData, setSongData] = useState([]);
   const [lyrics, setLyrics] = useState();
-  const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, currentSong } = useContext(SearchContext);
+  const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, currentSong, setQrdata } = useContext(SearchContext);
   const id = dataSearch;
   console.log('songData', dataSearch);
   console.log('currentSong', currentSong);
   const songId = currentSong?.id;
   console.log("siiii", songId);
+  const openSheet = usePlaylistSheetStore((state) => state.openSheet);
+  const lyricsCache = useRef({});
+  const songDetailsMap = useRef({});
+  const [showDownloadAnim, setShowDownloadAnim] = useState(false);
+
 
 
   const songIds = async (id) => {
     try {
       setLoading(true);
-      const responseData = await axios.get(`https://jiosavan-api-with-playlist.vercel.app/api/songs?ids=${id}`);
+      const responseData = await axios.get(`https://saavn.sumit.co/api/songs?ids=${id}`);
       const res = responseData?.data.data[0];
       setSongData([res])
       console.log('resss', res);
@@ -77,6 +86,7 @@ const Sresult = () => {
     return decoded.trim(); // fallback if pattern doesn't match
   };
 
+
   useEffect(() => {
     if (songData.length > 0) {
       handlePlay(); // Call after songData is available
@@ -86,7 +96,7 @@ const Sresult = () => {
   const handlePlay = async () => {
     if (songData.length > 0) {
       const item = songData[0]; // Make sure you're using the correct item
-
+      songDetailsMap.current[item.id] = item;
       const track = {
         id: item?.id,
         url: item?.downloadUrl[4]?.url,
@@ -161,19 +171,36 @@ const Sresult = () => {
     }
   };
 
-  const fetchLyrics = async () => {
+
+
+
+  const fetchLyrics = async (songid) => {
+    if (!songid) return;
+
+    if (lyricsCache.current[songid]) {
+      setLyrics(lyricsCache.current[songid]);
+      sheet.current?.snapToIndex(0);
+      return;
+    }
+
     try {
-      const res = await axios.get(`https://jiosaavn-api.vercel.app/lyrics?id=${songId}`);
-      const cleanLyrics = res?.data?.lyrics.replace(/<br\s*\/?>/gi, "\n"); // convert <br> to \n
-      setLyrics(cleanLyrics);
+      const res = await axios.get(
+        `https://jiosaavn-api.vercel.app/lyrics?id=${songid}`
+      );
+
+      const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
       console.log("lyriii", cleanLyrics);
-      setVisible(true);
+      lyricsCache.current[songid] = cleanLyrics;
+      setLyrics(cleanLyrics);
+
+      sheet.current?.snapToIndex(0);
+
     } catch (error) {
-      console.log(error);
       setLyrics("Failed to load lyrics");
-      setVisible(true);
+      sheet.current?.snapToIndex(0);
     }
   };
+
 
   const handleCopy = () => {
     Clipboard.setString(lyrics || "");
@@ -184,16 +211,21 @@ const Sresult = () => {
   };
 
 
+  const handleshowqr = (item) => {
+    setQrdata(item);
+    openSheet();
+  }
 
-
+  const selectedSongDetails = songDetailsMap.current[currentSong?.id];
 
   return (
-    <MenuProvider>
-      <LinearGradient colors={[backgroundColor, '#000']} style={styles.background}>
+    <MenuProvider skipInstanceCheck >
+      <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']}
+        locations={[0, 0.5, 1]} style={styles.background}>
         {console.log('Applying Background Color:', backgroundColor)}
         <SafeAreaView style={styles.safeArea}>
-          <TouchableOpacity onPress={() => navigation.goBack()} className='w-10 mt-5'>
-            <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={25} color="white" />
           </TouchableOpacity>
           {songData.length > 0 && (
             <AverageColorExtractor
@@ -214,7 +246,7 @@ const Sresult = () => {
                   <Image source={{ uri: item?.image[2]?.url }} style={styles.songImage} className="rounded-xl" />
                   <View
                     style={{
-                      marginTop: 35,
+                      marginTop: 28,
                       paddingVertical: 20,
                       backgroundColor: 'rgba(255,255,255,0.05)',
                       borderRadius: 20,
@@ -234,28 +266,67 @@ const Sresult = () => {
                       <View style={styles.icons}>
                         <View style={{ alignItems: 'flex-end', padding: 0 }}>
                           <Menu>
-                            <MenuTrigger>
-                              <Icon name="dots-three-vertical" size={24} color="white" />
+                            <MenuTrigger customStyles={{ optionWrapper: { activeOpacity: 0.6 } }}>
+                              <MaterialCommunityIcons name="dots-vertical" color="#fff" size={30} />
                             </MenuTrigger>
                             <MenuOptions
                               customStyles={{
                                 optionsContainer: {
-                                  padding: 10,
-                                  borderRadius: 8,
-                                  backgroundColor: '#1f1f1f',
+                                  paddingVertical: 10,
+                                  borderRadius: 12,
+                                  backgroundColor: '#2a2a2a',   // sleek dark background
+                                  marginTop: 5,
+                                  width: 140,
+                                  shadowColor: '#000',
+                                  shadowOpacity: 0.2,
+                                  shadowRadius: 6,
+                                  elevation: 6,
+                                  paddingHorizontal: 10,
+                                },
+                                optionWrapper: {
+                                  paddingVertical: 12,
+                                  paddingHorizontal: 14,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                },
+                                optionText: {
+                                  color: '#fff',
+                                  fontSize: 15,
+                                  fontWeight: '500',
+                                  marginLeft: 12,
                                 },
                               }}
                             >
-                              <MenuOption onSelect={fetchLyrics}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                  <MaterialIcons name="lyrics" size={18} color="white" />
-                                  <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => fetchLyrics(item?.id)}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <MaterialIcons name="lyrics" size={20} color="#1DB954" />
+                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold' }}>Lyrics</Text>
                                 </View>
                               </MenuOption>
-                              <MenuOption onSelect={() => handleDownload(item?.downloadUrl[4]?.url, `${item?.name}.mp3`)}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                  <FontAwesome6 name="download" size={18} color="white" />
-                                  <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
+                              <View style={{
+                                height: 1,
+                                backgroundColor: '#444',  // softer, modern divider
+                                marginVertical: 6,
+                                marginHorizontal: 10,
+                                width: 'auto'
+                              }} />
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(item?.downloadUrl[4]?.url, `${item?.name}.mp3`)}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <FontAwesome6 name="download" size={20} color="#4da6ff" />
+                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold' }}>Download</Text>
+                                </View>
+                              </MenuOption>
+                              <View style={{
+                                height: 1,
+                                backgroundColor: '#444',  // softer, modern divider
+                                marginVertical: 6,
+                                marginHorizontal: 10,
+                                width: 'auto'
+                              }} />
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleshowqr(item)}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <Ionicons name="qr-code-outline" color="#cccccc" size={24} />
+                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 10, fontFamily: 'Poppins-Bold' }}>QR Code</Text>
                                 </View>
                               </MenuOption>
                             </MenuOptions>
@@ -263,66 +334,166 @@ const Sresult = () => {
                         </View>
                       </View>
                     </View>
+                    {showDownloadAnim && (
+                      <View style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0,0,0,0.6)",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 1000,
+                      }}>
+                        <LottieView
+                          source={require("../assets/Download.json")}
+                          style={{ width: 100, height: 100 }}
+                          autoPlay
+                          loop={false} // play once
+                          onAnimationFinish={() => setShowDownloadAnim(false)}
+                        />
+                        <Text style={{ color: "white", marginTop: 10, fontSize: 16 }}>
+                          Download Complete 🎵
+                        </Text>
+                      </View>
+                    )}
                     <Music />
                   </View>
+                  {selectedSongDetails && (
+                    <View style={{
+                      alignSelf: 'stretch',
+                      marginHorizontal: 16,
+                      marginTop: 16,
+                      borderRadius: 18,
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.08)',
+                      marginBottom: 25,
+                    }}>
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']}
+                        style={{ padding: 16 }}
+                      >
+                        {/* Section title */}
+                        <Text style={{
+                          color: '#1DB954', fontSize: 11, fontFamily: 'Poppins-Bold',
+                          letterSpacing: 2, marginBottom: 12,
+                        }}>
+                          SONG INFO
+                        </Text>
+
+                        {[
+                          { icon: 'calendar-outline', iconLib: 'Ionicons', label: 'Release Date', value: selectedSongDetails?.releaseDate },
+                          { icon: 'time-outline', iconLib: 'Ionicons', label: 'Year', value: selectedSongDetails?.year },
+                          { icon: 'pricetag-outline', iconLib: 'Ionicons', label: 'Label', value: selectedSongDetails?.label },
+                          { icon: 'headphones', iconLib: 'Material', label: 'Play Count', value: selectedSongDetails?.playCount?.toLocaleString() },
+                          { icon: 'copyright', iconLib: 'Material', label: 'Copyright', value: selectedSongDetails?.copyright },
+                        ].map(({ icon, iconLib, label, value }, i, arr) =>
+                          value ? (
+                            <View key={label}>
+                              <View style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                paddingVertical: 10,
+                              }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                  {iconLib === 'Ionicons'
+                                    ? <Ionicons name={icon} size={15} color="rgba(255,255,255,0.4)" />
+                                    : <MaterialIcons name={icon} size={15} color="rgba(255,255,255,0.4)" />
+                                  }
+                                  <Text style={{
+                                    color: 'rgba(255,255,255,0.45)', fontSize: 12,
+                                    fontFamily: 'Poppins-Regular',
+                                  }}>
+                                    {label}
+                                  </Text>
+                                </View>
+                                <Text style={{
+                                  color: '#fff', fontSize: 12, fontFamily: 'Poppins-Bold',
+                                  maxWidth: '55%', textAlign: 'right',
+                                }}>
+                                  {value}
+                                </Text>
+                              </View>
+                              {/* divider — skip after last item */}
+                              {i < arr.length - 1 && (
+                                <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+                              )}
+                            </View>
+                          ) : null
+                        )}
+                      </LinearGradient>
+                    </View>
+                  )}
                 </View>
+
               )}
             />
           )}
-          <View style={{ flex: 1 }}>
-            <SmoothSheet
-              ref={sheetRef}
-              isVisible={visible}
-              onClose={() => setVisible(false)}
-              snapPoint={0.5}
-              paddingHorizontal={15}
-              borderTopLeftRadius={50}
-              borderTopRightRadius={50}
-              theme="#000" // background color
-              disableDrag={false}
+
+          <BottomSheet
+            ref={sheet}
+            index={-1}
+            snapPoints={lyricsSnapPoints}
+            enableDynamicSizing={false}
+            enablePanDownToClose={true}
+            handleIndicatorStyle={{
+              backgroundColor: 'grey',
+              width: 45,
+              height: 5,
+              borderRadius: 2,
+            }}
+            backgroundStyle={{
+              backgroundColor: '#000',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                marginLeft: 10,
+                marginTop: 5.5,
+                marginBottom: 20,
+                color: "grey",
+                fontFamily: 'Poppins-Bold',
+              }}
+            >
+              Lyrics 🎶
+            </Text>
+            <TouchableOpacity style={styles.clearIcon} onPress={() => sheet.current?.close()}>
+              <Ionicons name="close-circle" size={25} color="gray" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ position: "absolute", right: 50, top: "2%" }}
+              onPress={handleCopy}
+            >
+              {copied ? (
+                <Ionicons name="checkbox-outline" size={25} color="grey" />
+              ) : (
+                <MaterialDesignIcons name="clipboard-text-multiple" size={25} color="grey" />
+              )}
+            </TouchableOpacity>
+            <BottomSheetScrollView
+              contentContainerStyle={{ padding: 16 }}
+              showsVerticalScrollIndicator={false}
             >
               <Text
                 style={{
-                  fontSize: 18,
-                  marginLeft: 10,
-                  marginTop: 5.5,
-                  marginBottom: 20,
-                  fontWeight: "bold",
-                  color: "grey",
+                  color: "white",
+                  fontSize: 14,
+                  textAlign: "center",   // centers text horizontally
+                  lineHeight: 22,
+                  marginBottom: 80,     // better readability
+                  fontFamily: 'Poppins-Bold',
                 }}
               >
-                Lyrics 🎶
+                {lyrics}
               </Text>
-              <TouchableOpacity style={styles.clearIcon} onPress={() => sheetRef.current?.close()}>
-                <Ionicons name="close-circle" size={25} color="gray" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ position: "absolute", right: 50, top: "2%" }}
-                onPress={handleCopy}
-              >
-                {copied ? (
-                  <Ionicons name="checkbox-outline" size={25} color="grey" />
-                ) : (
-                  <MaterialDesignIcons name="clipboard-text-multiple" size={25} color="grey" />
-                )}
-              </TouchableOpacity>
-              <ScrollView style={{ maxHeight: 400 }}>
-                <Text
-                  style={{
-                    color: "white",
-                    fontSize: 14,
-                    textAlign: "center",   // centers text horizontally
-                    lineHeight: 22,
-                    marginBottom: 80,     // better readability
-                  }}
-                >
-                  {lyrics}
-                  -----
-                </Text>
-              </ScrollView>
-
-            </SmoothSheet>
-          </View>
+            </BottomSheetScrollView>
+          </BottomSheet>
         </SafeAreaView>
       </LinearGradient>
     </MenuProvider>
@@ -339,13 +510,22 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  backIcon: {
-    marginLeft: 10,
-    marginTop: 10,
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    marginTop: 20
   },
+
   songContainer: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 10,
   },
   textContainer: {
     alignSelf: 'flex-start',
@@ -354,22 +534,26 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   songImage: {
-    width: 290,
-    height: 290,
+    width: 260,
+    height: 260,
   },
   songTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: 'white',
     marginTop: 10,
+    fontFamily: 'Poppins-Bold',
+    width: 270,
   },
   album: {
-    fontSize: 16,
-    color: 'grey',
+    fontSize: 13.5,
+    fontFamily: 'Poppins-Medium',
+    color: '#aaa',
     marginTop: 5,
+    width: 290,
   },
   artist: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: 'grey',
     marginTop: 5,
   },

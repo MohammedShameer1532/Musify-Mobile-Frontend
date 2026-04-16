@@ -22,16 +22,19 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import RNBlobUtil from "react-native-blob-util";
 import { SearchContext } from '../contextProvider/searchContext';
 import { decode } from 'html-entities';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { usePlaylistSheetStore } from '../store/playlistSheetStore';
 
 
 const Playlist = () => {
   const [playlistData, setPlaylistData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { dataSearch, playlistDatas } = useContext(SearchContext);
+  const { dataSearch, playlistDatas, setQrdata } = useContext(SearchContext);
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
   const [backgroundColors, setBackgroundColors] = useState("rgb(30, 30, 30)");
   const sheetRef = useRef(null);
   const sheet = useRef(null);
+  const lyricsCache = useRef({});
   const snapPoints = useMemo(() => ["100%"]);
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
   const [lyrics, setLyrics] = useState();
@@ -40,11 +43,13 @@ const Playlist = () => {
   const currentSong = useActiveTrack();
   const songId = currentSong?.id;
   const navigation = useNavigation();
+  const accentColor = '#1DB954';
   console.log("songData", playlistDatas);
   console.log("songData", dataSearch);
   console.log("currentSong", currentSong);
   const id = playlistDatas && playlistDatas.length > 0 ? playlistDatas : dataSearch;
-
+  const openSheet = usePlaylistSheetStore((state) => state.openSheet);
+  const songDetailsMap = useRef({});
   console.log('dotlog', id);
 
 
@@ -85,7 +90,7 @@ const Playlist = () => {
     try {
       const songs = playlistData?.data?.songs || [];
       if (!songs.length) return;
-
+      songs.forEach(s => { songDetailsMap.current[s.id] = s; });
       // Reset player
       await TrackPlayer.reset();
       // Reorder queue so clicked song plays first
@@ -118,14 +123,11 @@ const Playlist = () => {
   };
 
 
-  const GradientBackground = useCallback(
-    ({ style }: BottomSheetBackgroundProps) => (
-      <LinearGradient
-        colors={[backgroundColors, "#000"]}
-        style={[style, { borderRadius: 0 }]}
-      />
-    ),
-    [backgroundColors]
+  const GradientBackground = ({ style }) => (
+    <LinearGradient
+      colors={[backgroundColor, '#000', 'rgba(0,0,0,0.98)',]}
+      style={[style, { borderRadius: 0 }]}
+    />
   );
 
 
@@ -185,21 +187,35 @@ const Playlist = () => {
     }
   };
 
-  const fetchLyrics = async () => {
-    try {
-      const res = await axios.get(`https://jiosaavn-api.vercel.app/lyrics?id=${songId}`);
-      const cleanLyrics = res?.data?.lyrics.replace(/<br\s*\/?>/gi, "\n"); // convert <br> to \n
-      setLyrics(cleanLyrics);
+
+  const fetchLyrics = async (songid) => {
+    if (!songid) return;
+
+    if (lyricsCache.current[songid]) {
+      setLyrics(lyricsCache.current[songid]);
       sheet.current?.snapToIndex(0);
+      return;
+    }
+
+    try {
+      const res = await axios.get(
+        `https://jiosaavn-api.vercel.app/lyrics?id=${songid}`
+      );
+
+      const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
       console.log("lyriii", cleanLyrics);
+      lyricsCache.current[songid] = cleanLyrics;
+      setLyrics(cleanLyrics);
+
+      sheet.current?.snapToIndex(0);
 
     } catch (error) {
-      console.log(error);
+      setLyrics("Lyrics Not Found");
       sheet.current?.snapToIndex(0);
-      setLyrics("Failed to load lyrics");
-
     }
   };
+
+
 
   const handleCopy = () => {
     Clipboard.setString(lyrics || "");
@@ -225,25 +241,70 @@ const Playlist = () => {
     return decoded.trim(); // fallback if pattern doesn't match
   };
 
+  const handleshowqr = (item) => {
+    setQrdata(item);
+    openSheet();
+  }
+
+
+  const ListHeader = () => (
+    <View>
+      <View style={styles.albumHeader}>
+        <Image
+          source={{ uri: playlistData?.data?.image?.[2]?.url }}
+          style={styles.albumImage}
+        />
+      </View>
+      <View style={styles.albumInfoCard}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']}
+          style={styles.albumInfoGradient}
+        >
+          <Text style={styles.albumLabel}>{playlistData?.data.type}</Text>
+          <Text style={styles.albumName} numberOfLines={2}>
+            {formatSongTitle(playlistData?.data?.description)}
+          </Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaBadge}>
+              <Ionicons name="musical-notes" size={12} color={accentColor} />
+              <Text style={styles.metaBadgeText}>{playlistData?.data?.songCount} Songs</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+    </View>
+
+  );
+
+  const selectedSongDetails = songDetailsMap.current[currentSong?.id];
+
   return (
-    <MenuProvider>
+    <MenuProvider skipInstanceCheck >
       <GestureHandlerRootView style={styles.container}>
-        <LinearGradient colors={[backgroundColor, "#000"]} style={styles.background}>
+        <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']}
+          locations={[0, 0.5, 1]}
+          style={styles.background}
+        >
           <SafeAreaView style={styles.safeArea} className="flex-1 ">
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 35 }} className='w-10 mt-5'>
-              <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} className="ml-2" />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="arrow-back" size={22} color="white" />
             </TouchableOpacity>
-            {playlistData?.image > 0 && (
+            {playlistData?.data?.image?.[2]?.url && (
               <AverageColorExtractor
-                source={{ uri: playlistData?.image }}
+                imageUrl={playlistData?.data?.image?.[2]?.url}
                 onColorExtracted={(color) => {
                   if (color) {
                     setBackgroundColor(color);
-                    console.log("exactcolor", color);
+                    console.log("playlist color:", color);
                   }
                 }}
               />
             )}
+
             {currentSong?.artwork && (
               <AverageColorExtractor
                 key={currentSong?.id}
@@ -257,28 +318,12 @@ const Playlist = () => {
               <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
             ) : (
               <View className='flex-1'>
-                <Image
-                  source={{ uri: playlistData?.data?.image?.[2]?.url }}
-                  style={styles.songImagee}
-                  className="rounded-xl mt-0"
-                />
-                <View className='flex-row items-center mt-5 justify-between '>
-                  <Text className="text-white font-bold text-xl line-clamp-2 text-start ml-5 "
-                    style={{ flexWrap: "wrap", width: 280 }}>
-                    {formatSongTitle(playlistData?.data?.description)}
-                  </Text>
-                  <LottieView
-                    source={require("../assets/Download.json")}
-                    style={{ width: 100, height: 80 }}
-                    autoPlay
-                    loop
-                  />
-                </View>
                 <FlatList
                   className='flex-1 '
                   contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
                   data={playlistData?.data?.songs}
                   keyExtractor={song => song.id}
+                  ListHeaderComponent={<ListHeader />}
                   renderItem={({ item: song, index }) => (
                     <SongItem
                       song={song}
@@ -287,6 +332,7 @@ const Playlist = () => {
                       handlePlay={handlePlay}
                       handleDownload={handleDownload}
                       fetchLyrics={fetchLyrics}
+                      handleshowqr={handleshowqr}
                     />
                   )}
                 />
@@ -333,72 +379,187 @@ const Playlist = () => {
               <TouchableOpacity onPress={() => sheetRef.current?.close()} style={{ width: 50 }} className='w-10 mt-0 ml-5'>
                 <Entypo name="chevron-thin-down" size={30} color="white" style={styles.backIcon} className="ml-5" />
               </TouchableOpacity>
-              <View style={styles.songContainer} >
-                {currentSong?.artwork ? (
-                  <Image
-                    source={{ uri: currentSong.artwork }}
-                    style={styles.songImages}
-                    className="rounded-xl"
-                  />
-                ) : (
-                  <Image
-                    source={require('../assets/musicphoto.jpg')}
-                    style={styles.songImages}
-                    className="rounded-xl"
-                  />
-                )}
-                <View
-                  style={{
-                    marginTop: 35,
-                    paddingVertical: 15,
-                    backgroundColor: 'rgba(255,255,255,0.05)',
-                    borderRadius: 20,
-                    marginHorizontal: 16,
-                    alignSelf: 'stretch',
-                  }}
-                >
-                  <View style={styles.textContainer}>
-                    <Text
-                      className="text-white  line-clamp-2 text-start "
-                      style={styles.songTitles}>
-                      {formatSongTitle(currentSong?.title)}
-                    </Text>
-                    <Text style={styles.artists}> {currentSong?.artist ? currentSong.artist.split(',')[0].trim().replace(/\s*\(.*?\)\s*/g, '') : 'Unknown Artist'}</Text>
-                    <View style={styles.icons}>
-                      <View style={{ alignItems: 'flex-end', padding: 0 }}>
-                        <Menu>
-                          <MenuTrigger>
-                            <Icon name="dots-three-vertical" size={24} color="white" />
-                          </MenuTrigger>
-                          <MenuOptions
-                            customStyles={{
-                              optionsContainer: {
-                                padding: 10,
-                                borderRadius: 8,
-                                backgroundColor: '#1f1f1f',
-                              },
-                            }}
-                          >
-                            <MenuOption onSelect={fetchLyrics}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                <MaterialIcons name="lyrics" size={18} color="white" />
-                                <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
-                              </View>
-                            </MenuOption>
-                            <MenuOption onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                                <FontAwesome6 name="download" size={18} color="white" />
-                                <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
-                              </View>
-                            </MenuOption>
-                          </MenuOptions>
-                        </Menu>
+              <BottomSheetScrollView
+                contentContainerStyle={{ alignItems: 'center', paddingBottom: 40 }}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.songContainer} >
+                  {currentSong?.artwork ? (
+                    <Image
+                      source={{ uri: currentSong.artwork }}
+                      style={styles.songImages}
+                      className="rounded-xl"
+                    />
+                  ) : (
+                    <Image
+                      source={require('../assets/musicphoto.jpg')}
+                      style={styles.songImages}
+                      className="rounded-xl"
+                    />
+                  )}
+
+                  <View
+                    style={{
+                      marginTop: 35,
+                      paddingVertical: 15,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderRadius: 20,
+                      marginHorizontal: 16,
+                      alignSelf: 'stretch',
+                    }}
+                  >
+
+                    <View style={styles.textContainer}>
+                      <Text
+                        className="text-white  line-clamp-2 text-start "
+                        style={styles.songTitles}>
+                        {formatSongTitle(currentSong?.title)}
+                      </Text>
+                      <Text style={styles.artists}> {currentSong?.artist ? currentSong.artist.split(',')[0].trim().replace(/\s*\(.*?\)\s*/g, '') : 'Unknown Artist'}</Text>
+                      <View style={styles.icons}>
+                        <View style={{ alignItems: 'flex-end', padding: 0 }}>
+                          <Menu>
+                            <MenuTrigger customStyles={{ optionWrapper: { activeOpacity: 0.6 } }}>
+                              <MaterialCommunityIcons name="dots-vertical" color="#fff" size={28} />
+                            </MenuTrigger>
+                            <MenuOptions
+                              customStyles={{
+                                optionsContainer: {
+                                  paddingVertical: 10,
+                                  borderRadius: 12,
+                                  backgroundColor: '#2a2a2a',   // sleek dark background
+                                  marginTop: 5,
+                                  width: 140,
+                                  shadowColor: '#000',
+                                  shadowOpacity: 0.2,
+                                  shadowRadius: 6,
+                                  elevation: 6,
+                                  paddingHorizontal: 10,
+                                },
+                                optionWrapper: {
+                                  paddingVertical: 12,
+                                  paddingHorizontal: 14,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                },
+                                optionText: {
+                                  color: '#fff',
+                                  fontSize: 15,
+                                  fontWeight: '500',
+                                  marginLeft: 12,
+
+
+                                },
+                              }}
+                            >
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => fetchLyrics(currentSong?.id)}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <MaterialIcons name="lyrics" size={20} color="#1DB954" />
+                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Lyrics</Text>
+                                </View>
+                              </MenuOption>
+                              <View style={{
+                                height: 1,
+                                backgroundColor: '#444',  // softer, modern divider
+                                marginVertical: 6,
+                                marginHorizontal: 10,
+                                width: 'auto'
+                              }} />
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <FontAwesome6 name="download" size={20} color="#4da6ff" />
+                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
+                                </View>
+                              </MenuOption>
+                              <View style={{
+                                height: 1,
+                                backgroundColor: '#444',  // softer, modern divider
+                                marginVertical: 6,
+                                marginHorizontal: 10,
+                                width: 'auto'
+                              }} />
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleshowqr(currentSong)}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <Ionicons name="qr-code-outline" color="#cccccc" size={24} />
+                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 10, fontFamily: 'Poppins-Bold', }}>QR Code</Text>
+                                </View>
+                              </MenuOption>
+                            </MenuOptions>
+                          </Menu>
+                        </View>
                       </View>
                     </View>
+                    <Music />
                   </View>
-                  <Music />
+                  {selectedSongDetails && (
+                    <View style={{
+                      alignSelf: 'stretch',
+                      marginHorizontal: 16,
+                      marginTop: 16,
+                      borderRadius: 18,
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.08)',
+                      marginBottom: 25,
+                    }}>
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']}
+                        style={{ padding: 16 }}
+                      >
+                        {/* Section title */}
+                        <Text style={{
+                          color: '#1DB954', fontSize: 11, fontFamily: 'Poppins-Bold',
+                          letterSpacing: 2, marginBottom: 12,
+                        }}>
+                          SONG INFO
+                        </Text>
+
+                        {[
+                          { icon: 'calendar-outline', iconLib: 'Ionicons', label: 'Release Date', value: selectedSongDetails?.releaseDate },
+                          { icon: 'time-outline', iconLib: 'Ionicons', label: 'Year', value: selectedSongDetails?.year },
+                          { icon: 'pricetag-outline', iconLib: 'Ionicons', label: 'Label', value: selectedSongDetails?.label },
+                          { icon: 'headphones', iconLib: 'Material', label: 'Play Count', value: selectedSongDetails?.playCount?.toLocaleString() },
+                          { icon: 'copyright', iconLib: 'Material', label: 'Copyright', value: selectedSongDetails?.copyright },
+                        ].map(({ icon, iconLib, label, value }, i, arr) =>
+                          value ? (
+                            <View key={label}>
+                              <View style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                paddingVertical: 10,
+                              }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                  {iconLib === 'Ionicons'
+                                    ? <Ionicons name={icon} size={15} color="rgba(255,255,255,0.4)" />
+                                    : <MaterialIcons name={icon} size={15} color="rgba(255,255,255,0.4)" />
+                                  }
+                                  <Text style={{
+                                    color: 'rgba(255,255,255,0.45)', fontSize: 12,
+                                    fontFamily: 'Poppins-Regular',
+                                  }}>
+                                    {label}
+                                  </Text>
+                                </View>
+                                <Text style={{
+                                  color: '#fff', fontSize: 12, fontFamily: 'Poppins-Bold',
+                                  maxWidth: '55%', textAlign: 'right',
+                                }}>
+                                  {value}
+                                </Text>
+                              </View>
+                              {/* divider — skip after last item */}
+                              {i < arr.length - 1 && (
+                                <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+                              )}
+                            </View>
+                          ) : null
+                        )}
+                      </LinearGradient>
+                    </View>
+                  )}
                 </View>
-              </View>
+              </BottomSheetScrollView>
             </BottomSheet>
             <BottomSheet
               ref={sheet}
@@ -412,20 +573,27 @@ const Playlist = () => {
                 height: 5,
                 borderRadius: 2,
               }}
-              backgroundStyle={{ backgroundColor: '#000' }}
+              backgroundStyle={{
+                backgroundColor: '#000',
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+              }}
             >
-              <Text
-                style={{
-                  fontSize: 18,
-                  marginLeft: 10,
-                  marginTop: 5.5,
-                  marginBottom: 20,
-                  fontWeight: "bold",
-                  color: "grey",
-                }}
-              >
-                Lyrics 🎶
-              </Text>
+              <View style={{ display: 'flex', flexDirection: 'row', marginLeft: 10, marginTop: 10 }}>
+                <MaterialIcons name="lyrics" size={25} color="#1DB954" />
+
+                <Text
+                  style={{
+                    fontSize: 18,
+                    marginLeft: 10,
+                    color: "grey",
+                    fontFamily: 'Poppins-Bold',
+                  }}
+                >
+
+                  Lyrics 🎶
+                </Text>
+              </View>
               <TouchableOpacity style={styles.clearIcon} onPress={() => sheet.current?.close()}>
                 <Ionicons name="close-circle" size={25} color="gray" />
               </TouchableOpacity>
@@ -450,10 +618,10 @@ const Playlist = () => {
                     textAlign: "center",   // centers text horizontally
                     lineHeight: 22,
                     marginBottom: 80,     // better readability
+                    fontFamily: 'Poppins-Bold',
                   }}
                 >
                   {lyrics}
-                  -----
                 </Text>
               </BottomSheetScrollView>
             </BottomSheet>
@@ -469,7 +637,7 @@ export default Playlist;
 
 
 // ====================== Modern Song Item ======================
-const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownload, fetchLyrics }) => {
+const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownload, fetchLyrics, handleshowqr }) => {
   const isPlaying = currentSong?.id === song?.id;
 
   return (
@@ -504,7 +672,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
 
             {/* Song Title */}
             <Text
-              style={[styles.songTitle, isPlaying && { color: "#1DB954" }]}
+              style={[styles.songTitle, isPlaying && { color: "#1DB954", width: 160, }]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -525,30 +693,71 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
             style={{ marginLeft: 4 }}
           />
         </View>
-        <View style={{ alignItems: 'flex-end', padding: 5, marginRight: -10 }}>
+        <View style={{ alignItems: 'flex-end', padding: 8, marginRight: -5 }}>
           <Menu>
-            <MenuTrigger>
-              <Icon name="dots-three-vertical" size={24} color="white" />
+            <MenuTrigger customStyles={{ optionWrapper: { activeOpacity: 0.6 } }}>
+              <MaterialCommunityIcons name="dots-vertical" color="#fff" size={28} />
             </MenuTrigger>
             <MenuOptions
               customStyles={{
                 optionsContainer: {
-                  padding: 10,
-                  borderRadius: 8,
-                  backgroundColor: '#1f1f1f',
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  backgroundColor: '#2a2a2a',   // sleek dark background
+                  marginTop: 5,
+                  width: 140,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
+                  elevation: 6,
+                  paddingHorizontal: 10,
+                },
+                optionWrapper: {
+                  paddingVertical: 12,
+                  paddingHorizontal: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                },
+                optionText: {
+                  color: '#fff',
+                  fontSize: 15,
+                  fontWeight: '500',
+                  marginLeft: 12,
+
+
                 },
               }}
             >
-              <MenuOption onSelect={fetchLyrics}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                  <MaterialIcons name="lyrics" size={18} color="white" />
-                  <Text style={{ color: 'white', fontSize: 14 }}>Lyrics</Text>
+              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => fetchLyrics(song?.id)}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <MaterialIcons name="lyrics" size={20} color="#1DB954" />
+                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Lyrics</Text>
                 </View>
               </MenuOption>
-              <MenuOption onSelect={() => handleDownload(song?.downloadUrl[4]?.url, `${song?.name}.mp3`)}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 }}>
-                  <FontAwesome6 name="download" size={18} color="white" />
-                  <Text style={{ color: 'white', fontSize: 14 }}>Download</Text>
+              <View style={{
+                height: 1,
+                backgroundColor: '#444',  // softer, modern divider
+                marginVertical: 6,
+                marginHorizontal: 10,
+                width: 'auto'
+              }} />
+              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(song?.downloadUrl[4]?.url, `${song?.name}.mp3`)}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <FontAwesome6 name="download" size={20} color="#4da6ff" />
+                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
+                </View>
+              </MenuOption>
+              <View style={{
+                height: 1,
+                backgroundColor: '#444',  // softer, modern divider
+                marginVertical: 6,
+                marginHorizontal: 10,
+                width: 'auto'
+              }} />
+              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleshowqr(song)}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="qr-code-outline" color="#cccccc" size={24} />
+                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 10, fontFamily: 'Poppins-Bold', }}>QR Code</Text>
                 </View>
               </MenuOption>
             </MenuOptions>
@@ -561,38 +770,139 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
 
 
 const styles = StyleSheet.create({
+  // Album Info
+  albumInfoCard: {
+    marginHorizontal: 0,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginTop: 20,
+  },
+  albumInfoGradient: {
+    padding: 20,
+  },
+  albumLabel: {
+    color: '#1DB954',
+    fontSize: 11,
+    fontFamily: 'Poppins-Bold',
+    letterSpacing: 3,
+    marginBottom: 6,
+  },
+  albumName: {
+    color: '#fff',
+    fontSize: 20,
+    fontFamily: 'Poppins-Bold',
+    letterSpacing: 0.3,
+    lineHeight: 32,
+    marginBottom: 12,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  metaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(29,185,84,0.25)',
+  },
+  metaBadgeText: {
+    color: '#1DB954',
+    fontSize: 12,
+    fontFamily: 'Poppins-Bold',
+  },
+  albumHeader: {
+    alignItems: 'center',
+    marginTop: -10,
+    marginBottom: 4,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    marginTop: 20
+  },
+  albumImage: {
+    width: 260,
+    height: 260,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  albumInfo: {
+    marginTop: 18,
+    alignItems: 'center',
+  },
+
+  albumTitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins-Bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+
+  albumMeta: {
+    marginTop: 0,
+    fontSize: 14,
+    color: '#cfcfcf',
+  },
   playButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 50,
     backgroundColor: '#1DB954',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    shadowColor: "#1DB954",
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    marginRight: 0,
   },
   // Song item
   songCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 18,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    backdropFilter: 'blur(10px)',
   },
   songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
-  songText: { flex: 1 },
-  songTitle: { fontSize: 15, fontWeight: '600', color: 'white' },
-  artist: { fontSize: 12, color: 'gray', marginTop: 4 },
+  songText: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  songTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Poppins-Bold',
+    marginBottom: -5,
+    width: 180,
+  },
+  artist: { fontSize: 12, color: 'gray', marginTop: 4,  fontFamily: 'Poppins-Regular', },
   songRight: { flexDirection: 'row', alignItems: 'center' },
   songImagee: {
-    width: 280,
-    height: 280,
+    width: 260,
+    height: 260,
     display: 'flex',
     alignSelf: 'center',
   },
@@ -608,7 +918,7 @@ const styles = StyleSheet.create({
   },
   songContainer: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 10,
   },
   textContainer: {
     alignSelf: 'flex-start',
@@ -616,16 +926,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   songImages: {
-    width: 300,
-    height: 300,
+    width: 260,
+    height: 260,
+    borderRadius: 22,
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
   },
   songTitles: {
-    flexShrink: 1,
-    flexWrap: "wrap",
-    fontSize: 20,
-    fontWeight: '700',
-    color: 'white',
-    marginTop: 10,
+    color: '#fff',
+    fontSize: 22,
+    fontFamily: 'Poppins-Bold',
+    letterSpacing: 0.2,
     width: 300,
   },
   album: {
@@ -634,10 +947,10 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   artists: {
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 14,
-    color: 'grey',
-    marginTop: 5,
-    marginLeft: -3,
+    fontFamily: 'Poppins-Regular',
+    marginTop: 4,
   },
   icons: {
     paddingTop: 20,

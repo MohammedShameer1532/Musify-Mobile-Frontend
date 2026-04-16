@@ -58,9 +58,10 @@ const Podcast = () => {
   return (
     <View>
       <View>
-        <Text className='text-2xl font-bold text-white ml-5 mt-5'>Podcast</Text>
+        <Text style={styles.header}>Podcast</Text>
       </View>
       <FlatList
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
         horizontal={true}
         data={trend}
@@ -70,12 +71,12 @@ const Podcast = () => {
             <TouchableOpacity onPress={() => handlePress(song.id, song.perma_url, getHighResImage(song?.image), song?.title)} >
               <Image
                 source={{ uri: getHighResImage(song?.image) }}
-                className="rounded-xl w-48 h-48 p-4"
+                className="rounded-3xl w-44 h-48 p-4"
                 resizeMode='cover'
               />
               <View>
                 <Text
-                  style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
+                  style={styles.songTitle}
                   numberOfLines={2}
                   ellipsizeMode="tail">{song?.title.replace(/\s*\(.*?\)\s*/g, '')}</Text>
               </View>
@@ -90,21 +91,24 @@ const Podcast = () => {
 export default Podcast;
 
 const styles = StyleSheet.create({
-  songContainer: {
-    marginRight: 15,
-    alignItems: 'center',
-    marginTop: 30,
+  header: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 20,
+    color: 'white',
+    marginLeft: 20,
+    marginTop:-14,
+    letterSpacing: 0.2
   },
-  songImage: {
-    width: 290,
-    height: 290,
-    borderRadius: 16,
+  songContainer: {
+    marginTop: 10,
+    alignItems: 'flex-start',
+    marginRight: 16,
   },
   songTitle: {
+    fontSize: 14,
     color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 12,
-    textAlign: 'center',
-  },
+    marginTop: 10,
+    width: 176,       // match image width
+    fontFamily: 'Poppins-Bold'
+  }
 })

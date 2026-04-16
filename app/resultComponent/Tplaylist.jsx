@@ -32,7 +32,7 @@ const Tplaylist = () => {
   const [trend, setTrend] = useState([]);
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const navigation = useNavigation();
-  const { setDataSearch } = useContext(SearchContext);
+  const { setDataSearch, setPlaylistDatas } = useContext(SearchContext);
 
   const trendingData = async () => {
     try {
@@ -75,7 +75,7 @@ const Tplaylist = () => {
   };
 
   const handlePress = (songId) => {
-    setDataSearch(songId);
+    setPlaylistDatas(songId);
     // If songId is only digits, navigate to Tresult
     if (/^\d+$/.test(songId)) {
       navigation.navigate('Playlist', { id: songId });
@@ -88,11 +88,11 @@ const Tplaylist = () => {
   return (
     <View>
       <View>
-        <Text className='text-2xl font-bold text-white ml-5 mt-5'>Top Playlists</Text>
+        <Text style={styles.header}>Top Playlists</Text>
         <LegendList
           estimatedItemSize={150}
           getEstimatedItemSize={() => 150}
-
+          extraData={selectedLanguage}
           // 🚀 Rendering behavior
           recycleItems
           removeClippedSubviews={false}
@@ -112,38 +112,41 @@ const Tplaylist = () => {
               onPress={() => setSelectedLanguage(item.code)}
               style={{
                 backgroundColor: selectedLanguage === item.code ? '#10b981' : '#1f2937',
-                paddingVertical: 8,
+                paddingVertical: 4,
                 paddingHorizontal: 16,
                 borderRadius: 20,
-                marginHorizontal: 6,
+                marginHorizontal: 8,
+                marginBottom: 5,
               }}
             >
-              <Text style={{ color: 'white', fontSize: 14 }}>{item.name}</Text>
+              <Text style={{ color: 'white', fontSize: 14, fontFamily: 'Poppins-Medium',  }}>{item.name}</Text>
             </TouchableOpacity>
           )}
-          contentContainerStyle={{ paddingHorizontal: 10, marginTop: 10 }}
+          contentContainerStyle={{ paddingHorizontal: 10, marginTop: 10,marginBottom:32 }}
         />
       </View>
       <FlatList
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
+        contentContainerStyle={{ paddingBottom: -20, marginLeft: 20, padding: 5 }}
         horizontal
         data={trend}
         keyExtractor={(song, index) => `${song.id}-${index}`}
         renderItem={({ item: song }) => (
           <View style={styles.songContainer}>
             <TouchableOpacity onPress={() => handlePress(song.id)}>
-              <Image
-                source={{ uri: getHighResImage(song?.image) }}
-                className="rounded-xl w-48 h-48 p-4"
-                resizeMode="cover"
-              />
-              <Text
-                style={{ color: 'white', fontSize: 14, width: 192, marginTop: 8 }}
-                numberOfLines={2}
-                ellipsizeMode="tail">
-                {song?.title.replace(/\s*\(.*?\)\s*/g, '')}
-              </Text>
+              <View style={styles.card}>
+                <Image
+                  source={{ uri: getHighResImage(song?.image) }}
+                  className="rounded-3xl w-44 h-48 p-4"
+                  resizeMode="cover"
+                />
+                <Text
+                  style={styles.songTitle}
+                  numberOfLines={2}
+                  ellipsizeMode="tail">
+                  {song?.title.replace(/\s*\(.*?\)\s*/g, '')}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
         )}
@@ -156,20 +159,26 @@ export default Tplaylist;
 
 const styles = StyleSheet.create({
   songContainer: {
-    marginRight: 15,
-    alignItems: 'center',
-    marginTop: 30,
+    alignItems: 'flex-start',
+    marginTop: 15,
+    marginRight: 16
   },
-  songImage: {
-    width: 290,
-    height: 290,
-    borderRadius: 16,
+  header: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 20,
+    color: 'white',
+    marginLeft: 20,
+    marginTop: -5,
+    letterSpacing: 0.2
+  },
+  card: {
+    width: 176
   },
   songTitle: {
+    fontSize: 14,
     color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 12,
-    textAlign: 'center',
+    marginTop: 10,
+    width: 162,
+    fontFamily: 'Poppins-Bold'
   },
 })

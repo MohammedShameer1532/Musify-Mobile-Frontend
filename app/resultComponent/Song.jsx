@@ -189,7 +189,7 @@ const Song = () => {
   };
 
   return (
-    <MenuProvider>
+    <MenuProvider skipInstanceCheck>
       <LinearGradient colors={[backgroundColor, '#000']} style={styles.background}>
         {console.log('Applying Background Color:', backgroundColor)}
         <SafeAreaView style={styles.safeArea}>

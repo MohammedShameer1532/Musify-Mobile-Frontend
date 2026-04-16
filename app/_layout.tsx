@@ -69,7 +69,9 @@ function AppNavigator() {
 
   // TrackPlayer setup
   useEffect(() => {
-    TrackPlayer.setupPlayer().then(() => {
+    TrackPlayer.setupPlayer({
+      autoHandleInterruptions: true,
+    }).then(() => {
       TrackPlayer.updateOptions({
         stopWithApp: false,
 
@@ -132,7 +134,11 @@ function AppNavigator() {
 
           await TrackPlayer.play();
           setOuterdata(meta);
-          navigate('Outersong', {metadata: meta});
+          if (navigationRef.isReady()) {
+            navigationRef.navigate('Outersong', {metadata: meta});
+          } else {
+            console.log('Navigation not ready yet');
+          }
         } catch (e) {
           console.log('Error playing file:', e);
         }

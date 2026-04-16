@@ -35,10 +35,10 @@ export const PlaybackService = async () => {
     TrackPlayer.addEventListener(Event.RemoteSeek, async event => {
       await TrackPlayer.seekTo(event.position);
     }),
+    TrackPlayer.addEventListener(Event.RemoteStop, async () => {
+      await TrackPlayer.stop();
+    }),
   ];
-  TrackPlayer.addEventListener(Event.RemoteStop, async () => {
-    await TrackPlayer.stop();
-  });
   return () => {
     subscriptions.forEach(sub => sub.remove());
   };

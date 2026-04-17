@@ -69,9 +69,7 @@ function AppNavigator() {
 
   // TrackPlayer setup
   useEffect(() => {
-    TrackPlayer.setupPlayer({
-      autoHandleInterruptions: true,
-    }).then(() => {
+    TrackPlayer.setupPlayer().then(() => {
       TrackPlayer.updateOptions({
         stopWithApp: false,
 

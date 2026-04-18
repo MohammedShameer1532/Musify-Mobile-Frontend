@@ -147,7 +147,7 @@ const Setting = () => {
         <View style={styles.header}>
           <AnimatedIcon focused={true}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={25} color="white" />
+              <Ionicons name="arrow-back" size={22} color="white" />
             </TouchableOpacity>
           </AnimatedIcon>
           <Text style={styles.title}>Settings</Text>
@@ -309,12 +309,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   title: {
     color: '#fff',

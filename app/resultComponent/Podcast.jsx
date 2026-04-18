@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
     color: 'white',
     marginLeft: 20,
     marginTop:-14,
-    letterSpacing: 0.2
   },
   songContainer: {
     marginTop: 10,
@@ -109,6 +108,6 @@ const styles = StyleSheet.create({
     color: 'white',
     marginTop: 10,
     width: 176,       // match image width
-    fontFamily: 'Poppins-Bold'
+    fontFamily: 'Poppins-Regular'
   }
 })

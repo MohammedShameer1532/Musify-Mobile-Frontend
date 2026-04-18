@@ -15,7 +15,7 @@ import { SearchContext } from '../contextProvider/searchContext';
 
 const Search = () => {
   const navigation = useNavigation();
-  const { globalSearch, setDataSearch, setSongsuggest } = useContext(SearchContext);
+  const { globalSearch, setDataSearch, setSongsuggest, setPlaylistDatas } = useContext(SearchContext);
   const [allData, setAllData] = useState([]);
   const songsData = globalSearch?.songs?.data;
   const playlistsData = globalSearch?.playlists?.data;
@@ -56,6 +56,7 @@ const Search = () => {
         onPress={() => {
           navigation.navigate(screenName);
           setDataSearch(item.id);
+          setPlaylistDatas(item.id);
         }}
       >
         <View style={styles.songContainer}>
@@ -95,12 +96,12 @@ const Search = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c', paddingBottom: 30, }}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}
+        activeOpacity={0.8}>
         <Ionicons
           name="arrow-back"
-          size={30}
+          size={22}
           color="white"
-          style={{ marginLeft: 10, marginTop: 10 }}
         />
       </TouchableOpacity>
 
@@ -134,13 +135,26 @@ const styles = StyleSheet.create({
     marginLeft: 15,
   },
   songTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 15,
     color: 'white',
+    fontFamily: 'Poppins-Bold',
   },
   metaText: {
-    fontSize: 14,
+    fontSize: 12,
     color: 'gray',
     marginTop: 2,
+    fontFamily: 'Poppins-Regular',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    marginTop: 0,
   },
 });

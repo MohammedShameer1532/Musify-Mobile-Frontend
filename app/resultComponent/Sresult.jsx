@@ -246,23 +246,55 @@ const Sresult = () => {
                   <Image source={{ uri: item?.image[2]?.url }} style={styles.songImage} className="rounded-xl" />
                   <View
                     style={{
-                      marginTop: 28,
+                      marginTop: 20,
                       paddingVertical: 20,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      backgroundColor: 'rgba(255,255,255,0.07)',
                       borderRadius: 20,
                       marginHorizontal: 16,
                       alignSelf: 'stretch',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.08)',
                     }}
                   >
                     <View style={styles.textContainer}>
-                      <TouchableOpacity className="w-[100%]">
-                        <Text style={styles.songTitle}>{item?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                        <Text style={styles.album}>{item?.album?.name
-                          ?.replace(/&quot;/g, '')
-                          .replace(/\s*\(From\s*/i, ' (From ')
-                        }</Text>
-                        <Text style={styles.artist}>{item?.artists?.all[0]?.name}</Text>
-                      </TouchableOpacity>
+                      {/* ALBUM */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <MaterialIcons name="album" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Album</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(item?.album?.name)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* SONG */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="musical-note" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Song</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(item?.name)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* ARTIST */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="person" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Artist</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(item?.artists?.all?.[0]?.name)}
+                          </Text>
+                        </View>
+                      </View>
                       <View style={styles.icons}>
                         <View style={{ alignItems: 'flex-end', padding: 0 }}>
                           <Menu>
@@ -451,18 +483,21 @@ const Sresult = () => {
               borderTopRightRadius: 10,
             }}
           >
-            <Text
-              style={{
-                fontSize: 18,
-                marginLeft: 10,
-                marginTop: 5.5,
-                marginBottom: 20,
-                color: "grey",
-                fontFamily: 'Poppins-Bold',
-              }}
-            >
-              Lyrics 🎶
-            </Text>
+            <View style={{ display: 'flex', flexDirection: 'row', marginLeft: 10, marginTop: 10 }}>
+              <MaterialIcons name="lyrics" size={25} color="#1DB954" />
+
+              <Text
+                style={{
+                  fontSize: 18,
+                  marginLeft: 10,
+                  color: "grey",
+                  fontFamily: 'Poppins-Bold',
+                }}
+              >
+
+                Lyrics 🎶
+              </Text>
+            </View>
             <TouchableOpacity style={styles.clearIcon} onPress={() => sheet.current?.close()}>
               <Ionicons name="close-circle" size={25} color="gray" />
             </TouchableOpacity>
@@ -504,6 +539,34 @@ export default Sresult;
 
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  infoLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: -1,
+  },
+
+  infoValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+  },
   background: {
     flex: 1,
   },
@@ -520,17 +583,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
-    marginTop: 20
+    marginTop: 10,
   },
-
   songContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 0,
   },
   textContainer: {
     alignSelf: 'flex-start',
     paddingLeft: 30,
-    marginTop: 10,
+    marginTop: -5,
     width: '100%',
   },
   songImage: {

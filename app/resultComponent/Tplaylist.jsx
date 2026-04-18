@@ -169,7 +169,6 @@ const styles = StyleSheet.create({
     color: 'white',
     marginLeft: 20,
     marginTop: -5,
-    letterSpacing: 0.2
   },
   card: {
     width: 176
@@ -179,6 +178,6 @@ const styles = StyleSheet.create({
     color: 'white',
     marginTop: 10,
     width: 162,
-    fontFamily: 'Poppins-Bold'
+    fontFamily: 'Poppins-Regular',
   },
 })

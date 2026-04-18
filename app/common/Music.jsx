@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     alignItems: 'center',
     width: '100%',
-    marginTop: 24,
+    marginTop: 10,
   },
   actionBtn: {
     padding: 12,
@@ -296,6 +296,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     width: '100%',
-    marginTop: 20,
+    marginTop: 0,
   },
 });

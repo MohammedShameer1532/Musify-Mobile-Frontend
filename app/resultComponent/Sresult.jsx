@@ -23,7 +23,7 @@ import { decode } from 'html-entities';
 import { usePlaylistSheetStore } from '../store/playlistSheetStore';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import LottieView from 'lottie-react-native';
-
+import { API_URL } from '@env';
 
 
 const Sresult = () => {
@@ -117,61 +117,99 @@ const Sresult = () => {
     }
   };
 
-  const handleDownload = async (url, fileName) => {
-    try {
-      if (!url) {
-        Alert.alert("Error", "No download URL available");
-        return;
-      }
 
-      // Request permission for Android < 13
-      if (Platform.OS === 'android' && Platform.Version < 33) {
+  const handleDownload = async (item) => {
+    try {
+      // Permission for Android < 13
+      if (Platform.OS === "android" && Platform.Version < 33) {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
-            title: 'Storage Permission',
-            message: 'lysernfy needs access to storage to save songs.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
+            title: "Storage Permission",
+            message: "App needs storage access to save songs.",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
           }
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission denied', 'Cannot download without storage permission');
+          Alert.alert("Permission denied", "Cannot download without permission");
           return;
         }
       }
 
-      const filePath = `/storage/emulated/0/Download/${fileName || 'Song.mp3'}`;
+      const safeName = (formatSongTitle(item?.name) || "Song").replace(/[^\w\s-]/g, "_");
+      const downloadDir = `/storage/emulated/0/Download`;
+      const destPath = `${downloadDir}/${safeName}.mp3`;
+
+      setShowDownloadAnim(true);
 
       RNBlobUtil.config({
-        path: filePath,
         fileCache: true,
-        addAndroidDownloads: {
-          notification: true,
-          title: fileName || "Song",
-          description: "Downloading music file...",
-          mime: "audio/mpeg",
-          mediaScannable: true,
-        },
+        appendExt: "mp3",
       })
-        .fetch("GET", url)
-        .then((res) => {
-          console.log("✅ Saved to:", res.path());
-          Alert.alert("Download Complete", "Saved in Downloads folder.");
-          RNBlobUtil.fs.scanFile([{ path: res.path(), mime: "audio/mpeg" }]);
+        .fetch(
+          "POST",
+          `${API_URL}/api/download`,
+          { "Content-Type": "application/json" },
+          JSON.stringify({
+            mp3Url: item?.downloadUrl[4]?.url,
+            imageUrl: item?.image[2]?.url,
+            title: formatSongTitle(item?.name),
+            artist: formatSongTitle(item?.artists?.primary?.[0]?.name),
+            album: formatSongTitle(item?.album?.name),
+            year: item?.year,
+          })
+        )
+        .then(async (res) => {
+          try {
+            const tempPath = res.path();
+            console.log("✅ Temp file:", tempPath);
+
+            // ✅ Check if destination file already exists and delete it
+            const exists = await RNBlobUtil.fs.exists(destPath);
+            if (exists) {
+              await RNBlobUtil.fs.unlink(destPath);
+              console.log("🗑 Deleted existing file at destPath");
+            }
+
+            // ✅ Ensure Download directory exists
+            const dirExists = await RNBlobUtil.fs.exists(downloadDir);
+            if (!dirExists) {
+              await RNBlobUtil.fs.mkdir(downloadDir);
+              console.log("📁 Created Download directory");
+            }
+
+            // ✅ Use cp instead of mv (more reliable on Android)
+            await RNBlobUtil.fs.cp(tempPath, destPath);
+
+            // ✅ Clean up temp file
+            await RNBlobUtil.fs.unlink(tempPath);
+
+            // ✅ Trigger media scanner so it appears in music apps
+            await RNBlobUtil.fs.scanFile([{ path: destPath, mime: "audio/mpeg" }]);
+
+            console.log("✅ Saved to:", destPath);
+            // LottieView hides via onAnimationFinish
+
+          } catch (moveErr) {
+            console.error("Move/Copy error:", moveErr);
+            setShowDownloadAnim(false);
+            Alert.alert("Error", "Failed to save file: " + moveErr.message);
+          }
         })
         .catch((err) => {
-          console.error("Download error:", err);
-          Alert.alert("Error", "Download failed.");
+          console.error("Fetch error:", err);
+          setShowDownloadAnim(false);
+          Alert.alert("Error", "Download failed: " + err.message);
         });
+
     } catch (error) {
       console.error("Download error:", error);
+      setShowDownloadAnim(false);
       Alert.alert("Error", "Something went wrong");
     }
   };
-
-
 
 
   const fetchLyrics = async (songid) => {
@@ -342,7 +380,7 @@ const Sresult = () => {
                                 marginHorizontal: 10,
                                 width: 'auto'
                               }} />
-                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(item?.downloadUrl[4]?.url, `${item?.name}.mp3`)}>
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(item)}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <FontAwesome6 name="download" size={20} color="#4da6ff" />
                                   <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold' }}>Download</Text>
@@ -591,7 +629,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 30,
+    paddingLeft: 18,
     marginTop: -5,
     width: '100%',
   },

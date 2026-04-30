@@ -13,7 +13,6 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import Music from '../common/Music';
 import TrackPlayer, { useActiveTrack } from 'react-native-track-player';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
-import Icon from 'react-native-vector-icons/Entypo';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Entypo from "react-native-vector-icons/Entypo";
 import LottieView from 'lottie-react-native';
@@ -24,6 +23,8 @@ import RNBlobUtil from "react-native-blob-util";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { usePlaylistSheetStore } from '../store/playlistSheetStore';
 import { decode } from 'html-entities';
+import { API_URL } from '@env';
+import * as Progress from 'react-native-progress';
 
 
 const Album = () => {
@@ -47,7 +48,10 @@ const Album = () => {
   console.log('activetrack', currentSong);
   console.log("songData", dataSearch);
   console.log("currentSong", currentSong);
-
+  const [globalDownload, setGlobalDownload] = useState({
+    progress: 0,
+    isDownloading: false,
+  });
 
 
   const matchIds = async (id) => {
@@ -66,6 +70,7 @@ const Album = () => {
       console.error('Error fetching:', error);
     }
   };
+  
   console.log('albumData', albumData);
 
   useEffect(() => {
@@ -96,12 +101,14 @@ const Album = () => {
         ...songs.slice(index + 1),     // next songs
         ...songs.slice(0, index),      // previous songs
       ].map((s) => ({
-        id: s.id,
-        url: s.downloadUrl[4]?.url,
-        title: s.name,
-        artist: s.artists?.primary[0]?.name,
-        artwork: s.image[2]?.url,
+        id: s?.id,
+        url: s?.downloadUrl[4]?.url,
+        title: s?.name,
+        artist: s?.artists?.primary[0]?.name,
+        artwork: s?.image[2]?.url,
         hasArtwork: true,
+        album: s?.name,
+        year: s?.year,
       }));
 
       // Add reordered queue
@@ -126,61 +133,119 @@ const Album = () => {
   );
 
 
-  const handleDownload = async (url, fileName) => {
-    try {
-      if (!url) {
-        Alert.alert("Error", "No download URL available");
-        return;
-      }
 
-      // Request permission for Android < 13
-      if (Platform.OS === 'android' && Platform.Version < 33) {
+  const handleDownload = async (item) => {
+    try {
+      // Permission for Android < 13
+      if (Platform.OS === "android" && Platform.Version < 33) {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
-            title: 'Storage Permission',
-            message: 'lysernfy needs access to storage to save songs.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
+            title: "Storage Permission",
+            message: "App needs storage access to save songs.",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
           }
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission denied', 'Cannot download without storage permission');
+          Alert.alert("Permission denied", "Cannot download without permission");
           return;
         }
       }
 
-      const filePath = `/storage/emulated/0/Download/${fileName || 'Song.mp3'}`;
+      const safeName = (formatSongTitle(item?.name) || "Song").replace(/[^\w\s-]/g, "_");
+      const downloadDir = `/storage/emulated/0/Download`;
+      const destPath = `${downloadDir}/${safeName}.mp3`;
+
+      // ✅ Start download
+      setGlobalDownload({
+        progress: 0,
+        downloadedMB: 0,
+        isDownloading: true,
+      });
 
       RNBlobUtil.config({
-        path: filePath,
         fileCache: true,
-        addAndroidDownloads: {
-          notification: true,
-          title: fileName || "Song",
-          description: "Downloading music file...",
-          mime: "audio/mpeg",
-          mediaScannable: true,
-        },
+        appendExt: "mp3",
       })
-        .fetch("GET", url)
-        .then((res) => {
-          console.log("✅ Saved to:", res.path());
-          setShowDownloadAnim(true); // show animation
-          setTimeout(() => setShowDownloadAnim(false), 100);
-          RNBlobUtil.fs.scanFile([{ path: res.path(), mime: "audio/mpeg" }]);
+        .fetch(
+          "POST",
+          `${API_URL}/api/download`,
+          { "Content-Type": "application/json" },
+          JSON.stringify({
+            mp3Url: item?.downloadUrl?.[4]?.url,
+            imageUrl: item?.image?.[2]?.url,
+            title: formatSongTitle(item?.name),
+            artist: formatSongTitle(item?.artists?.primary?.[0]?.name),
+            album: formatSongTitle(item?.album?.name),
+            year: item?.year,
+          })
+        )
+        .progress({ interval: 250 }, (received, total) => {
+          const percent = Math.floor((received / total) * 100);
+          const speed = (received / 1024 / 1024).toFixed(2);
+
+          setGlobalDownload(prev => ({
+            ...prev,
+            progress: percent,
+            downloadedMB: speed,
+          }));
+        })
+        .then(async (res) => {
+          try {
+            const tempPath = res.path();
+
+            const exists = await RNBlobUtil.fs.exists(destPath);
+            if (exists) await RNBlobUtil.fs.unlink(destPath);
+
+            const dirExists = await RNBlobUtil.fs.exists(downloadDir);
+            if (!dirExists) await RNBlobUtil.fs.mkdir(downloadDir);
+
+            await RNBlobUtil.fs.cp(tempPath, destPath);
+            await RNBlobUtil.fs.unlink(tempPath);
+
+            await RNBlobUtil.fs.scanFile([{ path: destPath, mime: "audio/mpeg" }]);
+
+            // ✅ Stop loader + show animation
+            setGlobalDownload({
+              progress: 100,
+              downloadedMB: 0,
+              isDownloading: false,
+            });
+
+            setShowDownloadAnim(true);
+
+          } catch (err) {
+            setGlobalDownload({
+              progress: 0,
+              downloadedMB: 0,
+              isDownloading: false,
+            });
+
+            Alert.alert("Error", "Failed to save file: " + err.message);
+          }
         })
         .catch((err) => {
-          console.error("Download error:", err);
-          Alert.alert("Error", "Download failed.");
+          setGlobalDownload({
+            progress: 0,
+            downloadedMB: 0,
+            isDownloading: false,
+          });
+
+          Alert.alert("Error", "Download failed: " + err.message);
         });
+
     } catch (error) {
-      console.error("Download error:", error);
+      setGlobalDownload({
+        progress: 0,
+        downloadedMB: 0,
+        isDownloading: false,
+      });
+
       Alert.alert("Error", "Something went wrong");
     }
   };
-
 
   const fetchLyrics = async (songid) => {
     if (!songid) return;
@@ -325,6 +390,60 @@ const Album = () => {
                 />
               </View>
             )}
+            {globalDownload.isDownloading && globalDownload.progress < 100 && (
+              <View style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.85)",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
+              }}>
+                <Progress.Circle
+                  size={110}
+                  progress={globalDownload.progress / 100}
+                  showsText={true}
+                  formatText={() => `${globalDownload.progress}%`}
+                  thickness={9}
+                  color="#1DB954"
+                  unfilledColor="rgba(255,255,255,0.1)"
+                  borderWidth={0}
+                  strokeCap="round"
+                  style={{
+                    shadowColor: "#1DB954",
+                    shadowOpacity: 0.8,
+                    shadowRadius: 15,
+                    transform: [{ scale: 1.05 }],
+                  }}
+                  textStyle={{
+                    fontFamily: 'Poppins-Bold',
+                    fontSize: 18,
+                    color: 'white',
+                  }}
+                />
+                <Text style={{
+                  color: "white",
+                  marginTop: 14,
+                  fontFamily: 'Poppins-SemiBold',
+                  fontSize: 18,
+                  letterSpacing: 0.8,
+                }}>
+                  {globalDownload.downloadedMB} MB
+                </Text>
+                <Text style={{
+                  color: "rgba(255,255,255,0.7)",
+                  marginTop: 6,
+                  fontFamily: 'Poppins-Regular',
+                  fontSize: 14,
+                }}>
+                  Downloading premium content…
+                </Text>
+              </View>
+            )}
+
             {showDownloadAnim && (
               <View style={{
                 position: "absolute",
@@ -332,23 +451,31 @@ const Album = () => {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(0,0,0,0.6)",
+                backgroundColor: "rgba(0,0,0,0.9)",
                 justifyContent: "center",
                 alignItems: "center",
                 zIndex: 1000,
               }}>
                 <LottieView
                   source={require("../assets/Download.json")}
-                  style={{ width: 100, height: 100 }}
+                  style={{ width: 120, height: 120 }}
                   autoPlay
-                  loop={false} // play once
+                  loop={false}
                   onAnimationFinish={() => setShowDownloadAnim(false)}
                 />
-                <Text style={{ color: "white", marginTop: 10, fontSize: 16 }}>
+                <Text style={{
+                  marginTop: 12,
+                  fontSize: 18,
+                  fontFamily: 'Poppins-Bold',
+                  backgroundClip: "text",
+                  color: "white",
+                  letterSpacing: 1,
+                }}>
                   Download Complete 🎵
                 </Text>
               </View>
             )}
+
             <BottomSheet
               ref={sheetRef}
               index={-1}
@@ -393,29 +520,42 @@ const Album = () => {
                   )}
                   <View
                     style={{
-                      marginTop: 35,
-                      paddingVertical: 15,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      marginTop: 20,
+                      paddingVertical: 20,
+                      backgroundColor: 'rgba(255,255,255,0.07)',
                       borderRadius: 20,
                       marginHorizontal: 16,
                       alignSelf: 'stretch',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.08)',
                     }}
                   >
                     <View style={styles.textContainer}>
-                      <Text
-                        style={[
-                          styles.songTitles,
-                          {
-                            maxWidth:
-                              currentSong?.id === currentSong?.id && currentSong?.title.length > 20 ? "80%" : "100%",
-                          },
-                        ]}
-                        numberOfLines={currentSong?.title.length > 25 ? 1 : undefined}
-                        ellipsizeMode={currentSong?.title.length > 25 ? "tail" : "clip"}
-                      >
-                        {currentSong?.title.replace(/\s*\(.*?\)\s*/g, '')}
-                      </Text>
-                      <Text style={styles.artists}>{currentSong?.artist.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                      {/* SONG */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="musical-note" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Song</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.title)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* ARTIST */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="person" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Artist</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.artist)}
+                          </Text>
+                        </View>
+                      </View>
                       <View style={styles.icons}>
                         <View style={{ alignItems: 'flex-end', padding: 5 }}>
                           <Menu>
@@ -465,7 +605,7 @@ const Album = () => {
                                 marginHorizontal: 10,
                                 width: 'auto'
                               }} />
-                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(selectedSongDetails || currentSong)}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <FontAwesome6 name="download" size={20} color="#4da6ff" />
                                   <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
@@ -560,6 +700,7 @@ const Album = () => {
                 </View>
               </BottomSheetScrollView>
             </BottomSheet>
+
             <BottomSheet
               ref={sheet}
               index={-1}
@@ -578,18 +719,21 @@ const Album = () => {
                 borderTopRightRadius: 10,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 18,
-                  marginLeft: 10,
-                  marginTop: 5.5,
-                  marginBottom: 20,
-                  color: "grey",
-                  fontFamily: 'Poppins-Bold',
-                }}
-              >
-                Lyrics 🎶
-              </Text>
+              <View style={{ display: 'flex', flexDirection: 'row', marginLeft: 10, marginTop: 10 }}>
+                <MaterialIcons name="lyrics" size={25} color="#1DB954" />
+
+                <Text
+                  style={{
+                    fontSize: 18,
+                    marginLeft: 10,
+                    color: "grey",
+                    fontFamily: 'Poppins-Bold',
+                  }}
+                >
+
+                  Lyrics 🎶
+                </Text>
+              </View>
               <TouchableOpacity style={styles.clearIcon} onPress={() => sheet.current?.close()}>
                 <Ionicons name="close-circle" size={25} color="gray" />
               </TouchableOpacity>
@@ -740,7 +884,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
                 marginHorizontal: 10,
                 width: 'auto'
               }} />
-              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(song?.downloadUrl[4]?.url, `${song?.name}.mp3`)}>
+              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(song)}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <FontAwesome6 name="download" size={20} color="#4da6ff" />
                   <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
@@ -769,6 +913,34 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
 
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  infoLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: -1,
+  },
+
+  infoValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+  },
   // Album Info
   albumInfoCard: {
     marginHorizontal: 0,
@@ -932,8 +1104,9 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 30,
-    marginTop: 10,
+    paddingLeft: 18,
+    marginTop: -5,
+    width: '100%',
   },
   songImages: {
     width: 260,

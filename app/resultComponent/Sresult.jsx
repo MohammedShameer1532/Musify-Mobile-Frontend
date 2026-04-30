@@ -24,7 +24,7 @@ import { usePlaylistSheetStore } from '../store/playlistSheetStore';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import LottieView from 'lottie-react-native';
 import { API_URL } from '@env';
-
+import * as Progress from 'react-native-progress';
 
 const Sresult = () => {
   const [copied, setCopied] = useState(false);
@@ -45,6 +45,10 @@ const Sresult = () => {
   const lyricsCache = useRef({});
   const songDetailsMap = useRef({});
   const [showDownloadAnim, setShowDownloadAnim] = useState(false);
+  const [globalDownload, setGlobalDownload] = useState({
+    progress: 0,
+    isDownloading: false,
+  });
 
 
 
@@ -118,6 +122,101 @@ const Sresult = () => {
   };
 
 
+  // const handleDownload = async (item) => {
+  //   try {
+  //     // Permission for Android < 13
+  //     if (Platform.OS === "android" && Platform.Version < 33) {
+  //       const granted = await PermissionsAndroid.request(
+  //         PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+  //         {
+  //           title: "Storage Permission",
+  //           message: "App needs storage access to save songs.",
+  //           buttonNeutral: "Ask Me Later",
+  //           buttonNegative: "Cancel",
+  //           buttonPositive: "OK",
+  //         }
+  //       );
+  //       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+  //         Alert.alert("Permission denied", "Cannot download without permission");
+  //         return;
+  //       }
+  //     }
+
+  //     const safeName = (formatSongTitle(item?.name) || "Song").replace(/[^\w\s-]/g, "_");
+  //     const downloadDir = `/storage/emulated/0/Download`;
+  //     const destPath = `${downloadDir}/${safeName}.mp3`;
+
+  //     setShowDownloadAnim(true);
+
+  //     RNBlobUtil.config({
+  //       fileCache: true,
+  //       appendExt: "mp3",
+  //     })
+  //       .fetch(
+  //         "POST",
+  //         `${API_URL}/api/download`,
+  //         { "Content-Type": "application/json" },
+  //         JSON.stringify({
+  //           mp3Url: item?.downloadUrl[4]?.url,
+  //           imageUrl: item?.image[2]?.url,
+  //           title: formatSongTitle(item?.name),
+  //           artist: formatSongTitle(item?.artists?.primary?.[0]?.name),
+  //           album: formatSongTitle(item?.album?.name),
+  //           year: item?.year,
+  //         })
+  //       )
+  //       .then(async (res) => {
+  //         try {
+  //           const tempPath = res.path();
+  //           console.log("✅ Temp file:", tempPath);
+
+  //           // ✅ Check if destination file already exists and delete it
+  //           const exists = await RNBlobUtil.fs.exists(destPath);
+  //           if (exists) {
+  //             await RNBlobUtil.fs.unlink(destPath);
+  //             console.log("🗑 Deleted existing file at destPath");
+  //           }
+
+  //           // ✅ Ensure Download directory exists
+  //           const dirExists = await RNBlobUtil.fs.exists(downloadDir);
+  //           if (!dirExists) {
+  //             await RNBlobUtil.fs.mkdir(downloadDir);
+  //             console.log("📁 Created Download directory");
+  //           }
+
+  //           // ✅ Use cp instead of mv (more reliable on Android)
+  //           await RNBlobUtil.fs.cp(tempPath, destPath);
+
+  //           // ✅ Clean up temp file
+  //           await RNBlobUtil.fs.unlink(tempPath);
+
+  //           // ✅ Trigger media scanner so it appears in music apps
+  //           await RNBlobUtil.fs.scanFile([{ path: destPath, mime: "audio/mpeg" }]);
+
+  //           console.log("✅ Saved to:", destPath);
+  //           // LottieView hides via onAnimationFinish
+
+  //         } catch (moveErr) {
+  //           console.error("Move/Copy error:", moveErr);
+  //           setShowDownloadAnim(false);
+  //           Alert.alert("Error", "Failed to save file: " + moveErr.message);
+  //         }
+  //       })
+  //       .catch((err) => {
+  //         console.error("Fetch error:", err);
+  //         setShowDownloadAnim(false);
+  //         Alert.alert("Error", "Download failed: " + err.message);
+  //       });
+
+  //   } catch (error) {
+  //     console.error("Download error:", error);
+  //     setShowDownloadAnim(false);
+  //     Alert.alert("Error", "Something went wrong");
+  //   }
+  // };
+
+
+
   const handleDownload = async (item) => {
     try {
       // Permission for Android < 13
@@ -142,7 +241,12 @@ const Sresult = () => {
       const downloadDir = `/storage/emulated/0/Download`;
       const destPath = `${downloadDir}/${safeName}.mp3`;
 
-      setShowDownloadAnim(true);
+      // ✅ Start download
+      setGlobalDownload({
+        progress: 0,
+        downloadedMB: 0,
+        isDownloading: true,
+      });
 
       RNBlobUtil.config({
         fileCache: true,
@@ -153,63 +257,80 @@ const Sresult = () => {
           `${API_URL}/api/download`,
           { "Content-Type": "application/json" },
           JSON.stringify({
-            mp3Url: item?.downloadUrl[4]?.url,
-            imageUrl: item?.image[2]?.url,
+            mp3Url: item?.downloadUrl?.[4]?.url,
+            imageUrl: item?.image?.[2]?.url,
             title: formatSongTitle(item?.name),
             artist: formatSongTitle(item?.artists?.primary?.[0]?.name),
             album: formatSongTitle(item?.album?.name),
             year: item?.year,
           })
         )
+        .progress({ interval: 250 }, (received, total) => {
+          const percent = Math.floor((received / total) * 100);
+          const speed = (received / 1024 / 1024).toFixed(2);
+
+          setGlobalDownload(prev => ({
+            ...prev,
+            progress: percent,
+            downloadedMB: speed,
+          }));
+        })
         .then(async (res) => {
           try {
             const tempPath = res.path();
-            console.log("✅ Temp file:", tempPath);
 
-            // ✅ Check if destination file already exists and delete it
             const exists = await RNBlobUtil.fs.exists(destPath);
-            if (exists) {
-              await RNBlobUtil.fs.unlink(destPath);
-              console.log("🗑 Deleted existing file at destPath");
-            }
+            if (exists) await RNBlobUtil.fs.unlink(destPath);
 
-            // ✅ Ensure Download directory exists
             const dirExists = await RNBlobUtil.fs.exists(downloadDir);
-            if (!dirExists) {
-              await RNBlobUtil.fs.mkdir(downloadDir);
-              console.log("📁 Created Download directory");
-            }
+            if (!dirExists) await RNBlobUtil.fs.mkdir(downloadDir);
 
-            // ✅ Use cp instead of mv (more reliable on Android)
             await RNBlobUtil.fs.cp(tempPath, destPath);
-
-            // ✅ Clean up temp file
             await RNBlobUtil.fs.unlink(tempPath);
 
-            // ✅ Trigger media scanner so it appears in music apps
             await RNBlobUtil.fs.scanFile([{ path: destPath, mime: "audio/mpeg" }]);
 
-            console.log("✅ Saved to:", destPath);
-            // LottieView hides via onAnimationFinish
+            // ✅ Stop loader + show animation
+            setGlobalDownload({
+              progress: 100,
+              downloadedMB: 0,
+              isDownloading: false,
+            });
 
-          } catch (moveErr) {
-            console.error("Move/Copy error:", moveErr);
-            setShowDownloadAnim(false);
-            Alert.alert("Error", "Failed to save file: " + moveErr.message);
+            setShowDownloadAnim(true);
+
+          } catch (err) {
+            setGlobalDownload({
+              progress: 0,
+              downloadedMB: 0,
+              isDownloading: false,
+            });
+
+            Alert.alert("Error", "Failed to save file: " + err.message);
           }
         })
         .catch((err) => {
-          console.error("Fetch error:", err);
-          setShowDownloadAnim(false);
+          setGlobalDownload({
+            progress: 0,
+            downloadedMB: 0,
+            isDownloading: false,
+          });
+
           Alert.alert("Error", "Download failed: " + err.message);
         });
 
     } catch (error) {
-      console.error("Download error:", error);
-      setShowDownloadAnim(false);
+      setGlobalDownload({
+        progress: 0,
+        downloadedMB: 0,
+        isDownloading: false,
+      });
+
       Alert.alert("Error", "Something went wrong");
     }
   };
+
+
 
 
   const fetchLyrics = async (songid) => {
@@ -234,10 +355,11 @@ const Sresult = () => {
       sheet.current?.snapToIndex(0);
 
     } catch (error) {
-      setLyrics("Failed to load lyrics");
+      setLyrics("Lyrics Not Found");
       sheet.current?.snapToIndex(0);
     }
   };
+
 
 
   const handleCopy = () => {
@@ -272,6 +394,91 @@ const Sresult = () => {
                 setBackgroundColor(color);
               }}
             />
+          )}
+          {globalDownload.isDownloading && globalDownload.progress < 100 && (
+            <View style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0,0,0,0.85)",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+            }}>
+              <Progress.Circle
+                size={110}
+                progress={globalDownload.progress / 100}
+                showsText={true}
+                formatText={() => `${globalDownload.progress}%`}
+                thickness={9}
+                color="#1DB954"
+                unfilledColor="rgba(255,255,255,0.1)"
+                borderWidth={0}
+                strokeCap="round"
+                style={{
+                  shadowColor: "#1DB954",
+                  shadowOpacity: 0.8,
+                  shadowRadius: 15,
+                  transform: [{ scale: 1.05 }],
+                }}
+                textStyle={{
+                  fontFamily: 'Poppins-Bold',
+                  fontSize: 18,
+                  color: 'white',
+                }}
+              />
+              <Text style={{
+                color: "white",
+                marginTop: 14,
+                fontFamily: 'Poppins-SemiBold',
+                fontSize: 18,
+                letterSpacing: 0.8,
+              }}>
+                {globalDownload.downloadedMB} MB
+              </Text>
+              <Text style={{
+                color: "rgba(255,255,255,0.7)",
+                marginTop: 6,
+                fontFamily: 'Poppins-Regular',
+                fontSize: 14,
+              }}>
+                Downloading premium content…
+              </Text>
+            </View>
+          )}
+
+          {showDownloadAnim && (
+            <View style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0,0,0,0.9)",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+            }}>
+              <LottieView
+                source={require("../assets/Download.json")}
+                style={{ width: 120, height: 120 }}
+                autoPlay
+                loop={false}
+                onAnimationFinish={() => setShowDownloadAnim(false)}
+              />
+              <Text style={{
+                marginTop: 12,
+                fontSize: 18,
+                fontFamily: 'Poppins-Bold',
+                backgroundClip: "text",
+                color: "white",
+                letterSpacing: 1,
+              }}>
+                Download Complete 🎵
+              </Text>
+            </View>
           )}
           {loading ? (
             <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
@@ -404,30 +611,7 @@ const Sresult = () => {
                         </View>
                       </View>
                     </View>
-                    {showDownloadAnim && (
-                      <View style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(0,0,0,0.6)",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 1000,
-                      }}>
-                        <LottieView
-                          source={require("../assets/Download.json")}
-                          style={{ width: 100, height: 100 }}
-                          autoPlay
-                          loop={false} // play once
-                          onAnimationFinish={() => setShowDownloadAnim(false)}
-                        />
-                        <Text style={{ color: "white", marginTop: 10, fontSize: 16 }}>
-                          Download Complete 🎵
-                        </Text>
-                      </View>
-                    )}
+
                     <Music />
                   </View>
                   {selectedSongDetails && (

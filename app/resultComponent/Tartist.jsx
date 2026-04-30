@@ -23,6 +23,7 @@ import RNBlobUtil from "react-native-blob-util";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Music from '../common/Music';
 import { usePlaylistSheetStore } from '../store/playlistSheetStore';
+import { decode } from 'html-entities';
 
 
 const Tartist = () => {
@@ -292,6 +293,20 @@ const Tartist = () => {
 
 
 
+  const formatSongTitle = (rawTitle) => {
+    if (!rawTitle) return 'Unknown';
+
+    const decoded = decode(rawTitle); // Converts &quot; to "
+    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+
+    if (titleMatch) {
+      const mainTitle = titleMatch[1].trim();
+      const source = titleMatch[2].trim();
+      return `${mainTitle} from ${source}`;
+    }
+
+    return decoded.trim(); // fallback if pattern doesn't match
+  };
 
 
   const GradientBackground = ({ style }: BottomSheetBackgroundProps) => (
@@ -507,17 +522,42 @@ const Tartist = () => {
                   )}
                   <View
                     style={{
-                      marginTop: 35,
-                      paddingVertical: 15,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      marginTop: 20,
+                      paddingVertical: 20,
+                      backgroundColor: 'rgba(255,255,255,0.07)',
                       borderRadius: 20,
                       marginHorizontal: 16,
                       alignSelf: 'stretch',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.08)',
                     }}
                   >
                     <View style={styles.textContainer}>
-                      <Text style={styles.songTitle}>{currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                      <Text style={styles.artist}>{currentSong?.artist?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
+                      {/* SONG */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="musical-note" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Song</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.title)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* ARTIST */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="person" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Artist</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.artist)}
+                          </Text>
+                        </View>
+                      </View>
                       <View style={styles.icons}>
                         <View style={{ alignItems: 'flex-end', padding: 0 }}>
                           <Menu>
@@ -1108,6 +1148,34 @@ const LatestRelease = React.memo(({ getHighResImage, setPlaylistDatas, navigatio
 
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  infoLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: -1,
+  },
+
+  infoValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+  },
   backBtn: {
     width: 40,
     height: 40,
@@ -1153,8 +1221,9 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 30,
-    marginTop: 10,
+    paddingLeft: 18,
+    marginTop: -5,
+    width: '100%',
   },
   songImage: {
     width: 300,

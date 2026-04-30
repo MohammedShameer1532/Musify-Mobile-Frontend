@@ -647,18 +647,42 @@ const Podresult = () => {
                     </View>
                     <View
                       style={{
-                        marginTop: 25,
-                        paddingHorizontal: 20,
-                        paddingVertical: 15,
-                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        marginTop: 20,
+                        paddingVertical: 20,
+                        backgroundColor: 'rgba(255,255,255,0.07)',
                         borderRadius: 20,
                         marginHorizontal: 16,
+                        alignSelf: 'stretch',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.08)',
                       }}
                     >
                       <View style={styles.textContainer}>
-                        <Text style={styles.songTitled}>
-                          {currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '')}
-                        </Text>
+                        {/* SONG */}
+                        <View style={styles.infoRow}>
+                          <View style={styles.iconBox}>
+                            <Ionicons name="musical-note" size={16} color="#1DB954" />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>Song</Text>
+                            <Text style={styles.infoValue}>
+                              {formatSongTitle(currentSong?.title)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* ARTIST */}
+                        <View style={styles.infoRow}>
+                          <View style={styles.iconBox}>
+                            <Ionicons name="person" size={16} color="#1DB954" />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>Episode</Text>
+                            <Text style={styles.infoValue}>
+                              {formatSongTitle(currentSong?.header)}
+                            </Text>
+                          </View>
+                        </View>
                         <View style={styles.icons}>
                           <Menu>
                             <MenuTrigger customStyles={{ optionWrapper: { activeOpacity: 0.6 } }}>
@@ -1025,6 +1049,35 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
 
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  infoLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: -1,
+  },
+
+  infoValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+    width: 250,
+  },
   episodeContainer: {
     marginTop: 20,
     paddingHorizontal: 20,
@@ -1253,8 +1306,9 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 20,
-    marginTop: 5,
+    paddingLeft: 18,
+    marginTop: -5,
+    width: '100%',
   },
   songTitled: {
     fontSize: 15,

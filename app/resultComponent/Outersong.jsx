@@ -7,6 +7,8 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import Music from '../common/Music';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { decode } from 'html-entities';
 
 const Outersong = () => {
   const [backgroundColor, setBackgroundColor] = useState('rgb(30, 30, 30)');
@@ -15,13 +17,27 @@ const Outersong = () => {
   console.log("siiii", outerdata);
 
 
+  const formatSongTitle = (rawTitle) => {
+    if (!rawTitle) return 'Unknown';
+
+    const decoded = decode(rawTitle); // Converts &quot; to "
+    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+
+    if (titleMatch) {
+      const mainTitle = titleMatch[1].trim();
+      const source = titleMatch[2].trim();
+      return `${mainTitle} from ${source}`;
+    }
+
+    return decoded.trim(); // fallback if pattern doesn't match
+  };
 
   return (
-    <LinearGradient colors={[backgroundColor, '#000']} style={styles.background}>
+    <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']} locations={[0, 0.5, 1]} style={styles.background}>
       {console.log('Applying Background Color:', backgroundColor)}
       <SafeAreaView style={styles.safeArea}>
-        <TouchableOpacity onPress={() => navigation.goBack()} className='w-10 mt-5'>
-          <Ionicons name="arrow-back" size={30} color="white" style={styles.backIcon} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={25} color="white" />
         </TouchableOpacity>
         {!outerdata ? (
           <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
@@ -50,20 +66,55 @@ const Outersong = () => {
                 )}
                 <View
                   style={{
-                    marginTop: 35,
-                    paddingVertical: 15,
-                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    marginTop: 20,
+                    paddingVertical: 20,
+                    backgroundColor: 'rgba(255,255,255,0.07)',
                     borderRadius: 20,
                     marginHorizontal: 16,
                     alignSelf: 'stretch',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.08)',
                   }}
                 >
                   <View style={styles.textContainer}>
-                    <TouchableOpacity className="w-[100%]">
-                      <Text style={styles.songTitle}>{item?.title?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                      <Text style={styles.album}>{item?.album?.replace(/\s*\(.*?\)\s*/g, '')}</Text>
-                      <Text style={styles.artist}>{item?.artist}</Text>
-                    </TouchableOpacity>
+                    {/* ALBUM */}
+                    <View style={styles.infoRow}>
+                      <View style={styles.iconBox}>
+                        <MaterialIcons name="album" size={16} color="#1DB954" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Album</Text>
+                        <Text style={styles.infoValue}>
+                          {formatSongTitle(item?.album)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* SONG */}
+                    <View style={styles.infoRow}>
+                      <View style={styles.iconBox}>
+                        <Ionicons name="musical-note" size={16} color="#1DB954" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Song</Text>
+                        <Text style={styles.infoValue}>
+                          {formatSongTitle(item?.title)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* ARTIST */}
+                    <View style={styles.infoRow}>
+                      <View style={styles.iconBox}>
+                        <Ionicons name="person" size={16} color="#1DB954" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Artist</Text>
+                        <Text style={styles.infoValue}>
+                          {formatSongTitle(item?.artist)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
 
                   <Music />
@@ -87,37 +138,83 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  backIcon: {
-    marginLeft: 10,
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  infoLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: -1,
+  },
+
+  infoValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+  },
+  background: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
     marginTop: 10,
   },
   songContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 0,
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 30,
-    marginTop: 35,
+    paddingLeft: 18,
+    marginTop: -5,
     width: '100%',
   },
   songImage: {
-    width: 300,
-    height: 300,
+    width: 260,
+    height: 260,
   },
   songTitle: {
-    fontSize: 25,
-    fontWeight: '700',
+    fontSize: 22,
     color: 'white',
     marginTop: 10,
+    fontFamily: 'Poppins-Bold',
+    width: 270,
   },
   album: {
-    fontSize: 16,
-    color: 'grey',
+    fontSize: 13.5,
+    fontFamily: 'Poppins-Medium',
+    color: '#aaa',
     marginTop: 5,
+    width: 290,
   },
   artist: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: 'grey',
     marginTop: 5,
   },
@@ -136,4 +233,5 @@ const styles = StyleSheet.create({
     right: 10,
     top: '2%',
   },
+
 });

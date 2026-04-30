@@ -70,7 +70,7 @@ const Album = () => {
       console.error('Error fetching:', error);
     }
   };
-  
+
   console.log('albumData', albumData);
 
   useEffect(() => {
@@ -107,7 +107,7 @@ const Album = () => {
         artist: s?.artists?.primary[0]?.name,
         artwork: s?.image[2]?.url,
         hasArtwork: true,
-        album: s?.name,
+        album: s?.album?.name,
         year: s?.year,
       }));
 
@@ -246,6 +246,7 @@ const Album = () => {
       Alert.alert("Error", "Something went wrong");
     }
   };
+  
 
   const fetchLyrics = async (songid) => {
     if (!songid) return;
@@ -531,6 +532,19 @@ const Album = () => {
                     }}
                   >
                     <View style={styles.textContainer}>
+                      {/* ALBUM */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <MaterialIcons name="album" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Album</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.album)}
+                          </Text>
+                        </View>
+                      </View>
+
                       {/* SONG */}
                       <View style={styles.infoRow}>
                         <View style={styles.iconBox}>

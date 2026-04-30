@@ -24,7 +24,8 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Music from '../common/Music';
 import { usePlaylistSheetStore } from '../store/playlistSheetStore';
 import { decode } from 'html-entities';
-
+import * as Progress from 'react-native-progress';
+import { API_URL } from '@env';
 
 const Tartist = () => {
   const { dataSearch, setTokens, setPlaylistDatas, setQrdata } = useContext(SearchContext);
@@ -52,7 +53,10 @@ const Tartist = () => {
   const [albumsLoading, setAlbumsLoading] = useState(false);
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const songDetailsMap = useRef({});
-
+  const [globalDownload, setGlobalDownload] = useState({
+    progress: 0,
+    isDownloading: false,
+  });
   console.log('id', id);
 
 
@@ -174,6 +178,8 @@ const Tartist = () => {
         url: s?.downloadUrl[4]?.url,
         artwork: s?.image[2]?.url,
         artist: s.artists?.primary[0]?.name,
+        album: s?.album?.name,
+        year: s?.year,
       }));
 
       await TrackPlayer.add(orderedQueue);
@@ -211,56 +217,116 @@ const Tartist = () => {
   };
 
 
-  const handleDownload = async (url, fileName) => {
-    try {
-      if (!url) {
-        Alert.alert("Error", "No download URL available");
-        return;
-      }
 
-      // Request permission for Android < 13
-      if (Platform.OS === 'android' && Platform.Version < 33) {
+  const handleDownload = async (item) => {
+    try {
+      // Permission for Android < 13
+      if (Platform.OS === "android" && Platform.Version < 33) {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
-            title: 'Storage Permission',
-            message: 'lysernfy needs access to storage to save songs.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
+            title: "Storage Permission",
+            message: "App needs storage access to save songs.",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
           }
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission denied', 'Cannot download without storage permission');
+          Alert.alert("Permission denied", "Cannot download without permission");
           return;
         }
       }
 
-      const filePath = `/storage/emulated/0/Download/${fileName || 'Song.mp3'}`;
+      const safeName = (formatSongTitle(item?.name) || "Song").replace(/[^\w\s-]/g, "_");
+      const downloadDir = `/storage/emulated/0/Download`;
+      const destPath = `${downloadDir}/${safeName}.mp3`;
+
+      // ✅ Start download
+      setGlobalDownload({
+        progress: 0,
+        downloadedMB: 0,
+        isDownloading: true,
+      });
 
       RNBlobUtil.config({
-        path: filePath,
         fileCache: true,
-        addAndroidDownloads: {
-          notification: true,
-          title: fileName || "Song",
-          description: "Downloading music file...",
-          mime: "audio/mpeg",
-          mediaScannable: true,
-        },
+        appendExt: "mp3",
       })
-        .fetch("GET", url)
-        .then((res) => {
-          console.log("✅ Saved to:", res.path());
-          Alert.alert("Download Complete", "Saved in Downloads folder.");
-          RNBlobUtil.fs.scanFile([{ path: res.path(), mime: "audio/mpeg" }]);
+        .fetch(
+          "POST",
+          `${API_URL}/api/download`,
+          { "Content-Type": "application/json" },
+          JSON.stringify({
+            mp3Url: item?.downloadUrl?.[4]?.url,
+            imageUrl: item?.image?.[2]?.url,
+            title: formatSongTitle(item?.name),
+            artist: formatSongTitle(item?.artists?.primary?.[0]?.name),
+            album: formatSongTitle(item?.album?.name),
+            year: item?.year,
+          })
+        )
+        .progress({ interval: 250 }, (received, total) => {
+          const percent = Math.floor((received / total) * 100);
+          const speed = (received / 1024 / 1024).toFixed(2);
+
+          setGlobalDownload(prev => ({
+            ...prev,
+            progress: percent,
+            downloadedMB: speed,
+          }));
+        })
+        .then(async (res) => {
+          try {
+            const tempPath = res.path();
+
+            const exists = await RNBlobUtil.fs.exists(destPath);
+            if (exists) await RNBlobUtil.fs.unlink(destPath);
+
+            const dirExists = await RNBlobUtil.fs.exists(downloadDir);
+            if (!dirExists) await RNBlobUtil.fs.mkdir(downloadDir);
+
+            await RNBlobUtil.fs.cp(tempPath, destPath);
+            await RNBlobUtil.fs.unlink(tempPath);
+
+            await RNBlobUtil.fs.scanFile([{ path: destPath, mime: "audio/mpeg" }]);
+
+            // ✅ Stop loader + show animation
+            setGlobalDownload({
+              progress: 100,
+              downloadedMB: 0,
+              isDownloading: false,
+            });
+
+            setShowDownloadAnim(true);
+
+          } catch (err) {
+            setGlobalDownload({
+              progress: 0,
+              downloadedMB: 0,
+              isDownloading: false,
+            });
+
+            Alert.alert("Error", "Failed to save file: " + err.message);
+          }
         })
         .catch((err) => {
-          console.error("Download error:", err);
-          Alert.alert("Error", "Download failed.");
+          setGlobalDownload({
+            progress: 0,
+            downloadedMB: 0,
+            isDownloading: false,
+          });
+
+          Alert.alert("Error", "Download failed: " + err.message);
         });
+
     } catch (error) {
-      console.error("Download error:", error);
+      setGlobalDownload({
+        progress: 0,
+        downloadedMB: 0,
+        isDownloading: false,
+      });
+
       Alert.alert("Error", "Something went wrong");
     }
   };
@@ -349,6 +415,91 @@ const Tartist = () => {
                   }
                 }}
               />
+            )}
+            {globalDownload.isDownloading && globalDownload.progress < 100 && (
+              <View style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.85)",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
+              }}>
+                <Progress.Circle
+                  size={110}
+                  progress={globalDownload.progress / 100}
+                  showsText={true}
+                  formatText={() => `${globalDownload.progress}%`}
+                  thickness={9}
+                  color="#1DB954"
+                  unfilledColor="rgba(255,255,255,0.1)"
+                  borderWidth={0}
+                  strokeCap="round"
+                  style={{
+                    shadowColor: "#1DB954",
+                    shadowOpacity: 0.8,
+                    shadowRadius: 15,
+                    transform: [{ scale: 1.05 }],
+                  }}
+                  textStyle={{
+                    fontFamily: 'Poppins-Bold',
+                    fontSize: 18,
+                    color: 'white',
+                  }}
+                />
+                <Text style={{
+                  color: "white",
+                  marginTop: 14,
+                  fontFamily: 'Poppins-SemiBold',
+                  fontSize: 18,
+                  letterSpacing: 0.8,
+                }}>
+                  {globalDownload.downloadedMB} MB
+                </Text>
+                <Text style={{
+                  color: "rgba(255,255,255,0.7)",
+                  marginTop: 6,
+                  fontFamily: 'Poppins-Regular',
+                  fontSize: 14,
+                }}>
+                  Downloading premium content…
+                </Text>
+              </View>
+            )}
+
+            {showDownloadAnim && (
+              <View style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.9)",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
+              }}>
+                <LottieView
+                  source={require("../assets/Download.json")}
+                  style={{ width: 120, height: 120 }}
+                  autoPlay
+                  loop={false}
+                  onAnimationFinish={() => setShowDownloadAnim(false)}
+                />
+                <Text style={{
+                  marginTop: 12,
+                  fontSize: 18,
+                  fontFamily: 'Poppins-Bold',
+                  backgroundClip: "text",
+                  color: "white",
+                  letterSpacing: 1,
+                }}>
+                  Download Complete 🎵
+                </Text>
+              </View>
             )}
             {(artistLoading || albumsLoading || loading) ? (
               <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
@@ -454,31 +605,6 @@ const Tartist = () => {
                 />
               </View>
             )}
-            {showDownloadAnim && (
-              <View style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: "rgba(0,0,0,0.6)",
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 1000,
-              }}>
-                <LottieView
-                  source={require("../assets/Download.json")}
-                  style={{ width: 150, height: 150 }}
-                  autoPlay
-                  loop={false} // play once
-                  onAnimationFinish={() => setShowDownloadAnim(false)}
-                />
-                <Text style={{ color: "white", marginTop: 10, fontSize: 16 }}>
-                  Download Complete 🎵
-                </Text>
-              </View>
-            )}
-
             <BottomSheet
               ref={sheetRef}
               index={-1}
@@ -533,6 +659,18 @@ const Tartist = () => {
                     }}
                   >
                     <View style={styles.textContainer}>
+                      {/* ALBUM */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <MaterialIcons name="album" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Album</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.album)}
+                          </Text>
+                        </View>
+                      </View>
                       {/* SONG */}
                       <View style={styles.infoRow}>
                         <View style={styles.iconBox}>
@@ -607,7 +745,7 @@ const Tartist = () => {
                                 marginHorizontal: 10,
                                 width: 'auto'
                               }} />
-                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(currentSong?.url, `${currentSong?.title}.mp3`)}>
+                              <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(selectedSongDetails || currentSong)}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <FontAwesome6 name="download" size={20} color="#4da6ff" />
                                   <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
@@ -1195,8 +1333,8 @@ const styles = StyleSheet.create({
 
   },
   songImagee: {
-    width: 290,
-    height: 290,
+    width: 260,
+    height: 260,
     display: 'flex',
     alignSelf: 'center',
   },

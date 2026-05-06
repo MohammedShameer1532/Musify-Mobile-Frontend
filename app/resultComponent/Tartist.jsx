@@ -46,6 +46,7 @@ const Tartist = () => {
   const sheet = useRef(null);
   const snapPoints = useMemo(() => ["100%"]);
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
+  const lyricsCache = useRef({});
   const [lyrics, setLyrics] = useState();
   const [copied, setCopied] = useState(false);
   const [backgroundColors, setBackgroundColors] = useState("rgb(30, 30, 30)");
@@ -332,19 +333,31 @@ const Tartist = () => {
   };
 
 
-  const fetchLyrics = async () => {
-    try {
-      const res = await axios.get(`https://jiosaavn-api.vercel.app/lyrics?id=${songId}`);
-      const cleanLyrics = res?.data?.lyrics.replace(/<br\s*\/?>/gi, "\n"); // convert <br> to \n
-      setLyrics(cleanLyrics);
+
+  const fetchLyrics = async (songid) => {
+    if (!songid) return;
+
+    if (lyricsCache.current[songid]) {
+      setLyrics(lyricsCache.current[songid]);
       sheet.current?.snapToIndex(0);
+      return;
+    }
+
+    try {
+      const res = await axios.get(
+        `https://jiosaavn-api.vercel.app/lyrics?id=${songid}`
+      );
+
+      const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
       console.log("lyriii", cleanLyrics);
+      lyricsCache.current[songid] = cleanLyrics;
+      setLyrics(cleanLyrics);
+
+      sheet.current?.snapToIndex(0);
 
     } catch (error) {
-      console.log(error);
+      setLyrics("Lyrics Not Found");
       sheet.current?.snapToIndex(0);
-      setLyrics("Failed to load lyrics");
-
     }
   };
 

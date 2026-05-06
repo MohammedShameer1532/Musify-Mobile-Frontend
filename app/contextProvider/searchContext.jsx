@@ -17,7 +17,6 @@ export const SearchProvider = ({ children }) => {
   const [scaneddata, setScaneddata] = useState(null)
 
 
-
   return (
     <SearchContext.Provider value={{
       dataSearch,

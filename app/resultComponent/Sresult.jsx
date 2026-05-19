@@ -25,6 +25,9 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import LottieView from 'lottie-react-native';
 import { API_URL } from '@env';
 import * as Progress from 'react-native-progress';
+import { NativeModules } from "react-native";
+
+
 
 const Sresult = () => {
   const [copied, setCopied] = useState(false);
@@ -49,13 +52,13 @@ const Sresult = () => {
     progress: 0,
     isDownloading: false,
   });
-
+  const { Mp3TagModule } = NativeModules;
 
 
   const songIds = async (id) => {
     try {
       setLoading(true);
-      const responseData = await axios.get(`https://saavn.sumit.co/api/songs?ids=${id}`);
+      const responseData = await axios.get(`https://musify-api-inky.vercel.app/api/songs?ids=${id}`);
       const res = responseData?.data.data[0];
       setSongData([res])
       console.log('resss', res);
@@ -123,9 +126,20 @@ const Sresult = () => {
 
 
   const handleDownload = async (item) => {
+
     try {
-      // Permission for Android < 13
-      if (Platform.OS === "android" && Platform.Version < 33) {
+
+      console.log("Downloading song:", item);
+
+      // =========================
+      // ANDROID STORAGE PERMISSION
+      // =========================
+
+      if (
+        Platform.OS === "android" &&
+        Platform.Version < 33
+      ) {
+
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
@@ -136,104 +150,297 @@ const Sresult = () => {
             buttonPositive: "OK",
           }
         );
+
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert("Permission denied", "Cannot download without permission");
+
+          Alert.alert(
+            "Permission denied",
+            "Cannot download without permission"
+          );
+
           return;
         }
       }
 
-      const safeName = (formatSongTitle(item?.name) || "Song").replace(/[^\w\s-]/g, "_");
-      const downloadDir = `/storage/emulated/0/Download`;
-      const destPath = `${downloadDir}/${safeName}.mp3`;
+      // =========================
+      // SAFE FILE NAME
+      // =========================
 
-      // ✅ Start download
+      const safeName = (
+        formatSongTitle(item?.name) || "Song"
+      )
+        .replace(/[<>:"/\\|?*]+/g, "")
+        .trim();
+
+      // =========================
+      // SONG URL
+      // =========================
+
+      const songUrl = item?.downloadUrl?.[4]?.url;
+
+      if (!songUrl) {
+
+        Alert.alert(
+          "Error",
+          "Song URL not found"
+        );
+
+        return;
+      }
+
+      console.log("SONG URL:", songUrl);
+
+      // =========================
+      // DETECT FILE TYPE
+      // =========================
+
+      const extension =
+        songUrl.includes(".mp4")
+          ? "m4a"
+          : "mp3";
+
+      console.log("EXTENSION:", extension);
+
+      // =========================
+      // PATHS
+      // =========================
+
+      const tempPath =
+        `${RNBlobUtil.fs.dirs.CacheDir}/${safeName}.${extension}`;
+
+      const finalPath =
+        `/storage/emulated/0/Download/${safeName}.${extension}`;
+
+      // =========================
+      // START LOADER
+      // =========================
+
       setGlobalDownload({
         progress: 0,
         downloadedMB: 0,
         isDownloading: true,
       });
 
-      RNBlobUtil.config({
+      // =========================
+      // DELETE OLD TEMP FILE
+      // =========================
+
+      const tempExists =
+        await RNBlobUtil.fs.exists(tempPath);
+
+      if (tempExists) {
+
+        await RNBlobUtil.fs.unlink(tempPath);
+      }
+
+      // =========================
+      // DELETE OLD FINAL FILE
+      // =========================
+
+      const finalExists =
+        await RNBlobUtil.fs.exists(finalPath);
+
+      if (finalExists) {
+
+        await RNBlobUtil.fs.unlink(finalPath);
+      }
+
+      // =========================
+      // DOWNLOAD FILE
+      // =========================
+
+      const res = await RNBlobUtil.config({
+        path: tempPath,
         fileCache: true,
-        appendExt: "mp3",
       })
         .fetch(
-          "POST",
-          `${API_URL}/api/download`,
-          { "Content-Type": "application/json" },
-          JSON.stringify({
-            mp3Url: item?.downloadUrl?.[4]?.url,
-            imageUrl: item?.image?.[2]?.url,
-            title: formatSongTitle(item?.name),
-            artist: formatSongTitle(item?.artists?.primary?.[0]?.name),
-            album: formatSongTitle(item?.album?.name),
-            year: item?.year,
-          })
-        )
-        .progress({ interval: 250 }, (received, total) => {
-          const percent = Math.floor((received / total) * 100);
-          const speed = (received / 1024 / 1024).toFixed(2);
-
-          setGlobalDownload(prev => ({
-            ...prev,
-            progress: percent,
-            downloadedMB: speed,
-          }));
-        })
-        .then(async (res) => {
-          try {
-            const tempPath = res.path();
-
-            const exists = await RNBlobUtil.fs.exists(destPath);
-            if (exists) await RNBlobUtil.fs.unlink(destPath);
-
-            const dirExists = await RNBlobUtil.fs.exists(downloadDir);
-            if (!dirExists) await RNBlobUtil.fs.mkdir(downloadDir);
-
-            await RNBlobUtil.fs.cp(tempPath, destPath);
-            await RNBlobUtil.fs.unlink(tempPath);
-
-            await RNBlobUtil.fs.scanFile([{ path: destPath, mime: "audio/mpeg" }]);
-
-            // ✅ Stop loader + show animation
-            setGlobalDownload({
-              progress: 100,
-              downloadedMB: 0,
-              isDownloading: false,
-            });
-
-            setShowDownloadAnim(true);
-
-          } catch (err) {
-            setGlobalDownload({
-              progress: 0,
-              downloadedMB: 0,
-              isDownloading: false,
-            });
-
-            Alert.alert("Error", "Failed to save file: " + err.message);
+          "GET",
+          songUrl,
+          {
+            "Cache-Control": "no-store",
           }
-        })
-        .catch((err) => {
-          setGlobalDownload({
-            progress: 0,
-            downloadedMB: 0,
-            isDownloading: false,
-          });
+        )
+        .progress(
+          { interval: 250 },
+          (received, total) => {
 
-          Alert.alert("Error", "Download failed: " + err.message);
-        });
+            const percent = Math.floor(
+              (received / total) * 100
+            );
+
+            const downloadedMB = (
+              received /
+              1024 /
+              1024
+            ).toFixed(2);
+
+            setGlobalDownload({
+              progress: percent,
+              downloadedMB,
+              isDownloading: true,
+            });
+
+          }
+        );
+
+      console.log(
+        "Downloaded temp file:",
+        res.path()
+      );
+
+      // =========================
+      // WAIT FOR FILE FLUSH
+      // =========================
+
+      await new Promise(resolve =>
+        setTimeout(resolve, 3000)
+      );
+
+      // =========================
+      // VERIFY FILE EXISTS
+      // =========================
+
+      const exists =
+        await RNBlobUtil.fs.exists(tempPath);
+
+      if (!exists) {
+
+        throw new Error(
+          "Downloaded file missing"
+        );
+      }
+
+      // =========================
+      // VERIFY FILE SIZE
+      // =========================
+
+      const stat =
+        await RNBlobUtil.fs.stat(tempPath);
+
+      console.log("FILE STAT:", stat);
+
+      if (Number(stat.size) < 1000000) {
+
+        throw new Error(
+          "Corrupted audio file"
+        );
+      }
+
+      // =========================
+      // WRITE TAGS
+      // =========================
+
+      try {
+
+        if (Mp3TagModule) {
+
+          await Mp3TagModule.writeTags(
+            tempPath,
+            {
+              title: formatSongTitle(item?.name),
+
+              artist: formatSongTitle(
+                item?.artists?.primary?.[0]?.name
+              ),
+
+              album: formatSongTitle(
+                item?.album?.name
+              ),
+
+              year: item?.year?.toString(),
+
+              imageUrl:
+                item?.image?.[2]?.url,
+            }
+          );
+
+          console.log(
+            "Metadata written successfully"
+          );
+        }
+
+      } catch (tagError) {
+
+        console.log(
+          "Metadata tagging failed:",
+          tagError
+        );
+      }
+
+      // =========================
+      // COPY TO DOWNLOADS
+      // =========================
+
+      await RNBlobUtil.fs.cp(
+        tempPath,
+        finalPath
+      );
+
+      // =========================
+      // DELETE TEMP FILE
+      // =========================
+
+      await RNBlobUtil.fs.unlink(
+        tempPath
+      );
+
+      // =========================
+      // MEDIA SCAN
+      // =========================
+
+      await RNBlobUtil.fs.scanFile([
+        {
+          path: finalPath,
+
+          mime:
+            extension === "m4a"
+              ? "audio/mp4"
+              : "audio/mpeg",
+        },
+      ]);
+
+      // =========================
+      // STOP LOADER
+      // =========================
+
+      setGlobalDownload({
+        progress: 100,
+        downloadedMB: 0,
+        isDownloading: false,
+      });
+
+      // =========================
+      // SHOW SUCCESS ANIMATION
+      // =========================
+
+      setShowDownloadAnim(true);
+
+      Alert.alert(
+        "Download Complete 🎵",
+        `${safeName}.${extension} saved to Download folder`
+      );
 
     } catch (error) {
+
+      console.log(
+        "handleDownload error:",
+        error
+      );
+
       setGlobalDownload({
         progress: 0,
         downloadedMB: 0,
         isDownloading: false,
       });
 
-      Alert.alert("Error", "Something went wrong");
+      Alert.alert(
+        "Error",
+        error?.message ||
+        "Something went wrong"
+      );
     }
   };
+
 
 
 

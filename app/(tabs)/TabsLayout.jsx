@@ -85,9 +85,8 @@ export default function TabsLayout() {
           },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
           marginBottom: 2,
-          letterSpacing: 0.5,
+          fontFamily: 'Poppins-Bold',
         },
         tabBarItemStyle: {
           justifyContent: 'center',

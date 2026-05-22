@@ -177,7 +177,7 @@ const Setting = () => {
 
             </View>
             <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('ProfileEdit')}>
-              <Ionicons name="pencil-outline" size={18} color="#fff" />
+              <Ionicons name="pencil-outline" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -186,7 +186,7 @@ const Setting = () => {
             <Text style={styles.sectionTitle}>General</Text>
 
             <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Account')}>
-              <Ionicons name="person-circle-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="person-circle-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Account Details</Text>
                 <Text style={styles.optionSubtitle}>Manage your account</Text>
@@ -195,7 +195,7 @@ const Setting = () => {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Share')}>
-              <Ionicons name="share-social-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="share-social-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Share</Text>
                 <Text style={styles.optionSubtitle}>Tell friends about the app</Text>
@@ -204,7 +204,7 @@ const Setting = () => {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Aboutus')}>
-              <Ionicons name="information-circle-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="information-circle-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>About Us</Text>
                 <Text style={styles.optionSubtitle}>App & company info</Text>
@@ -219,7 +219,7 @@ const Setting = () => {
               style={styles.optionCard}
               onPress={() => navigation.navigate('SocialLink')} // or open a URL with Linking
             >
-              <Ionicons name="people-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="people-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Connect With Us</Text>
                 <Text style={styles.optionSubtitle}>Follow, join our community, or collaborate</Text>
@@ -228,7 +228,7 @@ const Setting = () => {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('HelpSupport')}>
-              <Ionicons name="help-circle-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="help-circle-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Help & Support</Text>
                 <Text style={styles.optionSubtitle}>Help Centre</Text>
@@ -238,7 +238,7 @@ const Setting = () => {
 
 
             <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Contactus')}>
-              <Ionicons name="call-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="call-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Contact Us</Text>
                 <Text style={styles.optionSubtitle}>Get help or feedback</Text>
@@ -247,7 +247,7 @@ const Setting = () => {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Contactus')}>
-              <Ionicons name="star-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="star-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Rate on Google Play</Text>
                 <Text style={styles.optionSubtitle}>Leave a review</Text>
@@ -257,7 +257,7 @@ const Setting = () => {
 
 
             <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Donateus')}>
-              <Ionicons name="heart-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="heart-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Donate Us</Text>
                 <Text style={styles.optionSubtitle}>Support development</Text>
@@ -270,7 +270,7 @@ const Setting = () => {
             <Text style={styles.sectionTitle}>App</Text>
 
             <View style={styles.optionCard}>
-              <Ionicons name="apps-outline" size={22} color="#fff" style={styles.optionIcon} />
+              <Ionicons name="apps-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
                 <Text style={styles.optionTitle}>Version</Text>
                 <Text style={styles.optionSubtitle}>1.0.0</Text>
@@ -282,7 +282,7 @@ const Setting = () => {
           <View style={{ marginTop: 18, marginBottom: 100 }}>
             <TouchableOpacity style={[styles.btn, { marginTop: 12 }]} onPress={handleSignOut}>
               <LinearGradient colors={['#2196f3', '#3f51b5']} style={styles.signOutBtn}>
-                <Ionicons name="log-out-outline" size={23} color="#fff" style={{ marginRight: 5 }} />
+                <Ionicons name="log-out-outline" size={23} color="#fff" style={{ marginRight: 5, }} />
                 <Text style={styles.btnText}>Sign Out</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -341,13 +341,14 @@ const styles = StyleSheet.create({
   },
   name: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
   },
   email: {
     color: '#bdbdbd',
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 4,
+    fontFamily: 'Poppins-Medium',
   },
   editBtn: {
     marginLeft: 8,
@@ -362,11 +363,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#bdbdbd',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
     marginBottom: 10,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    fontFamily: 'Poppins-Bold',
   },
 
   optionCard: {
@@ -389,12 +389,13 @@ const styles = StyleSheet.create({
   optionTitle: {
     color: '#fff',
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Poppins-Bold',
   },
   optionSubtitle: {
     color: '#9e9e9e',
     fontSize: 12,
     marginTop: 2,
+    fontFamily: 'Poppins-Medium',
   },
 
   btn: {
@@ -424,8 +425,7 @@ const styles = StyleSheet.create({
   btnText: {
     color: '#fff',
     fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    fontFamily: 'Poppins-Bold',
   },
 
   overlay: {

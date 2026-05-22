@@ -121,10 +121,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: '#bdbdbd',
     fontSize: 14,
-    fontWeight: '600',
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    fontFamily: 'Poppins-Bold',
+
   },
   card: {
     flexDirection: 'row',

@@ -14,7 +14,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 
 
-const Music = () => {
+const Music = ({ hideActions = false }) => {
   const { position, duration } = useProgress();
   const playbackState = usePlaybackState();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -230,27 +230,29 @@ const Music = () => {
           <FontAwesome6 name="forward-step" size={28} color="#fff" />
         </TouchableOpacity>
       </View>
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleShuffleToggle}>
-          <Ionicons name="shuffle" size={25} color={isShuffle ? '#1DB954' : '#fff'} />
-        </TouchableOpacity>
+      {!hideActions && (
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleShuffleToggle}>
+            <Ionicons name="shuffle" size={25} color={isShuffle ? '#1DB954' : '#fff'} />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={handleRepeatToggle}>
-          <MaterialIcons name="repeat-one" size={25} color={isRepeatOne ? '#1DB954' : '#fff'} />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleRepeatToggle}>
+            <MaterialIcons name="repeat-one" size={25} color={isRepeatOne ? '#1DB954' : '#fff'} />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={handlelike}>
-          <Ionicons name={liked ? "heart" : "heart-outline"} size={25} color={liked ? "#ff3b30" : "#fff"} />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={handlelike}>
+            <Ionicons name={liked ? "heart" : "heart-outline"} size={25} color={liked ? "#ff3b30" : "#fff"} />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn}
-          onPress={() => {
-            setAddtoplaylist(currentSong);
-            openSheet();
-          }}>
-          <MaterialCommunityIcons name="playlist-music" size={25} color="#fff" />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.actionBtn}
+            onPress={() => {
+              setAddtoplaylist(currentSong);
+              openSheet();
+            }}>
+            <MaterialCommunityIcons name="playlist-music" size={25} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
 
     </View>
   );

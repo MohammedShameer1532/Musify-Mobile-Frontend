@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   title: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 
   profileCard: {

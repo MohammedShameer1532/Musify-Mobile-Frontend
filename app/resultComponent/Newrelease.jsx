@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     color: 'white',
     marginTop: 10,
     width: 162,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'Poppins-Medium',
   },
   header: {
     fontFamily: 'Poppins-Bold',

@@ -1367,8 +1367,8 @@ const styles = StyleSheet.create({
 
   },
   songImagee: {
-    width: 290,
-    height: 290,
+    width: 260,
+    height: 260,
     display: 'flex',
     alignSelf: 'center',
   },

@@ -1149,7 +1149,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
 
               {/* Song Title */}
               <Text
-                style={[styles.songTitle, isPlaying && { color: "#1DB954", width: 145, }]}
+                style={[styles.songTitle, isPlaying && { color: "#1DB954", width: 160, }]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -1275,6 +1275,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontFamily: 'Poppins-Bold',
+    width: 250,
   },
   // Album Info
   albumInfoCard: {
@@ -1409,6 +1410,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Poppins-Bold',
     marginBottom: -5,
+    width: 180,
 
   },
   artist: {

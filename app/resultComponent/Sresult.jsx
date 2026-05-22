@@ -110,6 +110,8 @@ const Sresult = () => {
         title: formatSongTitle(item?.name),
         artist: item?.artists?.primary[0]?.name,
         artwork: item?.image[2]?.url,
+        album: item?.album?.name,
+        year: item?.year,
       };
 
       setCurrentSong(track);

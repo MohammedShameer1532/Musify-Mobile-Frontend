@@ -115,6 +115,8 @@ export function BottomSheetProvider({ children }) {
         artist: addtoplaylist.artist,
         artwork: addtoplaylist.artwork,
         url: addtoplaylist.url,
+        album: addtoplaylist.album,
+        year: addtoplaylist.year,
       });
       await getlist();
 
@@ -238,8 +240,6 @@ export function BottomSheetProvider({ children }) {
         enableDynamicSizing={false}
         backgroundStyle={{
           backgroundColor: '#121212',
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
         }}
         handleIndicatorStyle={{
           backgroundColor: 'grey',
@@ -249,16 +249,16 @@ export function BottomSheetProvider({ children }) {
         }}
 
       >
-        <TouchableOpacity
-          onPress={() => bottomSheetRef.current?.close()}
-          style={styles.backIconContainer}
-        >
-          <Ionicons name="close" size={30} color="#fff" />
-        </TouchableOpacity>
-
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Add to playlist</Text>
+
+          <TouchableOpacity
+            onPress={() => bottomSheetRef.current?.close()}
+            style={styles.closeIcon}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
         </View>
         {/* SEARCH */}
         <View style={styles.searchContainer}>
@@ -386,10 +386,10 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     marginBottom: 20,
     textAlign: 'center',
     color: '#000',
+    fontFamily: 'Poppins-Bold',
   },
   input: {
     borderWidth: 1,
@@ -401,6 +401,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
     backgroundColor: '#f9f9f9',
+    fontFamily: 'Poppins-Bold',
   },
   button: {
     backgroundColor: '#1DB954',
@@ -413,10 +414,13 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontWeight: '600',
     fontSize: 16,
+    fontFamily: 'Poppins-Bold',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 15,
@@ -424,13 +428,14 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: '#fff',
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 20,
+    fontFamily: 'Poppins-Bold',
   },
 
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#2a2a2a',
     marginHorizontal: 20,
     paddingHorizontal: 15,
@@ -443,7 +448,8 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#fff',
     marginLeft: 10,
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: 'Poppins-Bold',
   },
 
   playlistItem: {
@@ -481,13 +487,14 @@ const styles = StyleSheet.create({
   playlistName: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins-Bold',
   },
 
   playlistMeta: {
     color: '#b3b3b3',
     fontSize: 13,
     marginTop: 3,
+    fontFamily: 'Poppins-Bold',
   },
 
   newPlaylistButton: {
@@ -504,7 +511,7 @@ const styles = StyleSheet.create({
   },
   newPlaylistText: {
     marginLeft: 8,
-    fontWeight: '600',
     color: '#000',
+    fontFamily: 'Poppins-Bold',
   },
 });

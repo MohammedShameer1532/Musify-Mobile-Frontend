@@ -84,6 +84,7 @@ const styles = StyleSheet.create({
     color: 'white',
     marginLeft: 8,
     fontSize: 16,
+    fontFamily: 'Poppins-Bold',
   },
   clearIcon: {
     position: 'absolute',

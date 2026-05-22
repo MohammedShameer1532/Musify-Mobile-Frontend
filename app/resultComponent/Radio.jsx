@@ -168,6 +168,6 @@ const styles = StyleSheet.create({
     color: 'white',
     marginTop: 10,
     width: 176,       // match image width
-    fontFamily: 'Poppins-Regular'
+    fontFamily: 'Poppins-Medium'
   }
 })

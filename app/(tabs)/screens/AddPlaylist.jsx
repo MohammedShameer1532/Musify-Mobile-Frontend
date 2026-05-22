@@ -320,10 +320,9 @@ const AddPlaylist = () => {
                               <Feather name="edit" color="#1DB954" size={21} />
                               <Text style={{
                                 fontSize: 13,
-                                fontWeight: '700',
                                 color: 'white',
-                                letterSpacing: 0.5,
-                                marginLeft: 9
+                                marginLeft: 9,
+                                fontFamily: 'Poppins-Bold',
                               }}>Rename Playlist</Text>
                             </View>
                           </MenuOption>
@@ -339,10 +338,9 @@ const AddPlaylist = () => {
                               <MaterialIcons name="delete-outline" color="#ff4d4d" size={24} />
                               <Text style={{
                                 fontSize: 13,
-                                fontWeight: '700',
                                 color: 'white',
-                                letterSpacing: 0.5,
-                                marginLeft: 7
+                                marginLeft: 7,
+                                fontFamily: 'Poppins-Bold',
                               }}>Remove Playlist</Text>
                             </View>
                           </MenuOption>
@@ -511,11 +509,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+    fontFamily: 'Poppins-Bold',
   },
 
   sheetTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     color: '#fff',
   },
 
@@ -523,6 +522,7 @@ const styles = StyleSheet.create({
     color: '#9e9e9e',
     fontSize: 14,
     marginBottom: 20,
+    fontFamily: 'Poppins-Bold',
   },
 
   closeBtn: {
@@ -542,6 +542,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginBottom: 20,
+    fontFamily: 'Poppins-Bold',
   },
 
   sheetButton: {
@@ -576,19 +577,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
     alignItems: 'center',
     justifyContent: 'center',
-    activeOpacity: 0.6
   },
   title: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontFamily: 'Poppins-Bold',
   },
   backIconContainer: {
     alignSelf: 'flex-end',   // pushes it to the right
@@ -619,10 +620,10 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
     marginBottom: 20,
     textAlign: 'center',
     color: '#000',
+    fontFamily: 'Poppins-Bold',
   },
   input: {
     borderWidth: 1,
@@ -634,6 +635,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
     backgroundColor: '#f9f9f9',
+    fontFamily: 'Poppins-Bold',
   },
   button: {
     backgroundColor: '#1DB954',
@@ -648,6 +650,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+    fontFamily: 'Poppins-Bold',
   },
   headerTitle: {
     color: '#fff',
@@ -671,7 +674,8 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#fff',
     marginLeft: 10,
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: 'Poppins-Bold',
   },
 
   playlistItem: {
@@ -714,16 +718,14 @@ const styles = StyleSheet.create({
   playlistName: {
     color: '#fff',
     fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontFamily: 'Poppins-Bold',
   },
 
   playlistMeta: {
     color: '#b3b3b3',
     fontSize: 13,
     marginTop: 3,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontFamily: 'Poppins-Bold',
   },
 
   newPlaylistButton: {
@@ -740,7 +742,7 @@ const styles = StyleSheet.create({
   },
   newPlaylistText: {
     marginLeft: 8,
-    fontWeight: '600',
     color: '#000',
+    fontFamily: 'Poppins-Bold',
   },
 })

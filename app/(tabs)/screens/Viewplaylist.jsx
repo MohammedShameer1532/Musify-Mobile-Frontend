@@ -18,6 +18,10 @@ import Entypo from "react-native-vector-icons/Entypo";
 import AverageColorExtractor from '../../common/AverageColorExtractor';
 import Music from '../../common/Music';
 import { API_URL } from '@env';
+import { decode } from 'html-entities';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+
 
 const Viewplaylist = () => {
   const navigation = useNavigation();
@@ -113,7 +117,8 @@ const Viewplaylist = () => {
         artist: s.artist,
         url: s.url,
         artwork: s.artwork,
-        hasArtwork: true,
+        album: s?.album,
+        year: s?.year,
       }));
 
       // Add queue
@@ -154,6 +159,25 @@ const Viewplaylist = () => {
       style={[style, { borderRadius: 0 }]} // keep BottomSheet’s rounded corners
     />
   );
+
+
+
+  const formatSongTitle = (rawTitle) => {
+    if (!rawTitle) return 'Unknown';
+
+    const decoded = decode(rawTitle); // Converts &quot; to "
+    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+
+    if (titleMatch) {
+      const mainTitle = titleMatch[1].trim();
+      const source = titleMatch[2].trim();
+      return `${mainTitle} from ${source}`;
+    }
+
+    return decoded.trim(); // fallback if pattern doesn't match
+  };
+
+
   return (
     <MenuProvider skipInstanceCheck >
       <GestureHandlerRootView style={styles.container}>
@@ -329,21 +353,55 @@ const Viewplaylist = () => {
                   )}
                   <View
                     style={{
-                      marginTop: 35,
-                      paddingVertical: 15,
-                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      marginTop: 20,
+                      paddingVertical: 20,
+                      backgroundColor: 'rgba(255,255,255,0.07)',
                       borderRadius: 20,
                       marginHorizontal: 16,
                       alignSelf: 'stretch',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.08)',
                     }}
                   >
                     <View style={styles.textContainer}>
-                      <Text style={styles.songTitles}>
-                        {currentSong?.title ? currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '') : 'Unknown'}
-                      </Text>
-                      <Text style={styles.artist}>
-                        {currentSong?.artist ? currentSong?.artist?.split(',')[0].trim().replace(/\s*\(.*?\)\s*/g, '') : 'Unknown Artist'}
-                      </Text>
+                      {/* ALBUM */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <MaterialIcons name="album" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Album</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.album)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* SONG */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="musical-note" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Song</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.title)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* ARTIST */}
+                      <View style={styles.infoRow}>
+                        <View style={styles.iconBox}>
+                          <Ionicons name="person" size={16} color="#1DB954" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.infoLabel}>Artist</Text>
+                          <Text style={styles.infoValue}>
+                            {formatSongTitle(currentSong?.artist)}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                     <Music />
                   </View>
@@ -360,6 +418,35 @@ const Viewplaylist = () => {
 export default Viewplaylist
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  infoLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: -1,
+  },
+
+  infoValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+    width: 260,
+  },
   deleteBtn: {
     position: 'absolute',
     right: 30,
@@ -376,10 +463,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
     alignItems: 'center',
     justifyContent: 'center',
 
@@ -407,8 +496,8 @@ const styles = StyleSheet.create({
   songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
   songText: { flex: 1 },
-  songTitle: { fontSize: 16, fontWeight: '600', color: 'white' },
-  artist: { fontSize: 12, color: 'gray', marginTop: 4 },
+  songTitle: { fontSize: 14, color: 'white', fontFamily: 'Poppins-Bold' },
+  artist: { fontSize: 12, color: 'gray', marginTop: 4, fontFamily: 'Poppins-Regular' },
   songRight: { flexDirection: 'row', alignItems: 'center' },
   playButton: {
     width: 36,
@@ -421,11 +510,11 @@ const styles = StyleSheet.create({
   },
   songContainer: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 5,
   },
   songImages: {
-    width: 290,
-    height: 290,
+    width: 260,
+    height: 260,
   },
   songTitles: {
     fontSize: 20,
@@ -436,8 +525,9 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 30,
-    marginTop: 10,
+    paddingLeft: 18,
+    marginTop: -5,
+    width: '100%',
   },
   icons: {
     paddingTop: 20,
@@ -463,10 +553,9 @@ const styles = StyleSheet.create({
   },
   overlayText: {
     color: '#fff',
-    fontSize: 32,
-    fontWeight: '600',
+    fontSize: 30,
     marginTop: 16,
-    letterSpacing: 0.5,
+    fontFamily: 'Poppins-Bold',
   },
   gradientIconContainer: {
     justifyContent: 'center',

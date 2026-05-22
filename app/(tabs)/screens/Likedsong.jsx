@@ -412,10 +412,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
     alignItems: 'center',
     justifyContent: 'center',
 
@@ -440,8 +442,8 @@ const styles = StyleSheet.create({
   },
   overlayText: {
     color: '#fff',
-    fontSize: 32,
-    fontWeight: '600',
+    fontSize: 30,
+    fontFamily: 'Poppins-Bold',
     marginTop: 16,
     letterSpacing: 0.5,
   },
@@ -468,8 +470,8 @@ const styles = StyleSheet.create({
   songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
   songText: { flex: 1 },
-  songTitle: { fontSize: 16, fontWeight: '600', color: 'white' },
-  artist: { fontSize: 12, color: 'gray', marginTop: 4 },
+  songTitle: { fontSize: 14, color: 'white', fontFamily: 'Poppins-Bold', },
+  artist: { fontSize: 12, color: 'gray', marginTop: 4,fontFamily: 'Poppins-Regular' },
   songRight: { flexDirection: 'row', alignItems: 'center' },
   playButton: {
     width: 36,

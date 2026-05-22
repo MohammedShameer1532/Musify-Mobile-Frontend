@@ -6,7 +6,6 @@ import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const Library = () => {
   const navigation = useNavigation();
@@ -99,18 +98,21 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     justifyContent: 'space-between',
   },
+
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   section: {
     marginTop: 20,
@@ -127,16 +129,20 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    marginBottom: 12,
+    backgroundColor: '#1F1F27',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
   },
   cardText: {
     marginLeft: 12,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: 'Poppins-Bold',
     color: '#fff',
   },
 })

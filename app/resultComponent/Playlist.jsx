@@ -139,6 +139,20 @@ const Playlist = () => {
   );
 
 
+  const formatSongTitle = (rawTitle) => {
+    if (!rawTitle) return 'Unknown';
+
+    const decoded = decode(rawTitle); // Converts &quot; to "
+    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+
+    if (titleMatch) {
+      const mainTitle = titleMatch[1].trim();
+      const source = titleMatch[2].trim();
+      return `${mainTitle} from ${source}`;
+    }
+
+    return decoded.trim(); // fallback if pattern doesn't match
+  };
 
   const handleDownload = async (item) => {
 
@@ -497,20 +511,6 @@ const Playlist = () => {
   };
 
 
-  const formatSongTitle = (rawTitle) => {
-    if (!rawTitle) return 'Unknown';
-
-    const decoded = decode(rawTitle); // Converts &quot; to "
-    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
-
-    if (titleMatch) {
-      const mainTitle = titleMatch[1].trim();
-      const source = titleMatch[2].trim();
-      return `${mainTitle} from ${source}`;
-    }
-
-    return decoded.trim(); // fallback if pattern doesn't match
-  };
 
   const handleshowqr = (item) => {
     setQrdata(item);

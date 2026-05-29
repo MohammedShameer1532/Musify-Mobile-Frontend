@@ -12,6 +12,8 @@
   <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
   <uses-permission android:name="android.permission.CAMERA" />
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
   <application
     android:name=".MainApplication"
@@ -22,6 +24,11 @@
     android:theme="@style/AppTheme"
     android:supportsRtl="true"
     android:usesCleartextTraffic="true">
+    <service
+      android:name="com.doublesymmetry.trackplayer.service.MusicService"
+      android:foregroundServiceType="mediaPlayback"
+    >
+    </service>
     <meta-data
       android:name="com.facebook.sdk.ApplicationId"
       android:value="@string/facebook_app_id" />

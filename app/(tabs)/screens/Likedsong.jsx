@@ -17,6 +17,8 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import Entypo from "react-native-vector-icons/Entypo";
 import Music from '../../common/Music';
 import AverageColorExtractor from '../../common/AverageColorExtractor';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { decode } from 'html-entities';
 
 const Likedsong = () => {
   const navigation = useNavigation();
@@ -114,6 +116,20 @@ const Likedsong = () => {
   };
 
 
+  const formatSongTitle = (rawTitle) => {
+    if (!rawTitle) return 'Unknown';
+
+    const decoded = decode(rawTitle); // Converts &quot; to "
+    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+
+    if (titleMatch) {
+      const mainTitle = titleMatch[1].trim();
+      const source = titleMatch[2].trim();
+      return `${mainTitle} from ${source}`;
+    }
+
+    return decoded.trim(); // fallback if pattern doesn't match
+  };
 
   const handlePlay = useCallback(async (song) => {
     if (!song) return;
@@ -297,21 +313,55 @@ const Likedsong = () => {
               )}
               <View
                 style={{
-                  marginTop: 35,
-                  paddingVertical: 15,
-                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  marginTop: 20,
+                  paddingVertical: 20,
+                  backgroundColor: 'rgba(255,255,255,0.07)',
                   borderRadius: 20,
                   marginHorizontal: 16,
                   alignSelf: 'stretch',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.08)',
                 }}
               >
                 <View style={styles.textContainer}>
-                  <Text style={styles.songTitles}>
-                    {currentSong?.title ? currentSong?.title?.replace(/\s*\(.*?\)\s*/g, '') : 'Unknown'}
-                  </Text>
-                  <Text style={styles.artist}>
-                    {currentSong?.artist ? currentSong?.artist?.split(',')[0].trim().replace(/\s*\(.*?\)\s*/g, '') : 'Unknown Artist'}
-                  </Text>
+                  {/* ALBUM */}
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconBox}>
+                      <MaterialIcons name="album" size={16} color="#1DB954" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Album</Text>
+                      <Text style={styles.infoValue}>
+                        {formatSongTitle(currentSong?.album)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* SONG */}
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconBox}>
+                      <Ionicons name="musical-note" size={16} color="#1DB954" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Song</Text>
+                      <Text style={styles.infoValue}>
+                        {formatSongTitle(currentSong?.title)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* ARTIST */}
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconBox}>
+                      <Ionicons name="person" size={16} color="#1DB954" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.infoLabel}>Artist</Text>
+                      <Text style={styles.infoValue}>
+                        {formatSongTitle(currentSong?.artist)}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
                 <Music />
               </View>
@@ -396,6 +446,35 @@ const SongItem = React.memo(({ song, currentSong, handlePlay, handlelike, deleti
 
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(29,185,84,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  infoLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: -1,
+  },
+
+  infoValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+    width: 260,
+  },
   deleteBtn: {
     position: 'absolute',
     top: 22,
@@ -485,7 +564,7 @@ const styles = StyleSheet.create({
   },
   songContainer: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 5,
   },
   songImages: {
     width: 290,
@@ -507,8 +586,9 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignSelf: 'flex-start',
-    paddingLeft: 30,
-    marginTop: 10,
+    paddingLeft: 18,
+    marginTop: -5,
+    width: '100%',
   },
   icons: {
     paddingTop: 20,

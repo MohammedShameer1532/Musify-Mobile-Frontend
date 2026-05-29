@@ -76,46 +76,61 @@ function AppNavigator() {
 
   // TrackPlayer setup
   useEffect(() => {
-    TrackPlayer.setupPlayer().then(() => {
-      TrackPlayer.updateOptions({
-        stopWithApp: false,
+    let isMounted = true;
 
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.SkipToNext,
-          Capability.SkipToPrevious,
-          Capability.SetRating, // 👈 required
-          Capability.SeekTo,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-        ],
+    const setup = async () => {
+      try {
+        await TrackPlayer.setupPlayer();
 
-        notificationCapabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.Stop,
-          Capability.SkipToNext,
-          Capability.SkipToPrevious,
-          Capability.SetRating, // 👈 required
-          Capability.SeekTo,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-        ],
-        android: {
-          appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
-        },
-        ratingType: RatingType.Heart,
-        progressUpdateEventInterval: 2,
-        compactCapabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.Stop,
-        ],
-        forwardJumpInterval: 10,
-        backwardJumpInterval: 10,
-      });
-    });
+        await TrackPlayer.updateOptions({
+          stopWithApp: false,
+
+          capabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+            Capability.SeekTo,
+            Capability.JumpForward,
+            Capability.JumpBackward,
+          ],
+
+          compactCapabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.Stop,
+          ],
+
+          notificationCapabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+            Capability.SeekTo,
+            Capability.JumpForward,
+            Capability.JumpBackward,
+          ],
+
+          android: {
+            appKilledPlaybackBehavior:
+              AppKilledPlaybackBehavior.ContinuePlayback,
+          },
+
+          forwardJumpInterval: 10,
+          backwardJumpInterval: 10,
+        });
+      } catch (e) {
+        console.log('TrackPlayer already initialized', e);
+      }
+    };
+
+    if (isMounted) {
+      setup();
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Audio intent listener

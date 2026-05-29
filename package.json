@@ -35,6 +35,7 @@
     "react-native": "0.78.2",
     "react-native-blob-util": "^0.22.2",
     "react-native-blurhash": "^2.1.2",
+    "react-native-bootsplash": "^7.3.1",
     "react-native-config": "^1.6.1",
     "react-native-device-info": "^15.0.1",
     "react-native-dotenv": "^3.4.11",

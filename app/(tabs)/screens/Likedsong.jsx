@@ -73,7 +73,7 @@ const Likedsong = () => {
         });
         const response = res?.data?.songs;
         setShowsong(response || []);
-        console.log('res', res?.data?.songs);
+        console.log('likes res', res?.data?.songs);
 
       } catch (error) {
         console.error(error);
@@ -142,7 +142,8 @@ const Likedsong = () => {
         artist: s.artist,
         url: s.url,
         artwork: s.artwork,
-        hasArtwork: true,
+        album: s.album,
+        year: s.year,
       }));
 
       // Add queue
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
   songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
   songText: { flex: 1 },
   songTitle: { fontSize: 14, color: 'white', fontFamily: 'Poppins-Bold', },
-  artist: { fontSize: 12, color: 'gray', marginTop: 4,fontFamily: 'Poppins-Regular' },
+  artist: { fontSize: 12, color: 'gray', marginTop: 4, fontFamily: 'Poppins-Regular' },
   songRight: { flexDirection: 'row', alignItems: 'center' },
   playButton: {
     width: 36,

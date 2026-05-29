@@ -1,5 +1,4 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
@@ -22,10 +21,12 @@
     android:allowBackup="false"
     android:theme="@style/AppTheme"
     android:supportsRtl="true"
-    android:usesCleartextTraffic="true"
-  >
-    <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id" />
-    <meta-data android:name="com.facebook.sdk.ClientToken"
+    android:usesCleartextTraffic="true">
+    <meta-data
+      android:name="com.facebook.sdk.ApplicationId"
+      android:value="@string/facebook_app_id" />
+    <meta-data
+      android:name="com.facebook.sdk.ClientToken"
       android:value="@string/facebook_client_token" />
 
     <activity
@@ -34,7 +35,8 @@
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
       android:launchMode="singleTask"
       android:windowSoftInputMode="adjustResize"
-      android:exported="true">
+      android:exported="true"
+      android:theme="@style/BootTheme">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
@@ -42,7 +44,7 @@
       <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" /> <!-- Accept audio files -->
+        <category android:name="android.intent.category.BROWSABLE" />
         <data android:mimeType="audio/*" />
         <data android:scheme="file" />
         <data android:scheme="content" />

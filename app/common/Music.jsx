@@ -11,6 +11,7 @@ import { GOOGLE_CLIENT_ID, API_URL } from '@env';
 import { useBottomSheet } from '../contextProvider/bottomSheetContext';
 import { SearchContext } from '../contextProvider/searchContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { decode } from 'html-entities';
 
 
 
@@ -71,6 +72,23 @@ const Music = ({ hideActions = false }) => {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
+
+  
+    const formatSongTitle = (rawTitle) => {
+      if (!rawTitle) return 'Unknown';
+  
+      const decoded = decode(rawTitle); // Converts &quot; to "
+      const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+  
+      if (titleMatch) {
+        const mainTitle = titleMatch[1].trim();
+        const source = titleMatch[2].trim();
+        return `${mainTitle} from ${source}`;
+      }
+  
+      return decoded.trim(); // fallback if pattern doesn't match
+    };
+  
 
   const handleSkipToNext = async () => {
     try {
@@ -144,10 +162,12 @@ const Music = ({ hideActions = false }) => {
         await axios.post(`${API_URL}/api/like`, {
           userId: users.uid,
           songId: currentSong.id,
-          title: currentSong.title,
-          artist: currentSong.artist,
+          title: formatSongTitle(currentSong.title),
+          artist: formatSongTitle(currentSong.artist),
           artwork: currentSong.artwork,
           url: currentSong.url,
+          album: formatSongTitle(currentSong.album),
+          year: currentSong.year,
         });
 
         setLiked(true);

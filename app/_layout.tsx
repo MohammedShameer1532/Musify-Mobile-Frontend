@@ -59,6 +59,7 @@ import {MenuProvider} from 'react-native-popup-menu';
 import Qrsheet from './common/Qrsheet';
 import Scansheet from './common/Scansheet';
 import Qrscanner from './common/Qrscanner';
+import BootSplash from 'react-native-bootsplash';
 const Stack = createNativeStackNavigator();
 
 /* -------------------- App Navigator -------------------- */
@@ -66,6 +67,12 @@ function AppNavigator() {
   const {setOuterdata} = useContext(SearchContext);
   const {user, loading} = useAuth();
   console.log('api loggg', API_URL);
+
+  useEffect(() => {
+    if (!loading) {
+      BootSplash.hide({fade: true});
+    }
+  }, [loading]);
 
   // TrackPlayer setup
   useEffect(() => {
@@ -226,6 +233,7 @@ function AppNavigator() {
 /* -------------------- Root Layout -------------------- */
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
   useEffect(() => {
     configureGoogleSignIn();
   }, []);

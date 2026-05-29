@@ -1,39 +1,81 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  Keyboard,
+  View,
+  Animated,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+
 import Feather from 'react-native-vector-icons/Feather';
-import { Keyboard, View, Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialDesignIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+
+import LinearGradient from 'react-native-linear-gradient';
+
 import IndexScreen from './IndexScreen';
 import LocalMusic from './LocalMusic';
 import Setting from './Setting';
 import Library from './screens/Library';
-import AntDesign from 'react-native-vector-icons/AntDesign'
-import LinearGradient from 'react-native-linear-gradient';
 
 const Tab = createBottomTabNavigator();
 
 const COLORS = {
-  background: '#0B0B0F',
-  tabBar: '#14141A',
-  active: '#2196f3',      // modern violet
-  inactive: '#4B5563',
+  background: '#07070A',
+  tabBar: '#111114',
+  active: '#4DA6FF',
+  inactive: '#6B7280',
 };
 
-function AnimatedIcon({ children, focused }) {
-  const scale = new Animated.Value(focused ? 1.15 : 1);
+function AnimatedTabIcon({
+  focused,
+  children,
+}) {
+  const scaleAnim = useRef(new Animated.Value(focused ? 1 : 0.9)).current;
+  const translateAnim = useRef(new Animated.Value(focused ? -4 : 0)).current;
 
   useEffect(() => {
-    Animated.spring(scale, {
-      toValue: focused ? 1.15 : 1,
-      useNativeDriver: true,
-      friction: 5,
-    }).start();
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: focused ? 1.08 : 0.92,
+        useNativeDriver: true,
+        friction: 4,
+      }),
+
+      Animated.spring(translateAnim, {
+        toValue: focused ? -4 : 0,
+        useNativeDriver: true,
+        friction: 5,
+      }),
+    ]).start();
   }, [focused]);
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      {children}
+    <Animated.View
+      style={{
+        transform: [
+          { scale: scaleAnim },
+          { translateY: translateAnim },
+        ],
+      }}
+    >
+      {focused ? (
+        <LinearGradient
+          colors={['#2196f3', '#6a5cff']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.activeIconContainer}
+        >
+          {children}
+        </LinearGradient>
+      ) : (
+        <View style={styles.inactiveIconContainer}>
+          {children}
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -43,10 +85,11 @@ export default function TabsLayout() {
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () =>
-      setKeyboardVisible(true)
+      setKeyboardVisible(true),
     );
+
     const hideSub = Keyboard.addListener('keyboardDidHide', () =>
-      setKeyboardVisible(false)
+      setKeyboardVisible(false),
     );
 
     return () => {
@@ -56,129 +99,242 @@ export default function TabsLayout() {
   }, []);
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-        tabBarActiveTintColor: COLORS.active,
-        tabBarInactiveTintColor: COLORS.inactive,
-        tabBarShowLabel: true,
-        tabBarStyle: keyboardVisible
-          ? { display: 'none' }
-          : {
-            position: 'absolute',
-            marginLeft: 20,
-            marginRight: 20,
-            bottom: 10,
-            height: 70,
-            borderRadius: 30,
-            backgroundColor: COLORS.tabBar,
-            borderTopWidth: 0,
-            shadowColor: COLORS.active,
-            shadowOpacity: 0.15,
-            shadowRadius: 20,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 0.25,
-            shadowRadius: 15,
-            elevation: 25,
+    <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
 
-          },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          marginBottom: 2,
-          fontFamily: 'Poppins-Bold',
-        },
-        tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingTop: 6,
-          paddingBottom: 6,
-        },
-        tabBarBackground: () => (
-          <View
-            style={{
-              flex: 1,
-              borderRadius: 30,
-              backgroundColor: '#14141A',
+          tabBarHideOnKeyboard: true,
 
-              // iOS shadow (all sides)
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.35,
-              shadowRadius: 20,
+          tabBarShowLabel: true,
 
-              // Android workaround
-              elevation: 25,
-            }}
-          >
-            <LinearGradient
-              colors={[
-                'rgba(33,150,243,0.25)',
-                'rgba(33,150,243,0.15)',
-                '#14141A',
-              ]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={{
-                flex: 1,
-                borderRadius: 30,
-              }}
-            />
-          </View>
-        ),
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={IndexScreen}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <AnimatedIcon focused={focused}>
-              <AntDesign name="home" color={color} size={26} />
-            </AnimatedIcon>
-          ),
-        }}
-      />
+          tabBarActiveTintColor: '#ffffff',
 
-      <Tab.Screen
-        name="Library"
-        component={Library}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <AnimatedIcon focused={focused}>
-              <Ionicons name="library" color={color} size={26} />
-            </AnimatedIcon>
-          ),
-        }}
-      />
+          tabBarInactiveTintColor: COLORS.inactive,
 
-      <Tab.Screen
-        name="Local"
-        component={LocalMusic}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <AnimatedIcon focused={focused}>
-              <MaterialDesignIcons
-                name="book-music"
-                size={26}
-                color={color}
+          tabBarStyle: keyboardVisible
+            ? { display: 'none' }
+            : styles.tabBar,
+
+          tabBarLabelStyle: styles.label,
+
+          tabBarItemStyle: styles.tabItem,
+
+          tabBarBackground: () => (
+            <View style={styles.tabBackground}>
+              <LinearGradient
+                colors={[
+                  'rgba(255,255,255,0.06)',
+                  'rgba(255,255,255,0.02)',
+                  '#111114',
+                ]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.gradient}
               />
-            </AnimatedIcon>
+            </View>
           ),
         }}
-      />
+      >
+        {/* HOME */}
+        <Tab.Screen
+          name="Home"
+          component={IndexScreen}
+          options={{
+            tabBarButton: props => (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                {...props}
+              />
+            ),
 
-      <Tab.Screen
-        name="Settings"
-        component={Setting}
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <AnimatedIcon focused={focused}>
-              <Feather name="settings" size={26} color={color} />
-            </AnimatedIcon>
-          ),
-        }}
-      />
-    </Tab.Navigator>
+            tabBarIcon: ({ color, focused }) => (
+              <AnimatedTabIcon focused={focused}>
+                <AntDesign
+                  name="home"
+                  size={22}
+                  color={focused ? '#fff' : color}
+                />
+              </AnimatedTabIcon>
+            ),
+          }}
+        />
+
+        {/* LIBRARY */}
+        <Tab.Screen
+          name="Library"
+          component={Library}
+          options={{
+            tabBarButton: props => (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                {...props}
+              />
+            ),
+
+            tabBarIcon: ({ color, focused }) => (
+              <AnimatedTabIcon focused={focused}>
+                <Ionicons
+                  name="library"
+                  size={22}
+                  color={focused ? '#fff' : color}
+                />
+              </AnimatedTabIcon>
+            ),
+          }}
+        />
+
+        {/* LOCAL */}
+        <Tab.Screen
+          name="Local"
+          component={LocalMusic}
+          options={{
+            tabBarButton: props => (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                {...props}
+              />
+            ),
+
+            tabBarIcon: ({ color, focused }) => (
+              <AnimatedTabIcon focused={focused}>
+                <MaterialDesignIcons
+                  name="music-circle-outline"
+                  size={24}
+                  color={focused ? '#fff' : color}
+                />
+              </AnimatedTabIcon>
+            ),
+          }}
+        />
+
+        {/* SETTINGS */}
+        <Tab.Screen
+          name="Settings"
+          component={Setting}
+          options={{
+            tabBarButton: props => (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                {...props}
+              />
+            ),
+
+            tabBarIcon: ({ color, focused }) => (
+              <AnimatedTabIcon focused={focused}>
+                <Feather
+                  name="settings"
+                  size={22}
+                  color={focused ? '#fff' : color}
+                />
+              </AnimatedTabIcon>
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+
+    left: 18,
+    right: 18,
+    bottom: 10,
+
+    height: 86, // increased
+
+    borderRadius: 30,
+
+    backgroundColor: 'transparent',
+
+    borderTopWidth: 0,
+
+    elevation: 0,
+  },
+
+  tabBackground: {
+    flex: 1,
+
+    borderRadius: 30,
+
+    overflow: 'hidden',
+
+    backgroundColor: '#111114',
+
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+
+    elevation: 20,
+  },
+
+  gradient: {
+    flex: 1,
+    borderRadius: 30,
+  },
+
+  tabItem: {
+    paddingTop: 20,
+    paddingBottom: 30,
+  },
+
+  label: {
+    fontSize: 11,
+
+    fontFamily: 'Poppins-SemiBold',
+
+    marginTop: 4,
+    top: 4,
+  },
+
+  activeIconContainer: {
+    width: 50,
+    height: 50,
+
+    borderRadius: 18,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    shadowColor: '#2196f3',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+
+    elevation: 10,
+  },
+
+  inactiveIconContainer: {
+    width: 50,
+    height: 50,
+
+    borderRadius: 18,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+
+    elevation: 10,
+
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+});

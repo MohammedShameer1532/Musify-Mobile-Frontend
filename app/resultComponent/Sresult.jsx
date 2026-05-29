@@ -108,9 +108,9 @@ const Sresult = () => {
         id: item?.id,
         url: item?.downloadUrl[4]?.url,
         title: formatSongTitle(item?.name),
-        artist: item?.artists?.primary[0]?.name,
+        artist: formatSongTitle(item?.artists?.primary[0]?.name),
         artwork: item?.image[2]?.url,
-        album: item?.album?.name,
+        album: formatSongTitle(item?.album?.name),
         year: item?.year,
       };
 

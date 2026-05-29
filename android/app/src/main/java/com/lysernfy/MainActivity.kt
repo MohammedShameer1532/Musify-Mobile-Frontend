@@ -12,6 +12,8 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import android.media.MediaMetadataRetriever 
 import android.util.Base64
+import android.os.Bundle
+import com.zoontek.rnbootsplash.RNBootSplash
 
 class MainActivity : ReactActivity() {
 
@@ -30,7 +32,10 @@ class MainActivity : ReactActivity() {
     handleIntent(intent)
   }
 
-
+ override fun onCreate(savedInstanceState: Bundle?) {
+    RNBootSplash.init(this, R.style.BootTheme) 
+    super.onCreate(savedInstanceState)
+  }
 private fun handleIntent(intent: Intent?) {
     val data: Uri? = intent?.data
     if (data != null) {

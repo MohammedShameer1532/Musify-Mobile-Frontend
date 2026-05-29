@@ -153,13 +153,18 @@ const Setting = () => {
           <Text style={styles.title}>Settings</Text>
           <View style={{ width: 40 }} />
         </View>
-        <ScrollView contentContainerStyle={{ paddingVertical: 12 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingVertical: 12, paddingBottom: 110, }} showsVerticalScrollIndicator={false}>
           {/* Profile Card */}
           <View style={styles.profileCard}>
             <Image
               source={
                 userInfo?.photo
-                  ? { uri: userInfo.photo }
+                  ? {
+                    uri: userInfo.photo.replace(
+                      /s96-c|s100-c|s128-c/,
+                      's400-c'
+                    ),
+                  }
                   : require('../assets/avatar.png')
               }
               style={styles.avatar}
@@ -181,105 +186,303 @@ const Setting = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Sections */}
+          {/* ================= GENERAL ================= */}
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>General</Text>
 
-            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Account')}>
-              <Ionicons name="person-circle-outline" size={24} color="#fff" style={styles.optionIcon} />
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('Account')}
+            >
+              <LinearGradient
+                colors={['#8b5cf6', '#6d28d9']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="person-circle-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Account Details</Text>
-                <Text style={styles.optionSubtitle}>Manage your account</Text>
+                <Text style={styles.optionTitle}>
+                  Account Details
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Manage your account
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Share')}>
-              <Ionicons name="share-social-outline" size={24} color="#fff" style={styles.optionIcon} />
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('Share')}
+            >
+              <LinearGradient
+                colors={['#06b6d4', '#2563eb']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="share-social-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Share</Text>
-                <Text style={styles.optionSubtitle}>Tell friends about the app</Text>
+                <Text style={styles.optionTitle}>
+                  Share
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Tell friends about the app
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Aboutus')}>
-              <Ionicons name="information-circle-outline" size={24} color="#fff" style={styles.optionIcon} />
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('Aboutus')}
+            >
+              <LinearGradient
+                colors={['#f59e0b', '#ef4444']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>About Us</Text>
-                <Text style={styles.optionSubtitle}>App & company info</Text>
+                <Text style={styles.optionTitle}>
+                  About Us
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  App & company info
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
           </View>
+
+          {/* ================= SUPPORT ================= */}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Support</Text>
+
             <TouchableOpacity
               style={styles.optionCard}
-              onPress={() => navigation.navigate('SocialLink')} // or open a URL with Linking
+              onPress={() => navigation.navigate('SocialLink')}
             >
-              <Ionicons name="people-outline" size={24} color="#fff" style={styles.optionIcon} />
+              <LinearGradient
+                colors={['#ec4899', '#db2777']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="people-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Connect With Us</Text>
-                <Text style={styles.optionSubtitle}>Follow, join our community, or collaborate</Text>
+                <Text style={styles.optionTitle}>
+                  Social Links
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Follow & join community
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('HelpSupport')}>
-              <Ionicons name="help-circle-outline" size={24} color="#fff" style={styles.optionIcon} />
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('HelpSupport')}
+            >
+              <LinearGradient
+                colors={['#22c55e', '#16a34a']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="help-circle-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Help & Support</Text>
-                <Text style={styles.optionSubtitle}>Help Centre</Text>
+                <Text style={styles.optionTitle}>
+                  Help & Support
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Help Centre
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('Contactus')}
+            >
+              <LinearGradient
+                colors={['#3b82f6', '#2563eb']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="call-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
 
-            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Contactus')}>
-              <Ionicons name="call-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Contact Us</Text>
-                <Text style={styles.optionSubtitle}>Get help or feedback</Text>
+                <Text style={styles.optionTitle}>
+                  Contact Us
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Get help or feedback
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Contactus')}>
-              <Ionicons name="star-outline" size={24} color="#fff" style={styles.optionIcon} />
+            <TouchableOpacity
+              style={styles.optionCard}
+            >
+              <LinearGradient
+                colors={['#f97316', '#ea580c']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="star-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Rate on Google Play</Text>
-                <Text style={styles.optionSubtitle}>Leave a review</Text>
+                <Text style={styles.optionTitle}>
+                  Rate on Google Play
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Leave a review
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('Donateus')}
+            >
+              <LinearGradient
+                colors={['#ef4444', '#dc2626']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="heart-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
 
-            <TouchableOpacity style={styles.optionCard} onPress={() => navigation.navigate('Donateus')}>
-              <Ionicons name="heart-outline" size={24} color="#fff" style={styles.optionIcon} />
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Donate Us</Text>
-                <Text style={styles.optionSubtitle}>Support development</Text>
+                <Text style={styles.optionTitle}>
+                  Donate Us
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Support development
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
             </TouchableOpacity>
           </View>
+
+          {/* ================= APP ================= */}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>App</Text>
 
             <View style={styles.optionCard}>
-              <Ionicons name="apps-outline" size={24} color="#fff" style={styles.optionIcon} />
+              <LinearGradient
+                colors={['#14b8a6', '#0f766e']}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name="apps-outline"
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Version</Text>
-                <Text style={styles.optionSubtitle}>1.0.0</Text>
+                <Text style={styles.optionTitle}>
+                  Version
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  1.0.0
+                </Text>
               </View>
             </View>
           </View>
-
           {/* Actions */}
-          <View style={{ marginTop: 18, marginBottom: 100 }}>
+          <View style={{ marginTop: 18, marginBottom: 10 }}>
             <TouchableOpacity style={[styles.btn, { marginTop: 12 }]} onPress={handleSignOut}>
               <LinearGradient colors={['#2196f3', '#3f51b5']} style={styles.signOutBtn}>
                 <Ionicons name="log-out-outline" size={23} color="#fff" style={{ marginRight: 5, }} />
@@ -360,28 +563,58 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 18,
     paddingHorizontal: 18,
-  },
-  sectionTitle: {
-    color: '#bdbdbd',
-    fontSize: 14,
-    marginBottom: 10,
-    textTransform: 'uppercase',
+  }, sectionTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    marginBottom: 14,
+    marginLeft: 4,
     fontFamily: 'Poppins-Bold',
+    letterSpacing: 0.8,
   },
 
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingVertical: 14,
+
+    backgroundColor: 'rgba(255,255,255,0.05)',
+
+    paddingVertical: 15,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 12,
+
+    borderRadius: 22,
+    marginBottom: 14,
+
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  optionIcon: {
-    marginRight: 12,
-    width: 36,
-    textAlign: 'center',
+
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    marginRight: 14,
+  },
+
+  optionTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Bold',
+  },
+
+  optionSubtitle: {
+    color: '#8f8f8f',
+    fontSize: 12,
+    marginTop: 3,
+    fontFamily: 'Poppins-Medium',
   },
   optionTextWrap: {
     flex: 1,
@@ -469,4 +702,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
+
 });

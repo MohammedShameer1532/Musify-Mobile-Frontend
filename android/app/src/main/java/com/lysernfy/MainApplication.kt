@@ -1,8 +1,5 @@
 package com.lysernfy
-import com.lysernfy.LocalAudioModule
-import com.facebook.react.bridge.NativeModule
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.uimanager.ViewManager
+
 import android.app.Application
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -14,41 +11,47 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import com.facebook.FacebookSdk;
-import com.lysernfy.Mp3TagPackage;
 
 class MainApplication : Application(), ReactApplication {
 
-  override val reactNativeHost: ReactNativeHost =
-      object : DefaultReactNativeHost(this) {
-      
-       override fun getPackages(): List<ReactPackage> {
-    val packages = PackageList(this).packages.toMutableList()
+    override val reactNativeHost: ReactNativeHost =
+        object : DefaultReactNativeHost(this) {
 
-    // Add your custom module
-    packages.add(LocalAudioPackage())
-    packages.add(Mp3TagPackage())
+            override fun getPackages(): List<ReactPackage> {
+                val packages = PackageList(this).packages.toMutableList()
 
-    return packages
-}
+                // Custom Packages
+                packages.add(LocalAudioPackage())
+                packages.add(Mp3TagPackage())
+                packages.add(EqualizerPackage())
 
-        override fun getJSMainModuleName(): String = "index"
+                return packages
+            }
 
-        override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+            override fun getJSMainModuleName(): String = "index"
 
-        override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-        override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
-      }
+            override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
 
-  override val reactHost: ReactHost
-    get() = getDefaultReactHost(applicationContext, reactNativeHost)
+            override val isNewArchEnabled: Boolean =
+                BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
 
-  override fun onCreate() {
-    super.onCreate()
-    SoLoader.init(this, OpenSourceMergedSoMapping)
-    if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-      // If you opted-in for the New Architecture, we load the native entry point for this app.
-      load()
+            override val isHermesEnabled: Boolean =
+                BuildConfig.IS_HERMES_ENABLED
+        }
+
+    override val reactHost: ReactHost
+        get() = getDefaultReactHost(
+            applicationContext,
+            reactNativeHost
+        )
+
+    override fun onCreate() {
+        super.onCreate()
+
+        SoLoader.init(this, OpenSourceMergedSoMapping)
+
+        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+            load()
+        }
     }
-  }
 }

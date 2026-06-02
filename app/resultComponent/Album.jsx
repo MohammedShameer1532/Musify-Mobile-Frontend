@@ -1163,14 +1163,16 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
         </View>
       </TouchableOpacity>
       <View style={styles.songRight}>
-        <View style={styles.playButton}>
-          <FontAwesome
-            name="play"
-            size={20}
-            color="black"
-            style={{ marginLeft: 4 }}
-          />
-        </View>
+        <TouchableOpacity onPress={() => handlePlay(song, index)} activeOpacity={0.8} >
+          <View style={styles.playButton}>
+            <FontAwesome
+              name="play"
+              size={20}
+              color="black"
+              style={{ marginLeft: 4 }}
+            />
+          </View>
+        </TouchableOpacity>
         <View style={{ alignItems: 'flex-end', padding: 5, marginRight: -10 }}>
           <Menu>
             <MenuTrigger customStyles={{ optionWrapper: { activeOpacity: 0.6 } }}>

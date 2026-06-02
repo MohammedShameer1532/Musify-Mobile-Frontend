@@ -1049,14 +1049,16 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
         </View>
       </View>
       <View style={styles.songRight}>
-        <View style={styles.playButton}>
-          <FontAwesome
-            name="play"
-            size={20}
-            color="black"
-            style={{ marginLeft: 4 }}
-          />
-        </View>
+        <TouchableOpacity onPress={() => handlePlay(song, index)} activeOpacity={0.8} >
+          <View style={styles.playButton}>
+            <FontAwesome
+              name="play"
+              size={20}
+              color="black"
+              style={{ marginLeft: 4 }}
+            />
+          </View>
+        </TouchableOpacity>
         <View style={{ alignItems: 'flex-end', padding: 8, marginRight: -5 }}>
           <Menu>
             <MenuTrigger customStyles={{ optionWrapper: { activeOpacity: 0.6 } }}>
@@ -1307,7 +1309,7 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     marginLeft: 10,
-    marginTop: 10,
+    marginTop: -10,
   },
   songContainer: {
     alignItems: 'center',

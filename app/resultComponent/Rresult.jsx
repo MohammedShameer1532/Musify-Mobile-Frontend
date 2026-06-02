@@ -813,6 +813,19 @@ const Rresult = () => {
                       }}
                     >
                       <View style={styles.textContainer}>
+                        {/* ALBUM */}
+                        <View style={styles.infoRow}>
+                          <View style={styles.iconBox}>
+                            <MaterialIcons name="album" size={16} color="#1DB954" />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>Album</Text>
+                            <Text style={styles.infoValue}>
+                              {formatSongTitle(currentSong?.album)}
+                            </Text>
+                          </View>
+                        </View>
+
                         {/* SONG */}
                         <View style={styles.infoRow}>
                           <View style={styles.iconBox}>
@@ -1223,6 +1236,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontFamily: 'Poppins-Bold',
+    width:250,
   },
   // Album Info
   albumInfoCard: {
@@ -1317,16 +1331,13 @@ const styles = StyleSheet.create({
     color: '#cfcfcf',
   },
   playButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 50,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#1DB954',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: "#1DB954",
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
     marginRight: -1,
   },
   // Song item

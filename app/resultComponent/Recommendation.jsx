@@ -10,7 +10,7 @@ const Recommendation = () => {
   const navigation = useNavigation();
   const { setDataSearch, songsuggest } = useContext(SearchContext);
 
-  const DEFAULT_ID = "Omwz5JtQ";
+  const DEFAULT_ID = "_giyfEgV";
   const id = songsuggest[0]?.id || DEFAULT_ID;
 
   useFocusEffect(

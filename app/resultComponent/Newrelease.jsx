@@ -9,7 +9,6 @@ import { decode } from 'html-entities';
 
 
 const LANGUAGES = [
-  { name: 'All', code: '' },
   { name: 'Tamil', code: 'tamil' },
   { name: 'Hindi', code: 'hindi' },
   { name: 'Telugu', code: 'telugu' },
@@ -31,9 +30,8 @@ const LANGUAGES = [
 
 const Newrelease = () => {
   const [trend, setTrend] = useState([]);
-  const [selectedLanguage, setSelectedLanguage] = useState('');
   const navigation = useNavigation();
-  const { globalSearch, setDataSearch } = useContext(SearchContext);
+  const { setDataSearch, selectedLanguage } = useContext(SearchContext);
 
   const trendingData = async () => {
     try {
@@ -129,7 +127,6 @@ const Newrelease = () => {
           keyExtractor={(item) => item.code || 'all'}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => setSelectedLanguage(item.code)}
               style={{
                 backgroundColor: selectedLanguage === item.code ? '#10b981' : '#1f2937',
                 paddingVertical: 4,
@@ -194,6 +191,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: 'white',
     marginLeft: 20,
-    marginTop:5,
+    marginTop: 5,
   }
 })

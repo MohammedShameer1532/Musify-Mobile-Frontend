@@ -8,7 +8,6 @@ import { LegendList } from '@legendapp/list';
 
 
 const LANGUAGES = [
-  { name: 'All', code: '' },
   { name: 'Tamil', code: 'tamil' },
   { name: 'Hindi', code: 'hindi' },
   { name: 'Telugu', code: 'telugu' },
@@ -30,9 +29,8 @@ const LANGUAGES = [
 
 const Tplaylist = () => {
   const [trend, setTrend] = useState([]);
-  const [selectedLanguage, setSelectedLanguage] = useState('');
   const navigation = useNavigation();
-  const { setDataSearch, setPlaylistDatas } = useContext(SearchContext);
+  const { setDataSearch, setPlaylistDatas,selectedLanguage } = useContext(SearchContext);
 
   const trendingData = async () => {
     try {
@@ -109,7 +107,6 @@ const Tplaylist = () => {
           keyExtractor={(item) => item.code || 'all'}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => setSelectedLanguage(item.code)}
               style={{
                 backgroundColor: selectedLanguage === item.code ? '#10b981' : '#1f2937',
                 paddingVertical: 4,

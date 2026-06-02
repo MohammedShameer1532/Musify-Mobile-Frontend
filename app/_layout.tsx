@@ -60,6 +60,9 @@ import Qrsheet from './common/Qrsheet';
 import Scansheet from './common/Scansheet';
 import Qrscanner from './common/Qrscanner';
 import BootSplash from 'react-native-bootsplash';
+import General from './SettingTabs/General';
+import Musiclang from './SettingTabs/Musiclang';
+import Equilizer from './SettingTabs/Equilizer';
 const Stack = createNativeStackNavigator();
 
 /* -------------------- App Navigator -------------------- */
@@ -239,6 +242,9 @@ function AppNavigator() {
         <Stack.Screen name="Viewplaylist" component={Viewplaylist} />
         <Stack.Screen name="Qrscanner" component={Qrscanner} />
         <Stack.Screen name="Scansheet" component={Scansheet} />
+        <Stack.Screen name="General" component={General} />
+        <Stack.Screen name="Musiclang" component={Musiclang} />
+        <Stack.Screen name="Equilizer" component={Equilizer} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

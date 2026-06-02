@@ -1555,7 +1555,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
-    marginTop: 30,
+    marginTop: 10,
     // zIndex: 1000,
   },
   albumImage: {

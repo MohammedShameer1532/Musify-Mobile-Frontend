@@ -22,7 +22,7 @@ import axios from 'axios';
 import DeviceInfo from 'react-native-device-info';
 import { GOOGLE_CLIENT_ID, API_URL } from '@env';
 import { Animated } from 'react-native';
-
+import Fontisto from 'react-native-vector-icons/Fontisto';
 
 
 const Setting = () => {
@@ -222,6 +222,35 @@ const Setting = () => {
                 color="#666"
               />
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => navigation.navigate('General')}
+            >
+              <LinearGradient
+                colors={['#6366f1', '#312e81']}
+                style={styles.iconContainer}
+              >
+                <Fontisto name="equalizer" color="#fff" size={20} />
+              </LinearGradient>
+
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>
+                  General Settings
+                </Text>
+
+                <Text style={styles.optionSubtitle}>
+                  Manage your App Settings
+                </Text>
+              </View>
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#666"
+              />
+            </TouchableOpacity>
+
 
             <TouchableOpacity
               style={styles.optionCard}
@@ -563,7 +592,8 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 18,
     paddingHorizontal: 18,
-  }, sectionTitle: {
+  },
+  sectionTitle: {
     color: '#ffffff',
     fontSize: 16,
     marginBottom: 14,
@@ -619,18 +649,6 @@ const styles = StyleSheet.create({
   optionTextWrap: {
     flex: 1,
   },
-  optionTitle: {
-    color: '#fff',
-    fontSize: 15,
-    fontFamily: 'Poppins-Bold',
-  },
-  optionSubtitle: {
-    color: '#9e9e9e',
-    fontSize: 12,
-    marginTop: 2,
-    fontFamily: 'Poppins-Medium',
-  },
-
   btn: {
     marginHorizontal: 18,
   },

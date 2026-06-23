@@ -28,6 +28,7 @@ import { API_URL } from '@env';
 import { useNavigation } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import Video from 'react-native-video';
 
 const IndexScreen = () => {
   const isConnected = useNetwork();
@@ -123,14 +124,46 @@ const IndexScreen = () => {
           </View>
           <Navbar />
           {/* Offline banner */}
-          {!isConnected && (
+          {/* {!isConnected && (
             <View className="bg-orange-500 py-2 px-4 mx-4 mt-2 rounded">
               <Text className="text-white text-center font-medium">
                 You're offline. Some features may not work.
               </Text>
             </View>
-          )}
+          )} */}
 
+          {!isConnected && (
+            <View style={styles.offlineContainer}>
+              <LinearGradient
+                colors={[
+                  'rgba(58,134,255,0.95)',
+                  'rgba(29,53,87,0.95)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.offlineCard}>
+
+                <Video
+                  source={require('../assets/wifi.mp4')}
+                  style={styles.offlineVideo}
+                  resizeMode="contain"
+                  repeat
+                  muted
+                  controls={false}
+                />
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.offlineTitle}>
+                    Offline Mode Enabled
+                  </Text>
+
+                  <Text style={styles.offlineMessage}>
+                    Access your Library to enjoy downloaded tracks 🎵
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
+          )}
           {/* Custom Modal */}
           <Modal transparent visible={visible} animationType="fade">
             <View style={styles.overlay}>
@@ -166,6 +199,60 @@ const IndexScreen = () => {
 export default IndexScreen;
 
 const styles = StyleSheet.create({
+  offlineContainer: {
+    padding: 20
+  },
+
+  offlineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    padding: 14,
+    borderRadius: 24,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 12,
+  },
+
+  offlineVideo: {
+    width: 65,
+    height: 65,
+    marginRight: 12,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+
+  offlineTitle: {
+    fontFamily: 'Poppins-Bold',
+    color: '#fff',
+    fontSize: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  offlineMessage: {
+    fontFamily: 'Poppins-Medium',
+    color: '#D8E6FF',
+    fontSize: 13,
+    marginTop: 3,
+  },
+
+  statusBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  statusText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: 'Poppins-Bold',
+  },
   header: {
     fontFamily: 'Poppins-Bold',
     fontSize: 26,

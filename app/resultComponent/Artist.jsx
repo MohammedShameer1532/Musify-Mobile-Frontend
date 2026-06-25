@@ -43,10 +43,6 @@ const Artist = () => {
 
 
 
-  console.log("songData", dataSearch);
-  console.log("currentSong", currentSong);
-
-
   const matchIds = async (id) => {
     try {
       setLoading(true);
@@ -54,7 +50,6 @@ const Artist = () => {
       const apiUrl1 = await axios.get(`https://musify-api-inky.vercel.app/api/artists?id=${id}`);
       responseData = apiUrl1.data;
       const res = responseData.data;
-      console.log('resss', res);
       setArtistData(res); // Wrap it in an array
       setTimeout(() => {
         setLoading(false);
@@ -63,7 +58,6 @@ const Artist = () => {
       console.error('Error fetching:', error);
     }
   };
-  console.log('artistdata', artistData);
 
   useEffect(() => {
     matchIds(id);
@@ -114,7 +108,7 @@ const Artist = () => {
 
 
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   };
 
@@ -170,7 +164,6 @@ const Artist = () => {
       })
         .fetch("GET", url)
         .then((res) => {
-          console.log("✅ Saved to:", res.path());
           setShowDownloadAnim(true); // show animation
           setTimeout(() => setShowDownloadAnim(false), 2000);
           RNBlobUtil.fs.scanFile([{ path: res.path(), mime: "audio/mpeg" }]);
@@ -191,10 +184,9 @@ const Artist = () => {
       const cleanLyrics = res?.data?.lyrics.replace(/<br\s*\/?>/gi, "\n"); // convert <br> to \n
       setLyrics(cleanLyrics);
       sheet.current?.snapToIndex(0);
-      console.log("lyriii", cleanLyrics);
 
     } catch (error) {
-      console.log(error);
+      console.error(error);
       sheet.current?.snapToIndex(0);
       setLyrics("Failed to load lyrics");
 

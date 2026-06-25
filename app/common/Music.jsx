@@ -24,7 +24,6 @@ const Music = ({ hideActions = false }) => {
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(false);
   const currentSong = useActiveTrack();
-  console.log("currentSong", currentSong);
   const { openSheet } = useBottomSheet();
   const { setAddtoplaylist } = useContext(SearchContext);
 
@@ -33,18 +32,6 @@ const Music = ({ hideActions = false }) => {
     setIsPlaying(playbackState?.state === State.Playing);
   }, [playbackState]);
 
-  useEffect(() => {
-    const fetchTrack = async () => {
-      const trackId = await TrackPlayer.getActiveTrackIndex();
-      if (trackId != null) {
-        const track = await TrackPlayer.getTrack(trackId);
-        console.log('Currently playing track:', track);
-      } else {
-        console.log('No track is currently playing');
-      }
-    };
-    fetchTrack();
-  }, []);
 
   const handlePlayPause = async () => {
     const currentState = await TrackPlayer.getPlaybackState();
@@ -121,7 +108,7 @@ const Music = ({ hideActions = false }) => {
       }
     } else {
       // Shuffle OFF → do nothing special, normal order resumes
-      console.log("Shuffle disabled");
+      console.error("Shuffle disabled");
     }
   };
 
@@ -131,11 +118,9 @@ const Music = ({ hideActions = false }) => {
     if (!isRepeatOne) {
       await TrackPlayer.setRepeatMode(RepeatMode.Track);
       setIsRepeatOne(true);
-      console.log('Repeat ONE enabled');
     } else {
       await TrackPlayer.setRepeatMode(RepeatMode.Off);
       setIsRepeatOne(false);
-      console.log('Repeat disabled');
     }
   };
 
@@ -194,7 +179,6 @@ const Music = ({ hideActions = false }) => {
 
         if (isMounted) {
           setLiked(res.data.liked);
-          console.log('check list of like', res.data);
 
         }
       } catch (error) {

@@ -35,7 +35,7 @@ const Equilizer = () => {
     try {
       await AsyncStorage.setItem('equalizer_levels', JSON.stringify(levels));
     } catch (e) {
-      console.log('Save error 👉', e);
+      console.error('Save error 👉', e);
     }
   };
 

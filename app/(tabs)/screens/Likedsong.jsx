@@ -30,7 +30,6 @@ const Likedsong = () => {
   const snapPoints = useMemo(() => ["100%"]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
-  console.log('activetrack', currentSong);
 
   function AnimatedIcon({ children, focused }) {
     const scale = new Animated.Value(focused ? 1.15 : 1);
@@ -75,7 +74,6 @@ const Likedsong = () => {
         });
         const response = res?.data?.songs;
         setShowsong(response || []);
-        console.log('likes res', res?.data?.songs);
 
       } catch (error) {
         console.error(error);
@@ -101,7 +99,6 @@ const Likedsong = () => {
         songId: songId,
       });
 
-      console.log('Unliked successfully');
 
       // ✅ Remove song locally from list (instant UI update)
       setShowsong(prev =>
@@ -172,7 +169,7 @@ const Likedsong = () => {
 
 
     } catch (err) {
-      console.log("Error:", err);
+      console.error("Error:", err);
     }
   }, [currentSong, showsong]);
 
@@ -380,10 +377,6 @@ const SongItem = React.memo(({ song, currentSong, handlePlay, handlelike, deleti
   // const isPlaying = currentSong?.id === song?.song_id;
   const isPlaying =
     String(currentSong?.id) === String(song?.song_id);
-  console.log("COMPARE:",
-    currentSong?.id,
-    song?.song_id
-  );
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.songCard}>

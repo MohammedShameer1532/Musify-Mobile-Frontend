@@ -24,8 +24,6 @@ export function BottomSheetProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  console.log("context", addtoplaylist);
-
   const openSheet = async () => {
     bottomSheetRef.current?.snapToIndex(0);
   };
@@ -46,7 +44,6 @@ export function BottomSheetProvider({ children }) {
       );
 
       setGetplaylist(res.data.playlists);
-      console.log('getlist', res);
 
     } catch (error) {
       console.error(error.response?.data || error.message);
@@ -133,7 +130,6 @@ export function BottomSheetProvider({ children }) {
       );
     }
   };
-  console.log('add to playlist', getplaylist);
 
 
   const handleRemoveSong = async (playlistId) => {

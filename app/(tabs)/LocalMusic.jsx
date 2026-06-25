@@ -207,9 +207,6 @@ const LocalMusic = () => {
   const [filteredFiles, setFilteredFiles] = useState([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const currentSong = useActiveTrack();
-  console.log('activetrack', currentSong);
-
-  console.log(currentSong?.artwork?.slice(0, 30));
 
 
 
@@ -257,7 +254,7 @@ const LocalMusic = () => {
 
     } catch (e) {
 
-      console.log(e);
+      console.error(e);
     }
   };
 
@@ -317,11 +314,6 @@ const LocalMusic = () => {
       eventEmitter.addListener(
         'LOCAL_AUDIO_CHANGED',
         async () => {
-
-          console.log(
-            'Audio library updated'
-          );
-
           await fetchAudioFiles();
         }
       );
@@ -376,7 +368,7 @@ const LocalMusic = () => {
 
 
     } catch (err) {
-      console.log("Error:", err);
+      console.error("Error:", err);
     }
   }, [audioFiles, currentSong]);
 

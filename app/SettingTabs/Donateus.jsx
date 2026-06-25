@@ -62,7 +62,7 @@ const Donateus = () => {
         'QR Code saved to Downloads/LysernFy'
       );
     } catch (error) {
-      console.log(error);
+      console.error(error);
       Alert.alert('Error', 'Failed to download QR');
     }
   };

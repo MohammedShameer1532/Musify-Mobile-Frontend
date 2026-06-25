@@ -29,9 +29,8 @@ const Recommendation = () => {
       const data = res.data.data || [];
       setSuggestion(data);
 
-      console.log('Fetched fresh data ✅', data);
     } catch (err) {
-      console.log('Error:', err);
+      console.error('Error:', err);
     }
   };
 

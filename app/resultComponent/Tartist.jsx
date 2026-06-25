@@ -60,7 +60,6 @@ const Tartist = () => {
     progress: 0,
     isDownloading: false,
   });
-  console.log('id', id);
   const { Mp3TagModule } = NativeModules;
 
 
@@ -74,8 +73,6 @@ const Tartist = () => {
         );
         setImage(res?.data?.image);
         setArtist(res?.data);
-
-        console.log('Artist details:', res.data);
         const bioUrl = res?.data?.urls?.bio;
 
         if (bioUrl) {
@@ -134,9 +131,8 @@ const Tartist = () => {
         `https://musify-api-inky.vercel.app/api/songs?ids=${ids}`
       );
       setSongData(res.data.data);
-      console.log("🔥 All songs preloaded", res.data.data);
     } catch (e) {
-      console.log("Preload error:", e);
+      console.error("Preload error:", e);
     } finally {
       setLoading(false); // ✅ always reset
     }
@@ -191,7 +187,7 @@ const Tartist = () => {
         sheetRef.current?.snapToIndex(0);
       }, 10);
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   }, [topSongs, currentSong?.id]);
 
@@ -227,7 +223,6 @@ const Tartist = () => {
 
     try {
 
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -286,7 +281,6 @@ const Tartist = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
 
       // =========================
       // DETECT FILE TYPE
@@ -297,7 +291,6 @@ const Tartist = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -381,10 +374,6 @@ const Tartist = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
 
       // =========================
       // WAIT FOR FILE FLUSH
@@ -415,7 +404,6 @@ const Tartist = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -452,14 +440,11 @@ const Tartist = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -520,7 +505,7 @@ const Tartist = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -557,7 +542,6 @@ const Tartist = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 
@@ -849,7 +833,6 @@ const Tartist = () => {
                   imageUrl={currentSong.artwork}
                   onColorExtracted={(color) => {
                     if (color) setBackgroundColors(color);
-                    console.log('backgroundcolor', backgroundColors);
 
                   }}
                 />

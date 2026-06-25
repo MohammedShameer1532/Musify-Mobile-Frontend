@@ -47,13 +47,9 @@ const Playlist = () => {
   const songId = currentSong?.id;
   const navigation = useNavigation();
   const accentColor = '#1DB954';
-  console.log("songData", playlistDatas);
-  console.log("songData", dataSearch);
-  console.log("currentSong", currentSong);
   const id = playlistDatas && playlistDatas.length > 0 ? playlistDatas : dataSearch;
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const songDetailsMap = useRef({});
-  console.log('dotlog', id);
   const [globalDownload, setGlobalDownload] = useState({
     progress: 0,
     isDownloading: false,
@@ -66,7 +62,6 @@ const Playlist = () => {
       setLoading(true);
       const apiUrl1 = await axios.get(`https://musify-api-inky.vercel.app/api/playlists?id=${id}&limit=50`);
       const res = apiUrl1.data;
-      console.log('playlistdata', res);
       setPlaylistData(res); // Wrap it in an array
       setTimeout(() => {
         setLoading(false);
@@ -126,7 +121,7 @@ const Playlist = () => {
 
 
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   };
 
@@ -157,8 +152,6 @@ const Playlist = () => {
   const handleDownload = async (item) => {
 
     try {
-
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -217,8 +210,6 @@ const Playlist = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
-
       // =========================
       // DETECT FILE TYPE
       // =========================
@@ -228,7 +219,6 @@ const Playlist = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -312,10 +302,6 @@ const Playlist = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
 
       // =========================
       // WAIT FOR FILE FLUSH
@@ -345,8 +331,6 @@ const Playlist = () => {
 
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
-
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -383,14 +367,11 @@ const Playlist = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -451,7 +432,7 @@ const Playlist = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -488,7 +469,6 @@ const Playlist = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 
@@ -570,7 +550,6 @@ const Playlist = () => {
                 onColorExtracted={(color) => {
                   if (color) {
                     setBackgroundColor(color);
-                    console.log("playlist color:", color);
                   }
                 }}
               />

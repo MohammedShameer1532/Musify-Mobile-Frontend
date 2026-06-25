@@ -61,7 +61,6 @@ const Artistsongs = () => {
     progress: 0,
     isDownloading: false,
   });
-  console.log('tokens', tokens);
  const { Mp3TagModule } = NativeModules;
 
 
@@ -71,7 +70,6 @@ const Artistsongs = () => {
     try {
       page === 0 ? setLoading(true) : setLoadingMore(true);
       const res = await axios.get(`https://www.jiosaavn.com/api.php?__call=webapi.get&token=${token}&type=artist&p=${page}&n_song=30&n_album=30&ctx=wap6dot0&api_version=4&_format=json&_marker=0`)
-      console.log('res', res.data);
       setAlbumData(res?.data);
       setTopSongs(prev => {
         const merged = [...prev, ...(res?.data?.topSongs || [])];
@@ -80,7 +78,7 @@ const Artistsongs = () => {
       });
       setTopSongsPage(page);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -120,7 +118,7 @@ const Artistsongs = () => {
         setSongData(prev => [...prev, ...res.data.data]);
         lastPreloadedCount.current = topSongs.length;
       } catch (e) {
-        console.log("Preload error:", e);
+        console.error("Preload error:", e);
       }
     };
 
@@ -144,7 +142,6 @@ const Artistsongs = () => {
       );
 
       const songs = res.data.data;
-      console.log('testing songs', songs);
 
       songs.forEach(s => { songDetailsMap.current[s.id] = s; });
       if (!songs) return;
@@ -171,7 +168,7 @@ const Artistsongs = () => {
         sheetRef.current?.snapToIndex(0);
       }, 10);
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   }, [topSongs, currentSong?.id]);
 
@@ -213,8 +210,6 @@ const Artistsongs = () => {
   const handleDownload = async (item) => {
 
     try {
-
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -272,9 +267,6 @@ const Artistsongs = () => {
 
         return;
       }
-
-      console.log("SONG URL:", songUrl);
-
       // =========================
       // DETECT FILE TYPE
       // =========================
@@ -283,8 +275,6 @@ const Artistsongs = () => {
         songUrl.includes(".mp4")
           ? "m4a"
           : "mp3";
-
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -368,10 +358,6 @@ const Artistsongs = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
 
       // =========================
       // WAIT FOR FILE FLUSH
@@ -402,7 +388,6 @@ const Artistsongs = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -439,14 +424,11 @@ const Artistsongs = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -507,7 +489,7 @@ const Artistsongs = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -548,7 +530,6 @@ const Artistsongs = () => {
       lyricsCache.current[songid] = cleanLyrics; // 🔥 store in cache
       setLyrics(cleanLyrics);
       sheet.current?.snapToIndex(0);
-      console.log("lyriii", cleanLyrics);
 
     } catch (error) {
       setLyrics("Lyrics not found"); // 👈 better message
@@ -770,7 +751,6 @@ const Artistsongs = () => {
                     imageUrl={currentSong.artwork}
                     onColorExtracted={(color) => {
                       if (color) setBackgroundColors(color);
-                      console.log('backgroundcolor', backgroundColors);
 
                     }}
                   />
@@ -1184,7 +1164,7 @@ const Topsongs = React.memo(({ topSongs, currentSongId, handlePlay, handleLoadMo
                               // cache it
                               songDetailsMap.current[song.id] = fullSong;
                             } catch (e) {
-                              console.log("Fetch song for download failed", e);
+                              console.error("Fetch song for download failed", e);
                               return;
                             }
                           }

@@ -18,7 +18,6 @@ const Qrsheet = () => {
   const setOpen = usePlaylistSheetStore((state) => state.setOpen);
   const viewShotRef = useRef();
   const { qrdata } = useContext(SearchContext);
-  console.log('qrdata', qrdata);
 
   const qrimage = qrdata?.image?.[2]?.url || qrdata?.artwork || qrdata?.image || null;
   const songId = qrdata?.id ?? "";
@@ -45,7 +44,7 @@ const Qrsheet = () => {
 
       await Share.open(shareOptions);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 

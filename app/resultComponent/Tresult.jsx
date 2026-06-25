@@ -42,7 +42,6 @@ const Tresult = () => {
   const [copied, setCopied] = useState(false);
   const snapPoints = useMemo(() => ["100%"]);
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
-  console.log('dataSearch in Tresult', dataSearch);
   const currentSong = useActiveTrack();
   const songId = currentSong?.id;
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
@@ -67,7 +66,6 @@ const Tresult = () => {
       setLoading(true);
       const apiUrl1 = await axios.get(`https://musify-api-inky.vercel.app/api/albums?id=${id}`);
       const res = apiUrl1.data.data;
-      console.log('resss', res);
       setTdata(res); // Wrap it in an array
       setTimeout(() => {
         setLoading(false);
@@ -76,7 +74,6 @@ const Tresult = () => {
       console.error('Error fetching:', error);
     }
   };
-  console.log('tdata', tdata);
 
 
 
@@ -128,7 +125,7 @@ const Tresult = () => {
 
 
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   };
 
@@ -149,8 +146,6 @@ const Tresult = () => {
   const handleDownload = async (item) => {
 
     try {
-
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -209,7 +204,6 @@ const Tresult = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
 
       // =========================
       // DETECT FILE TYPE
@@ -220,7 +214,6 @@ const Tresult = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -304,11 +297,6 @@ const Tresult = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
-
       // =========================
       // WAIT FOR FILE FLUSH
       // =========================
@@ -338,7 +326,6 @@ const Tresult = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -375,14 +362,11 @@ const Tresult = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -443,7 +427,7 @@ const Tresult = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -480,7 +464,6 @@ const Tresult = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 

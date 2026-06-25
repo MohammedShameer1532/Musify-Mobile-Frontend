@@ -29,7 +29,6 @@ const Suggestion = () => {
         const isFresh = Date.now() - time < 24 * 60 * 60 * 1000; // 1 day
         if (isFresh) {
           setSuggestion(data);
-          console.log('Loaded from cache ✅', data);
           return;
         }
       }
@@ -46,10 +45,8 @@ const Suggestion = () => {
         `suggestion_${validId}`,
         JSON.stringify({ data, time: Date.now() })
       );
-
-      console.log('Fetched new data ✅', res);
     } catch (err) {
-      console.log('Error:', err);
+      console.error('Error:', err);
     }
   };
 

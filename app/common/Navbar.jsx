@@ -25,7 +25,6 @@ const Navbar = () => {
       const playlists = playlistRes.data || [];
 
       setSearchResult({ songs, playlists });
-      console.log('Search results:', { songs, playlists });
     } catch (error) {
       console.error('Error fetching search results:', error);
     }

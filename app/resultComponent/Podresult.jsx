@@ -51,11 +51,9 @@ const Podresult = () => {
   const lyricsCache = useRef({});
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const songDetailsMap = useRef({});
-  console.log('dataSearch in Tresult', dataSearch);
 
   const url = dataSearch?.permurl;
   const id = url.split("/").pop();
-  console.log('id', id);
   const [globalDownload, setGlobalDownload] = useState({
     progress: 0,
     isDownloading: false,
@@ -72,10 +70,8 @@ const Podresult = () => {
 
       const podres = ress?.data;
       setEpisodedata(podres);
-
-      console.log("podres", podres);
     } catch (err) {
-      console.log("Error:", err);
+      console.error("Error:", err);
     } finally {
       setLoading(false);   // ✅ VERY IMPORTANT
     }
@@ -86,17 +82,14 @@ const Podresult = () => {
   const loadSeason = async (seasonNum) => {
     try {
       setSelectedEpisode(Number(seasonNum));
-      console.log('selectedepisode', selectedEpisode);
-
       const res = await axios.get(
         `https://www.jiosaavn.com/api.php?__call=webapi.get&token=${id}&type=show&season_number=${seasonNum}&ctx=wap6dot0&api_version=4&_format=json&_marker=0`
       );
       const dd = res?.data;
       setEpisodedata(res.data); // update list to show selected season episodes
 
-      console.log("dd", dd);
     } catch (err) {
-      console.log("Error:", err);
+      console.error("Error:", err);
     } finally {
       setLoading(false);   // ✅ VERY IMPORTANT
     }
@@ -124,9 +117,8 @@ const Podresult = () => {
       const apiSongs = res.data.data;
       setSongData(apiSongs);
 
-      console.log("🔥 All songs preloaded", apiSongs);
     } catch (e) {
-      console.log("Preload error:", e);
+      console.error("Preload error:", e);
     }
   };
 
@@ -134,7 +126,6 @@ const Podresult = () => {
     if (episodedata?.episodes?.length > 0) {
       preloadAllSongs();
     }
-    console.log('espisodedata', episodedata);
 
   }, [episodedata]);
 
@@ -180,7 +171,7 @@ const Podresult = () => {
       }, 10);
 
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   };
 
@@ -191,14 +182,10 @@ const Podresult = () => {
 
     try {
 
-      console.log("Downloading song:", song);
-
       const resp = await axios.get(
         `https://musify-api-inky.vercel.app/api/songs?ids=${song?.id}`
       );
       const item = resp?.data?.data?.[0];
-      console.log('logingh the api song res ', item);
-
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -257,7 +244,6 @@ const Podresult = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
 
       // =========================
       // DETECT FILE TYPE
@@ -268,7 +254,6 @@ const Podresult = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -352,10 +337,6 @@ const Podresult = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
 
       // =========================
       // WAIT FOR FILE FLUSH
@@ -386,7 +367,6 @@ const Podresult = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -423,14 +403,11 @@ const Podresult = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -491,7 +468,7 @@ const Podresult = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -529,7 +506,6 @@ const Podresult = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 
@@ -914,7 +890,6 @@ const Podresult = () => {
                   imageUrl={currentSong.artwork}
                   onColorExtracted={(color) => {
                     if (color) setBackgroundColors(color);
-                    console.log('backgroundcolor', backgroundColors);
 
                   }}
                 />

@@ -34,7 +34,6 @@ const Scanner = () => {
       if (codes.length > 0 && !scanned.current) {
         scanned.current = true;
         const value = codes[0]?.value;
-        console.log("QR:", value);
         if (value && value.length > 0) {
           setScaneddata(value);
           navigation.navigate('Scansheet')

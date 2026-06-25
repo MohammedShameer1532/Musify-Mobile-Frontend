@@ -40,10 +40,7 @@ const Sresult = () => {
   const [lyrics, setLyrics] = useState();
   const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, currentSong, setQrdata } = useContext(SearchContext);
   const id = dataSearch;
-  console.log('songData', dataSearch);
-  console.log('currentSong', currentSong);
   const songId = currentSong?.id;
-  console.log("siiii", songId);
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const lyricsCache = useRef({});
   const songDetailsMap = useRef({});
@@ -59,10 +56,8 @@ const Sresult = () => {
     try {
       setLoading(true);
       const responseData = await axios.get(`https://musify-api-inky.vercel.app/api/songs?ids=${id}`);
-      const res = responseData?.data.data[0];
-      setSongData([res])
-      console.log('resss', res);
-      (res);
+      const res = responseData?.data?.data[0];
+      setSongData([res]);
       setTimeout(() => {
         setLoading(false);
       }, 400);
@@ -71,8 +66,6 @@ const Sresult = () => {
       setLoading(false);
     }
   }
-  console.log('songData', songData);
-
   useEffect(() => {
     songIds(id);
   }, []);
@@ -131,8 +124,6 @@ const Sresult = () => {
 
     try {
 
-      console.log("Downloading song:", item);
-
       // =========================
       // ANDROID STORAGE PERMISSION
       // =========================
@@ -190,7 +181,6 @@ const Sresult = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
 
       // =========================
       // DETECT FILE TYPE
@@ -201,7 +191,6 @@ const Sresult = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -285,10 +274,6 @@ const Sresult = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
 
       // =========================
       // WAIT FOR FILE FLUSH
@@ -319,7 +304,6 @@ const Sresult = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -356,14 +340,11 @@ const Sresult = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -424,7 +405,7 @@ const Sresult = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -462,7 +443,6 @@ const Sresult = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 
@@ -496,7 +476,6 @@ const Sresult = () => {
     <MenuProvider skipInstanceCheck >
       <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']}
         locations={[0, 0.5, 1]} style={styles.background}>
-        {console.log('Applying Background Color:', backgroundColor)}
         <SafeAreaView style={styles.safeArea}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={25} color="white" />

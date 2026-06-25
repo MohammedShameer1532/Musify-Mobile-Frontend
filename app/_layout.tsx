@@ -63,13 +63,13 @@ import BootSplash from 'react-native-bootsplash';
 import General from './SettingTabs/General';
 import Musiclang from './SettingTabs/Musiclang';
 import Equilizer from './SettingTabs/Equilizer';
+import OfflineBanner from './common/OfflineBanner';
 const Stack = createNativeStackNavigator();
 
 /* -------------------- App Navigator -------------------- */
 function AppNavigator() {
   const {setOuterdata} = useContext(SearchContext);
   const {user, loading} = useAuth();
-  console.log('api loggg', API_URL);
 
   useEffect(() => {
     if (!loading) {
@@ -123,7 +123,7 @@ function AppNavigator() {
           backwardJumpInterval: 10,
         });
       } catch (e) {
-        console.log('TrackPlayer already initialized', e);
+        console.error('TrackPlayer already initialized', e);
       }
     };
 
@@ -160,10 +160,10 @@ function AppNavigator() {
           if (navigationRef.isReady()) {
             navigationRef.navigate('Outersong', {metadata: meta});
           } else {
-            console.log('Navigation not ready yet');
+            console.error('Navigation not ready yet');
           }
         } catch (e) {
-          console.log('Error playing file:', e);
+          console.error('Error playing file:', e);
         }
       },
     );
@@ -192,7 +192,7 @@ function AppNavigator() {
           });
         }
       } catch (err) {
-        console.log('Session check error:', err);
+        console.error('Session check error:', err);
       }
     };
 
@@ -238,13 +238,13 @@ function AppNavigator() {
         <Stack.Screen name="Recommendation" component={Recommendation} />
         <Stack.Screen name="Likedsong" component={Likedsong} />
         <Stack.Screen name="AddPlaylist" component={AddPlaylist} />
-        <Stack.Screen name="Download" component={Download} />
         <Stack.Screen name="Viewplaylist" component={Viewplaylist} />
         <Stack.Screen name="Qrscanner" component={Qrscanner} />
         <Stack.Screen name="Scansheet" component={Scansheet} />
         <Stack.Screen name="General" component={General} />
         <Stack.Screen name="Musiclang" component={Musiclang} />
         <Stack.Screen name="Equilizer" component={Equilizer} />
+        <Stack.Screen name="OfflineBanner" component={OfflineBanner} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
@@ -270,6 +270,7 @@ export default function RootLayout() {
                 <BottomSheetProvider>
                   {/* <Testing /> */}
                   <Qrsheet />
+                  <OfflineBanner />
                   <AppNavigator />
                 </BottomSheetProvider>
               </ThemeProvider>

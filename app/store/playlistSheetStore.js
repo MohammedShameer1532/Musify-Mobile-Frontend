@@ -5,9 +5,7 @@ export const usePlaylistSheetStore = create((set, get) => ({
 
   setOpen: (fn) => set({ open: fn }),
   openSheet: () => {
-    console.log("OPEN TRIGGERED");
     const openFn = get().open;
-    console.log("FUNCTION:", openFn);
     openFn?.();
   },
 }));

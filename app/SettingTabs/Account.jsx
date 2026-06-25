@@ -158,7 +158,7 @@ const Account = () => {
         routes: [{ name: 'Login' }],
       });
     } catch (error) {
-      console.log('Delete account error 👉', error);
+      console.error('Delete account error 👉', error);
 
       Alert.alert(
         error.code === 'auth/requires-recent-login'

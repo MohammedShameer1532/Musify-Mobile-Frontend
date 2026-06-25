@@ -15,9 +15,6 @@ const Podcast = () => {
     const trendingPodcasts = response?.data?.trendingPodcasts?.[0]?.items ?? [];
     const combained = [...trendingPodcasts, ...podcast];
     setTrend(combained);
-    console.log("podcast", podcast);
-    console.log("trendingPodcasts", trendingPodcasts);
-    console.log("combained", combained);
   }
   useEffect(() => {
     trendingData();

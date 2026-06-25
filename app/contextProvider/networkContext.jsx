@@ -9,8 +9,6 @@ export function networkContext() {
 
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
-      console.log("Connection type", state.type);
-      console.log("Is connected?", state.isConnected);
     });
    return () => {
       unsubscribe(); // Correct cleanup

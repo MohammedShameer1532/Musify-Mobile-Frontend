@@ -29,7 +29,6 @@ const Viewplaylist = () => {
   const [loading, setLoading] = useState(false);
   const [playlistsong, SetPlaylistsong] = useState([]);
   const playlistId = addtoplaylist;
-  console.log('playlistid', addtoplaylist);
   const currentSong = useActiveTrack();
   const sheetRef = useRef(null);
   const snapPoints = useMemo(() => ["100%"]);
@@ -75,7 +74,6 @@ const Viewplaylist = () => {
         `${API_URL}/api/users/${user.uid}/playlists/${playlistId}`
       );
       SetPlaylistsong(res?.data?.songs)
-      console.log('get playlist', res.data);
 
     } catch (error) {
       console.error('API ERROR:', error.response?.data || error.message);
@@ -131,7 +129,7 @@ const Viewplaylist = () => {
 
 
     } catch (err) {
-      console.log("Error:", err);
+      console.error("Error:", err);
     }
   }, [currentSong, playlistsong]);
 
@@ -144,8 +142,6 @@ const Viewplaylist = () => {
 
       const res = await axios.delete(
         `${API_URL}/api/users/${user.uid}/playlists/${playlistId}/song/${Id}`);
-      console.log('res for delete', res);
-
       await getPlaylistsongs();
     } catch (error) {
       console.error(error.response?.data || error.message);

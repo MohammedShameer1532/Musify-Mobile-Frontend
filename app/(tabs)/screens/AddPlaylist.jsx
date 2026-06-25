@@ -71,7 +71,6 @@ const AddPlaylist = () => {
         `${API_URL}/api/users/${user.uid}/playlists-with-songs`
       );
       setplaylistres(res?.data?.playlists)
-      console.log('get playlist', res.data.playlists);
 
     } catch (error) {
       console.error('API ERROR:', error.response?.data || error.message);
@@ -155,7 +154,7 @@ const AddPlaylist = () => {
       setVisible(false);
 
     } catch (error) {
-      console.log(error.response?.data || error.message);
+      console.error(error.response?.data || error.message);
     } finally {
       setCreating(false);
     }
@@ -173,7 +172,6 @@ const AddPlaylist = () => {
       if (!user) return;
       const res = await axios.delete(`${API_URL}/api/users/${user.uid}/playlists/${PlaylistId}`);
       getPlaylist();
-      console.log('update playlist', res.data);
     } catch (error) {
       console.error(error);
 

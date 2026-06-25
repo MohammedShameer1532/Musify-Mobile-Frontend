@@ -14,7 +14,6 @@ const Outersong = () => {
   const [backgroundColor, setBackgroundColor] = useState('rgb(30, 30, 30)');
   const { outerdata } = useContext(SearchContext);
   const navigation = useNavigation();
-  console.log("siiii", outerdata);
 
 
   const formatSongTitle = (rawTitle) => {
@@ -34,7 +33,6 @@ const Outersong = () => {
 
   return (
     <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']} locations={[0, 0.5, 1]} style={styles.background}>
-      {console.log('Applying Background Color:', backgroundColor)}
       <SafeAreaView style={styles.safeArea}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={25} color="white" />

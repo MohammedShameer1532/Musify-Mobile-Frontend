@@ -59,7 +59,6 @@ const Login = () => {
         platform: Platform.OS,
       });
 
-      console.log("API RESPONSE 👉", res.data);
 
       if (res.data.showModal) {
         setSessions(res.data.sessions);
@@ -73,7 +72,7 @@ const Login = () => {
       }
 
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 
@@ -89,7 +88,7 @@ const Login = () => {
       setShowDeviceModal(true);
       // refresh session list
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   };
 
@@ -102,7 +101,6 @@ const Login = () => {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
       const userInfo = await GoogleSignin.signIn();
-      console.log('Google user info:', userInfo);
 
       const { idToken } = userInfo.data;
       if (!idToken) throw new Error('No idToken returned from Google');
@@ -114,13 +112,6 @@ const Login = () => {
 
       const { user } = result;
       await handleLoginSuccess(result.user.uid, true);
-
-
-      if (user.metadata.creationTime === user.metadata.lastSignInTime) {
-        console.log('User just signed up ✅');
-      } else {
-        console.log('User logged in ✅');
-      }
 
       // ✅ Modular Firestore API
       const db = getFirestore();
@@ -137,9 +128,8 @@ const Login = () => {
         { merge: true }
       );
 
-      console.log('Firestore user doc created/updated ✅');
     } catch (e) {
-      console.log('Google Sign-In error 👉', e);
+      console.error('Google Sign-In error 👉', e);
     } finally {
       setGloading(false);
     }
@@ -192,9 +182,8 @@ const Login = () => {
         { merge: true }
       );
 
-      console.log('Facebook login success ✅');
     } catch (e) {
-      console.log('Facebook Sign-In error 👉', e);
+      console.error('Facebook Sign-In error 👉', e);
     } finally {
       setFbloading(true);
     }

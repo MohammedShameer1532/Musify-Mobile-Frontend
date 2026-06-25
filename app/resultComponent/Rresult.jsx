@@ -35,7 +35,6 @@ const Rresult = () => {
   const [songid, setSongid] = useState('');
   const name = dataSearch.id;
   const lang = dataSearch.moreInfo.language;
-  console.log('datasearch', dataSearch);
   const [rData, setRData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState("rgb(30, 30, 30)");
@@ -56,8 +55,6 @@ const Rresult = () => {
   const songDetailsMap = useRef({});
   const topColor = dataSearch?.moreInfo?.color || "#000";
   const gradientTop = topColor + "cc";  // adds 80% opacity
-  console.log("songData", dataSearch);
-  console.log("currentSong", currentSong);
   const [globalDownload, setGlobalDownload] = useState({
     progress: 0,
     isDownloading: false,
@@ -107,8 +104,6 @@ const Rresult = () => {
         }
         setRData(songArray);
         setLoading(false);
-
-        console.log("Processed Songs:", songArray);
       } catch (error) {
         console.error("Error fetching radio data:", error);
         setLoading(false);
@@ -118,7 +113,6 @@ const Rresult = () => {
     fetchData();
   }, [name]);
 
-  console.log("dddd", rData);
 
 
   const preloadAllSongs = async () => {
@@ -131,10 +125,8 @@ const Rresult = () => {
 
       const apiSongs = res.data.data;
       setSongData(apiSongs);
-
-      console.log("🔥 All songs preloaded", apiSongs);
     } catch (e) {
-      console.log("Preload error:", e);
+      console.error("Preload error:", e);
     }
   };
 
@@ -174,7 +166,6 @@ const Rresult = () => {
         album: s?.album?.name,
         year: s?.year,
       }));
-      console.log('orderqueqe', orderedQueue);
 
       await TrackPlayer.add(orderedQueue);
       await TrackPlayer.skip(0);
@@ -185,7 +176,7 @@ const Rresult = () => {
 
 
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   };
 
@@ -194,8 +185,6 @@ const Rresult = () => {
   const handleDownload = async (item) => {
 
     try {
-
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -254,7 +243,6 @@ const Rresult = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
 
       // =========================
       // DETECT FILE TYPE
@@ -265,7 +253,6 @@ const Rresult = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -349,10 +336,6 @@ const Rresult = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
 
       // =========================
       // WAIT FOR FILE FLUSH
@@ -383,7 +366,6 @@ const Rresult = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -420,14 +402,11 @@ const Rresult = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -488,7 +467,7 @@ const Rresult = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -534,7 +513,6 @@ const Rresult = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 
@@ -642,7 +620,6 @@ const Rresult = () => {
                 imageUrl={currentSong.artwork}
                 onColorExtracted={(color) => {
                   if (color) setBackgroundColors(color);
-                  console.log('backgroundcolor', backgroundColors);
 
                 }}
               />

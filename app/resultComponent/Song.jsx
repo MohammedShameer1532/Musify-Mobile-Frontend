@@ -34,8 +34,6 @@ const Song = () => {
   const [lyrics, setLyrics] = useState();
   const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, currentSong, setQrdata } = useContext(SearchContext);
   const id = dataSearch;
-  console.log('songData', dataSearch);
-  console.log('currentSong', currentSong);
   const songId = currentSong?.id;
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const lyricsSnapPoints = useMemo(() => ["50%", "100%"], []);
@@ -46,7 +44,6 @@ const Song = () => {
     openSheet();
   }
   const sheet = useRef(null);
-  console.log("siiii", songId);
   const [globalDownload, setGlobalDownload] = useState({
     progress: 0,
     isDownloading: false,
@@ -117,8 +114,6 @@ const Song = () => {
 
     try {
 
-      console.log("Downloading song:", item);
-
       // =========================
       // ANDROID STORAGE PERMISSION
       // =========================
@@ -176,7 +171,6 @@ const Song = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
 
       // =========================
       // DETECT FILE TYPE
@@ -187,7 +181,6 @@ const Song = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -271,11 +264,6 @@ const Song = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
-
       // =========================
       // WAIT FOR FILE FLUSH
       // =========================
@@ -305,7 +293,6 @@ const Song = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -342,14 +329,11 @@ const Song = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -410,7 +394,7 @@ const Song = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -446,7 +430,6 @@ const Song = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 
@@ -491,7 +474,6 @@ const Song = () => {
     <MenuProvider skipInstanceCheck>
       <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']}
         locations={[0, 0.5, 1]} style={styles.background}>
-        {console.log('Applying Background Color:', backgroundColor)}
         <SafeAreaView style={styles.safeArea}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}

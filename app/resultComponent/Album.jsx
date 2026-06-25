@@ -45,9 +45,6 @@ const Album = () => {
   const lyricsCache = useRef({});
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const songDetailsMap = useRef({});
-  console.log('activetrack', currentSong);
-  console.log("songData", dataSearch);
-  console.log("currentSong", currentSong);
   const [globalDownload, setGlobalDownload] = useState({
     progress: 0,
     isDownloading: false,
@@ -61,7 +58,6 @@ const Album = () => {
       const apiUrl1 = await axios.get(`https://musify-api-inky.vercel.app/api/albums?id=${id}`);
       responseData = apiUrl1.data;
       const res = responseData.data;
-      console.log('resss', res);
       setAlbumData([res]); // Wrap it in an array
       setTimeout(() => {
         setLoading(false);
@@ -70,8 +66,6 @@ const Album = () => {
       console.error('Error fetching:', error);
     }
   };
-
-  console.log('albumData', albumData);
 
   useEffect(() => {
     matchIds(id);
@@ -121,7 +115,7 @@ const Album = () => {
       sheetRef.current?.snapToIndex(0);
 
     } catch (error) {
-      console.log('handlePlay error:', error);
+      console.error('handlePlay error:', error);
     }
   };
 
@@ -137,8 +131,6 @@ const Album = () => {
   const handleDownload = async (item) => {
 
     try {
-
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -196,9 +188,6 @@ const Album = () => {
 
         return;
       }
-
-      console.log("SONG URL:", songUrl);
-
       // =========================
       // DETECT FILE TYPE
       // =========================
@@ -207,8 +196,6 @@ const Album = () => {
         songUrl.includes(".mp4")
           ? "m4a"
           : "mp3";
-
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -292,11 +279,6 @@ const Album = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
-
       // =========================
       // WAIT FOR FILE FLUSH
       // =========================
@@ -325,8 +307,6 @@ const Album = () => {
 
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
-
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -362,15 +342,11 @@ const Album = () => {
                 item?.image?.[2]?.url,
             }
           );
-
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -431,7 +407,7 @@ const Album = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -469,7 +445,6 @@ const Album = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 

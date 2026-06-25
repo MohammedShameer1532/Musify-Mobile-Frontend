@@ -43,26 +43,18 @@ const Setting = () => {
     const authInstance = getAuth();
     const user = authInstance.currentUser;
 
-    if (!user) {
-      console.log('❌ No authenticated user');
-      return;
-    }
-
-    console.log('✅ Firebase UID:', user.uid);
-
     const db = getFirestore();
     const userRef = doc(collection(db, 'users'), user.uid);
 
     const unsubscribe = onSnapshot(userRef, snapshot => {
       if (snapshot.exists) {
         const data = snapshot.data();
-        console.log('🔥 Firestore user data (realtime):', data);
         setUserInfo(data);
       } else {
-        console.log('⚠️ User document does not exist');
+        console.error('⚠️ User document does not exist');
       }
     }, error => {
-      console.log('❌ Firestore listener error:', error);
+      console.error('❌ Firestore listener error:', error);
     });
 
     return unsubscribe;
@@ -78,13 +70,10 @@ const Setting = () => {
         deviceId: deviceId
       });
 
-      console.log("SERVER RESPONSE 👉", res.data);
-
       if (!res.data.success) {
         throw new Error("Session creation failed");
       }
 
-      console.log("Active devices:", res.data);
     } catch (err) {
       console.log("Session API error 👉", err.response?.data || err.message);
       throw err;
@@ -102,7 +91,6 @@ const Setting = () => {
       await signOut(authInstance);
       await GoogleSignin.signOut();
       await handleLogedout(user.uid);
-      console.log('User signed out successfully ✅');
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],

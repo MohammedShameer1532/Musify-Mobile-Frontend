@@ -21,10 +21,9 @@ const Lyrics = () => {
       const cleanLyrics = res?.data?.lyrics.replace(/<br\s*\/?>/gi, "\n"); // convert <br> to \n
       setLyrics(cleanLyrics);
       sheet.current?.snapToIndex(0);
-      console.log("lyriii", cleanLyrics);
 
     } catch (error) {
-      console.log(error);
+      console.error(error);
       sheet.current?.snapToIndex(0);
       setLyrics("Failed to load lyrics");
 

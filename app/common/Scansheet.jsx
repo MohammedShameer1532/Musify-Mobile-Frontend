@@ -40,10 +40,7 @@ const Scansheet = () => {
   const [lyrics, setLyrics] = useState();
   const { setCurrentSong, setCurrentIndex, setSongsList, currentSong, setQrdata, scaneddata } = useContext(SearchContext);
   const id = scaneddata;
-  console.log('songData', scaneddata);
-  console.log('currentSong', currentSong);
   const songId = currentSong?.id;
-  console.log("siiii", songId);
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const sheet = useRef(null);
   const lyricsCache = useRef({});
@@ -65,7 +62,6 @@ const Scansheet = () => {
       const responseData = await axios.get(`https://musify-api-inky.vercel.app/api/songs?ids=${id}`);
       const res = responseData?.data.data[0];
       setSongData([res])
-      console.log('resss', res);
       (res);
       setTimeout(() => {
         setLoading(false);
@@ -75,7 +71,6 @@ const Scansheet = () => {
       setLoading(false);
     }
   }
-  console.log('songData', songData);
 
   useEffect(() => {
     songIds(id);
@@ -136,7 +131,6 @@ const Scansheet = () => {
 
     try {
 
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -195,8 +189,6 @@ const Scansheet = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
-
       // =========================
       // DETECT FILE TYPE
       // =========================
@@ -205,9 +197,6 @@ const Scansheet = () => {
         songUrl.includes(".mp4")
           ? "m4a"
           : "mp3";
-
-      console.log("EXTENSION:", extension);
-
       // =========================
       // PATHS
       // =========================
@@ -289,12 +278,6 @@ const Scansheet = () => {
 
           }
         );
-
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
-
       // =========================
       // WAIT FOR FILE FLUSH
       // =========================
@@ -323,9 +306,6 @@ const Scansheet = () => {
 
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
-
-      console.log("FILE STAT:", stat);
-
       if (Number(stat.size) < 1000000) {
 
         throw new Error(
@@ -360,15 +340,11 @@ const Scansheet = () => {
                 item?.image?.[2]?.url,
             }
           );
-
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -429,7 +405,7 @@ const Scansheet = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -466,7 +442,6 @@ const Scansheet = () => {
       );
 
       const cleanLyrics = res?.data?.lyrics?.replace(/<br\s*\/?>/gi, "\n");
-      console.log("lyriii", cleanLyrics);
       lyricsCache.current[songid] = cleanLyrics;
       setLyrics(cleanLyrics);
 

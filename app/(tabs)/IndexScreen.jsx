@@ -28,15 +28,12 @@ import { API_URL } from '@env';
 import { useNavigation } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import Video from 'react-native-video';
 
 const IndexScreen = () => {
-  const isConnected = useNetwork();
   const [visible, setVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const navigation = useNavigation();
-  console.log('api log', API_URL);
   const sections = [
     { id: '1', component: <Recommendation /> },
     { id: '2', component: <Newrelease /> },
@@ -123,47 +120,6 @@ const IndexScreen = () => {
             </TouchableOpacity>
           </View>
           <Navbar />
-          {/* Offline banner */}
-          {/* {!isConnected && (
-            <View className="bg-orange-500 py-2 px-4 mx-4 mt-2 rounded">
-              <Text className="text-white text-center font-medium">
-                You're offline. Some features may not work.
-              </Text>
-            </View>
-          )} */}
-
-          {!isConnected && (
-            <View style={styles.offlineContainer}>
-              <LinearGradient
-                colors={[
-                  'rgba(58,134,255,0.95)',
-                  'rgba(29,53,87,0.95)',
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.offlineCard}>
-
-                <Video
-                  source={require('../assets/wifi.mp4')}
-                  style={styles.offlineVideo}
-                  resizeMode="contain"
-                  repeat
-                  muted
-                  controls={false}
-                />
-
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.offlineTitle}>
-                    Offline Mode Enabled
-                  </Text>
-
-                  <Text style={styles.offlineMessage}>
-                    Access your Library to enjoy downloaded tracks 🎵
-                  </Text>
-                </View>
-              </LinearGradient>
-            </View>
-          )}
           {/* Custom Modal */}
           <Modal transparent visible={visible} animationType="fade">
             <View style={styles.overlay}>

@@ -18,7 +18,6 @@ const Topartist = () => {
         const response = await axios.get(`https://www.jiosaavn.com/api.php?__call=social.getTopArtists&api_version=4&_format=json&_marker=0&ctx=wap6dot0`
         );
         setTrend(response.data.top_artists);
-        console.log("Topartist", response.data.top_artists);
       } catch (error) {
         console.error('Error fetching artist:', error);
       }

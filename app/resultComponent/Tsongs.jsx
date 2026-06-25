@@ -40,10 +40,7 @@ const Tsongs = () => {
   const [lyrics, setLyrics] = useState();
   const { setCurrentSong, dataSearch, setCurrentIndex, setSongsList, currentSong, setQrdata } = useContext(SearchContext);
   const id = dataSearch;
-  console.log('songData', dataSearch);
-  console.log('currentSong', currentSong);
   const songId = currentSong?.id;
-  console.log("siiii", songId);
   const openSheet = usePlaylistSheetStore((state) => state.openSheet);
   const lyricsCache = useRef({});
   const songDetailsMap = useRef({});
@@ -63,7 +60,6 @@ const Tsongs = () => {
       const responseData = await axios.get(`https://musify-api-inky.vercel.app/api/songs?ids=${id}`);
       const res = responseData?.data.data[0];
       setSongData([res])
-      console.log('resss', res);
       (res);
       setTimeout(() => {
         setLoading(false);
@@ -73,7 +69,6 @@ const Tsongs = () => {
       setLoading(false);
     }
   }
-  console.log('songData', songData);
 
   useEffect(() => {
     songIds(id);
@@ -130,8 +125,6 @@ const Tsongs = () => {
   const handleDownload = async (item) => {
 
     try {
-
-      console.log("Downloading song:", item);
 
       // =========================
       // ANDROID STORAGE PERMISSION
@@ -190,7 +183,6 @@ const Tsongs = () => {
         return;
       }
 
-      console.log("SONG URL:", songUrl);
 
       // =========================
       // DETECT FILE TYPE
@@ -201,7 +193,6 @@ const Tsongs = () => {
           ? "m4a"
           : "mp3";
 
-      console.log("EXTENSION:", extension);
 
       // =========================
       // PATHS
@@ -285,10 +276,6 @@ const Tsongs = () => {
           }
         );
 
-      console.log(
-        "Downloaded temp file:",
-        res.path()
-      );
 
       // =========================
       // WAIT FOR FILE FLUSH
@@ -319,7 +306,6 @@ const Tsongs = () => {
       const stat =
         await RNBlobUtil.fs.stat(tempPath);
 
-      console.log("FILE STAT:", stat);
 
       if (Number(stat.size) < 1000000) {
 
@@ -356,14 +342,11 @@ const Tsongs = () => {
             }
           );
 
-          console.log(
-            "Metadata written successfully"
-          );
         }
 
       } catch (tagError) {
 
-        console.log(
+        console.error(
           "Metadata tagging failed:",
           tagError
         );
@@ -424,7 +407,7 @@ const Tsongs = () => {
 
     } catch (error) {
 
-      console.log(
+      console.error(
         "handleDownload error:",
         error
       );
@@ -474,7 +457,7 @@ const Tsongs = () => {
       sheet.current?.snapToIndex(0);
 
     } catch (error) {
-      console.log("Lyrics error:", error);
+      console.error("Lyrics error:", error);
       setLyrics("Lyrics Not Found");
       sheet.current?.snapToIndex(0);
     }
@@ -503,7 +486,6 @@ const Tsongs = () => {
     <MenuProvider skipInstanceCheck >
       <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']}
         locations={[0, 0.5, 1]} style={styles.background}>
-        {console.log('Applying Background Color:', backgroundColor)}
         <SafeAreaView style={styles.safeArea}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={25} color="white" />

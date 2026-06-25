@@ -57,7 +57,7 @@ const ProfileEdit = ({ navigation }) => {
       Alert.alert('Success', 'Username updated successfully');
       navigation.goBack();
     } catch (error) {
-      console.log('Update username error 👉', error);
+      console.error('Update username error 👉', error);
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);

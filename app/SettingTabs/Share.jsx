@@ -30,7 +30,7 @@ export default function ShareScreenModern() {
         url: 'https://example.com/app-link',
       });
     } catch (error) {
-      console.log('Share error', error);
+      console.error('Share error', error);
     }
   };
 

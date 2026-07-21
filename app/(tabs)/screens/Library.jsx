@@ -66,19 +66,6 @@ const Library = () => {
             <Text style={styles.cardText}>Downloads</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Local Songs */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Local Songs</Text>
-          <View style={styles.card}>
-            <MaterialCommunityIcons name="heart-circle" color="#FF6B6B" size={40} />
-            <Text style={styles.cardText}>Liked Songs</Text>
-          </View>
-          <View style={styles.card}>
-            <MaterialCommunityIcons name="playlist-music" color="#2196f3" size={40} />
-            <Text style={styles.cardText}>Playlist</Text>
-          </View>
-        </View>
       </SafeAreaView>
     </LinearGradient>
   )

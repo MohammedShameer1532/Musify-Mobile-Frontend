@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "816091965671-cep4bq6ihlfhd9i3q732k820opnnbe1e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lysernfy",
+            "certificate_hash": "400257f098f9c1ea0a3248a9fae23488b57035a3"
+          }
+        },
+        {
           "client_id": "816091965671-29t50qk9j4re96lf9eatibdj3ilj65nv.apps.googleusercontent.com",
           "client_type": 3
         }

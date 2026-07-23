@@ -138,56 +138,56 @@ const Login = () => {
 
 
   // ---------- Facebook Login ----------
-  const signInWithFacebook = async () => {
-    if (fbloading) return;
-    try {
-      setFbloading(true);
-      // Ask for permissions
-      const result = await LoginManager.logInWithPermissions(['public_profile']);
-      if (result.isCancelled) throw 'User cancelled Facebook login';
+  // const signInWithFacebook = async () => {
+  //   if (fbloading) return;
+  //   try {
+  //     setFbloading(true);
+  //     // Ask for permissions
+  //     const result = await LoginManager.logInWithPermissions(['public_profile']);
+  //     if (result.isCancelled) throw 'User cancelled Facebook login';
 
-      // Get access token
-      const data = await AccessToken.getCurrentAccessToken();
-      if (!data) throw 'Failed to get Facebook access token';
+  //     // Get access token
+  //     const data = await AccessToken.getCurrentAccessToken();
+  //     if (!data) throw 'Failed to get Facebook access token';
 
-      // Sign in with Firebase
-      const credential = FacebookAuthProvider.credential(data.accessToken);
-      const auth = getAuth();
-      const resultAuth = await signInWithCredential(auth, credential);
-      const { user } = resultAuth;
-      await handleLoginSuccess(user.uid);
+  //     // Sign in with Firebase
+  //     const credential = FacebookAuthProvider.credential(data.accessToken);
+  //     const auth = getAuth();
+  //     const resultAuth = await signInWithCredential(auth, credential);
+  //     const { user } = resultAuth;
+  //     await handleLoginSuccess(user.uid);
 
 
 
-      // Get Facebook Graph ID
-      const facebookId = user.providerData[0].uid;
+  //     // Get Facebook Graph ID
+  //     const facebookId = user.providerData[0].uid;
 
-      // Fetch profile picture (direct URL, no redirect)
-      const response = await fetch(
-        `https://graph.facebook.com/${facebookId}/picture?type=large&redirect=false&access_token=${data.accessToken}`
-      );
-      const json = await response.json();
-      const photoUrl = json.data.url;
+  //     // Fetch profile picture (direct URL, no redirect)
+  //     const response = await fetch(
+  //       `https://graph.facebook.com/${facebookId}/picture?type=large&redirect=false&access_token=${data.accessToken}`
+  //     );
+  //     const json = await response.json();
+  //     const photoUrl = json.data.url;
 
-      // Save to Firestore
-      const db = getFirestore();
-      await setDoc(
-        doc(db, 'users', user.uid),
-        {
-          name: user.displayName || 'Guest User',
-          email: user.email || '',
-          photo: photoUrl,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+  //     // Save to Firestore
+  //     const db = getFirestore();
+  //     await setDoc(
+  //       doc(db, 'users', user.uid),
+  //       {
+  //         name: user.displayName || 'Guest User',
+  //         email: user.email || '',
+  //         photo: photoUrl,
+  //         createdAt: serverTimestamp(),
+  //       },
+  //       { merge: true }
+  //     );
 
-    } catch (e) {
-      console.error('Facebook Sign-In error 👉', e);
-    } finally {
-      setFbloading(true);
-    }
-  };
+  //   } catch (e) {
+  //     console.error('Facebook Sign-In error 👉', e);
+  //   } finally {
+  //     setFbloading(true);
+  //   }
+  // };
 
 
 
@@ -219,7 +219,7 @@ const Login = () => {
 
 
             {/* Facebook */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[
                 styles.fbBtn,
                 fbloading && { opacity: 0.6 }
@@ -232,7 +232,7 @@ const Login = () => {
               <Text style={styles.fbBtnText}>
                 {fbloading ? 'Please wait...' : 'Continue with Facebook'}
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
 
             <TouchableOpacity onPress={() => setShowTermsModal(true)} activeOpacity={0.8}>

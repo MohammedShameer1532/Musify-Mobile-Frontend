@@ -1,13 +1,15 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { SearchContext } from '../contextProvider/searchContext';
 import { LegendList } from '@legendapp/list';
 
+const { width } = Dimensions.get('window'); // ✅ screen width
 const Topartist = () => {
   const [trend, setTrend] = useState([]);
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
   const { globalSearch, setDataSearch } = useContext(SearchContext);
 
 
@@ -15,11 +17,16 @@ const Topartist = () => {
   useEffect(() => {
     const trendingData = async () => {
       try {
+        setLoading(true);
         const response = await axios.get(`https://www.jiosaavn.com/api.php?__call=social.getTopArtists&api_version=4&_format=json&_marker=0&ctx=wap6dot0`
         );
         setTrend(response.data.top_artists);
+        console.log('logindata', response);
+
       } catch (error) {
         console.error('Error fetching artist:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -56,24 +63,35 @@ const Topartist = () => {
     navigation.navigate('Tartist', { id: artistid });
   };
   return (
-    <View>
-      <View>
-        <Text style={styles.header}>Top Artists</Text>
-      </View>
-      <View style={{ height: 240 }}>
-        <LegendList
+    <View style={styles.container}>
+      {/* Header */}
+      <Text style={styles.header} className='font-extrabold'>
+        Top Artist
+      </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="small"
+            color="#10b981"
+          />
+          <Text style={styles.loadingText}>
+            Loading...
+          </Text>
+        </View>
+      ) : (
+        <FlatList
           showsHorizontalScrollIndicator={false}
           recycleItems
-          contentContainerStyle={{ paddingBottom: 20, marginLeft: 20, padding: 5 }}
           horizontal={true}
           data={trend}
+          contentContainerStyle={styles.artistList}
           keyExtractor={(song, index) => `${song.id}-${index}`}
           renderItem={({ item: song, index }) => (
             <View style={styles.songContainer} key={index}>
               <TouchableOpacity onPress={() => handlePress(song.artistid)} >
                 <Image
                   source={{ uri: getHighResImage(song?.image) }}
-                  className="rounded-3xl w-44 h-48 p-4"
+                  style={styles.artistImage}
                   resizeMode='cover'
                 />
                 <View>
@@ -82,12 +100,17 @@ const Topartist = () => {
                     numberOfLines={2}
                     ellipsizeMode="tail">{song?.name.replace(/\s*\(.*?\)\s*/g, '')}</Text>
                 </View>
+                <Text
+                  style={styles.artistSubtitle}
+                  numberOfLines={1}>
+                  Artist
+                </Text>
               </TouchableOpacity>
             </View>
           )}
         />
-      </View>
-    </View>
+      )}
+    </View >
   )
 }
 
@@ -95,23 +118,59 @@ export default Topartist;
 
 
 const styles = StyleSheet.create({
+
+  container: {
+    width: '100%',
+    marginTop: 5,
+  },
+
   header: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 20,
     color: 'white',
+    fontSize: 16,
     marginLeft: 20,
-    marginTop: -5,
+    marginTop: 5,
+    marginBottom: 10,
+  },
+
+  loadingContainer: {
+    height: 230,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    color: '#9ca3af',
+    marginTop: 8,
+    fontSize: 13,
+    fontFamily: 'Poppins-Regular',
+  },
+
+  artistList: {
+    paddingLeft: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  artistImage: {
+    width: '90%',
+    height: 160,
+    borderRadius: 20,
   },
   songContainer: {
-    marginTop: 10,
-    alignItems: 'flex-start',
-    marginRight: 16,
+    width: width * 0.45,
+    paddingHorizontal: 0,
   },
   songTitle: {
-    fontSize: 14,
     color: 'white',
+    fontSize: 12,
     marginTop: 10,
-    width: 176,       // match image width
+    width: '100%',
     fontFamily: 'Poppins-Medium',
-  }
+  },
+
+  artistSubtitle: {
+    color: '#9ca3af',
+    fontSize: 10.5,
+    marginTop: 3,
+    fontFamily: 'Poppins-Regular',
+  },
 })

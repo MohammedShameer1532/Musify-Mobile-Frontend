@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,16 @@ import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { EqualizerModule } = NativeModules;
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const Equilizer = () => {
   const navigation = useNavigation();
@@ -83,7 +93,7 @@ const Equilizer = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="white" />
+            <Ionicons name="arrow-back" size={scale(22)} color="white" />
           </TouchableOpacity>
           <Text style={styles.title}>Equalizer</Text>
           <View style={{ width: 40 }} />
@@ -164,16 +174,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
+
     backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: "rgba(255,255,255,0.2)",
   },
-  title: { color: '#fff', fontSize: 20, fontFamily: 'Poppins-Bold' },
+  title: { color: '#fff', fontSize: scale(20), fontFamily: 'Poppins-Bold' },
   bandCard: {
     backgroundColor: '#161616',
     borderRadius: 22,
@@ -192,13 +203,13 @@ const styles = StyleSheet.create({
 
   bandLabel: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
     fontFamily: 'Poppins-SemiBold',
   },
 
   valueText: {
     color: '#10b981',
-    fontSize: 14,
+    fontSize: scale(14),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -214,7 +225,7 @@ const styles = StyleSheet.create({
 
   resetText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: scale(16),
     fontFamily: 'Poppins-Bold',
     marginLeft: 10,
   },

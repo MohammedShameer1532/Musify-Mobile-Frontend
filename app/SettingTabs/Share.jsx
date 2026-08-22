@@ -12,13 +12,27 @@ import {
   Image,
   StatusBar,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function ShareScreenModern() {
+
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
+
+const ShareScreenMod = () => {
   const navigation = useNavigation();
 
   const onShare = async () => {
@@ -50,7 +64,7 @@ export default function ShareScreenModern() {
               onPress={() => navigation.goBack()}
               style={styles.backBtn}
             >
-              <Ionicons name="arrow-back" size={22} color="white" />
+              <Ionicons name="arrow-back" size={scale(22)} color="white" />
             </TouchableOpacity>
 
             <Text style={styles.title}>Share App</Text>
@@ -199,6 +213,9 @@ export default function ShareScreenModern() {
   );
 }
 
+
+export default ShareScreenMod;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -216,9 +233,9 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
 
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
@@ -229,7 +246,7 @@ const styles = StyleSheet.create({
 
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -284,7 +301,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#fff',
-    fontSize: 28,
+    fontSize: scale(24),
     marginTop: 28,
     textAlign: 'center',
 
@@ -297,7 +314,7 @@ const styles = StyleSheet.create({
 
     marginTop: 14,
     lineHeight: 24,
-    fontSize: 15,
+    fontSize: scale(15),
 
     paddingHorizontal: 10,
 
@@ -339,7 +356,7 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: scale(16),
     marginTop: 16,
 
     fontFamily: 'Poppins-Bold',
@@ -347,7 +364,7 @@ const styles = StyleSheet.create({
 
   cardDesc: {
     color: '#999',
-    fontSize: 13,
+    fontSize: scale(13),
 
     marginTop: 8,
     lineHeight: 21,
@@ -378,7 +395,7 @@ const styles = StyleSheet.create({
 
   shareTitle: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: scale(21),
 
     marginTop: 24,
 
@@ -393,7 +410,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 26,
 
-    fontSize: 14,
+    fontSize: scale(14),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -417,7 +434,7 @@ const styles = StyleSheet.create({
 
   shareBtnText: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: scale(17),
 
     fontFamily: 'Poppins-Bold',
   },

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Linking,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -14,6 +15,17 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'react-native';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const HelpSupport = () => {
   const navigation = useNavigation();
@@ -81,7 +93,7 @@ const HelpSupport = () => {
             >
               <Ionicons
                 name="arrow-back"
-                size={22}
+                size={scale(22)}
                 color="#fff"
               />
             </TouchableOpacity>
@@ -115,7 +127,7 @@ const HelpSupport = () => {
               </LinearGradient>
 
               <Text style={styles.heroTitle}>
-                We’re Here To Help
+                We’re Here To Help 💬
               </Text>
 
               <Text style={styles.heroSubtitle}>
@@ -127,9 +139,7 @@ const HelpSupport = () => {
             {/* QUICK HELP */}
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Quick Help
-              </Text>
+              <Text style={styles.sectionTitle}>Quick Help</Text>
 
               <Text style={styles.sectionSub}>
                 Frequently asked questions
@@ -141,38 +151,52 @@ const HelpSupport = () => {
                 <TouchableOpacity
                   key={index}
                   activeOpacity={0.9}
-                  style={styles.card}
-                >
+                  style={styles.card}>
+                  {/* FIXED FAQ ICON */}
+
                   <View
                     style={[
                       styles.iconWrap,
                       {
                         backgroundColor: `${item.color}20`,
                       },
-                    ]}
-                  >
+                    ]}>
                     <Ionicons
                       name={item.icon}
                       size={22}
                       color={item.color}
+                      style={styles.iconFix}
                     />
                   </View>
 
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle}>
+                  {/* TEXT */}
+
+                  <View style={styles.cardText}>
+                    <Text
+                      style={styles.cardTitle}
+                      numberOfLines={2}
+                      ellipsizeMode="tail">
                       {item.title}
                     </Text>
 
-                    <Text style={styles.cardDesc}>
+                    <Text
+                      style={styles.cardDesc}
+                      numberOfLines={3}
+                      ellipsizeMode="tail">
                       {item.desc}
                     </Text>
                   </View>
 
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color="#666"
-                  />
+                  {/* FIXED ARROW */}
+
+                  <View style={styles.cardArrow}>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#666"
+                      style={styles.iconFix}
+                    />
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -180,9 +204,7 @@ const HelpSupport = () => {
             {/* CONTACT SUPPORT */}
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Contact Support
-              </Text>
+              <Text style={styles.sectionTitle}>Contact Support</Text>
 
               <Text style={styles.sectionSub}>
                 Reach us directly anytime
@@ -193,43 +215,53 @@ const HelpSupport = () => {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={emailSupport}
-            >
+              onPress={emailSupport}>
               <LinearGradient
                 colors={[
                   'rgba(255,255,255,0.10)',
                   'rgba(255,255,255,0.04)',
                 ]}
-                style={styles.contactCard}
-              >
+                style={styles.contactCard}>
                 <View style={styles.contactLeft}>
-                  <LinearGradient
-                    colors={['#00d4ff', '#007cf0']}
-                    style={styles.contactIcon}
-                  >
-                    <Ionicons
-                      name="mail"
-                      size={22}
-                      color="#fff"
-                    />
-                  </LinearGradient>
+                  {/* FIXED ICON CONTAINER */}
 
-                  <View>
-                    <Text style={styles.contactTitle}>
-                      Email Support
-                    </Text>
+                  <View style={styles.contactIconOuter}>
+                    <LinearGradient
+                      colors={['#00d4ff', '#007cf0']}
+                      style={styles.contactIconGradient}>
+                      <Ionicons
+                        name="mail"
+                        size={22}
+                        color="#fff"
+                        style={styles.contactIonIcon}
+                      />
+                    </LinearGradient>
+                  </View>
 
-                    <Text style={styles.contactDesc}>
+                  {/* TEXT */}
+
+                  <View style={styles.contactText}>
+                    <Text style={styles.contactTitle}>Email Support</Text>
+
+                    <Text
+                      style={styles.contactDesc}
+                      numberOfLines={1}
+                      ellipsizeMode="tail">
                       mshameer1227@gmail.com
                     </Text>
                   </View>
                 </View>
 
-                <Ionicons
-                  name="open-outline"
-                  size={20}
-                  color="#aaa"
-                />
+                {/* ARROW */}
+
+                <View style={styles.contactArrow}>
+                  <Ionicons
+                    name="open-outline"
+                    size={20}
+                    color="#aaa"
+                    style={styles.iconFix}
+                  />
+                </View>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -237,31 +269,33 @@ const HelpSupport = () => {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={callSupport}
-            >
+              onPress={callSupport}>
               <LinearGradient
                 colors={[
                   'rgba(255,255,255,0.10)',
                   'rgba(255,255,255,0.04)',
                 ]}
-                style={styles.contactCard}
-              >
+                style={styles.contactCard}>
                 <View style={styles.contactLeft}>
-                  <LinearGradient
-                    colors={['#00c896', '#00a86b']}
-                    style={styles.contactIcon}
-                  >
-                    <Ionicons
-                      name="call"
-                      size={22}
-                      color="#fff"
-                    />
-                  </LinearGradient>
+                  {/* FIXED ICON CONTAINER */}
 
-                  <View>
-                    <Text style={styles.contactTitle}>
-                      Call Support
-                    </Text>
+                  <View style={styles.contactIconOuter}>
+                    <LinearGradient
+                      colors={['#00c896', '#00a86b']}
+                      style={styles.contactIconGradient}>
+                      <Ionicons
+                        name="call"
+                        size={22}
+                        color="#fff"
+                        style={styles.contactIonIcon}
+                      />
+                    </LinearGradient>
+                  </View>
+
+                  {/* TEXT */}
+
+                  <View style={styles.contactText}>
+                    <Text style={styles.contactTitle}>Call Support</Text>
 
                     <Text style={styles.contactDesc}>
                       +91 63740 89031
@@ -269,11 +303,16 @@ const HelpSupport = () => {
                   </View>
                 </View>
 
-                <Ionicons
-                  name="open-outline"
-                  size={20}
-                  color="#aaa"
-                />
+                {/* ARROW */}
+
+                <View style={styles.contactArrow}>
+                  <Ionicons
+                    name="open-outline"
+                    size={20}
+                    color="#aaa"
+                    style={styles.iconFix}
+                  />
+                </View>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -284,17 +323,18 @@ const HelpSupport = () => {
                 'rgba(255,106,0,0.18)',
                 'rgba(238,9,121,0.12)',
               ]}
-              style={styles.noteBox}
-            >
-              <Ionicons
-                name="time-outline"
-                size={22}
-                color="#fff"
-              />
+              style={styles.noteBox}>
+              <View style={styles.noteIcon}>
+                <Ionicons
+                  name="time-outline"
+                  size={22}
+                  color="#fff"
+                  style={styles.iconFix}
+                />
+              </View>
 
               <Text style={styles.noteText}>
-                Our support team usually responds within
-                24 hours.
+                Our support team usually responds within 24 hours.
               </Text>
             </LinearGradient>
           </ScrollView>
@@ -323,9 +363,9 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
 
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
@@ -336,7 +376,7 @@ const styles = StyleSheet.create({
 
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
   logoWrap: {
@@ -409,21 +449,34 @@ const styles = StyleSheet.create({
 
   heroTitle: {
     color: '#fff',
-    fontSize: 28,
+
+    fontSize: scale(24),
+
     marginTop: 24,
 
     fontFamily: 'Poppins-Bold',
+
+    includeFontPadding: false,
+
+    textAlign: 'center',
+
   },
 
   heroSubtitle: {
     color: '#b8b8b8',
+
     textAlign: 'center',
 
     marginTop: 12,
+
     lineHeight: 24,
-    fontSize: 15,
+
+    fontSize: scale(15),
 
     fontFamily: 'Poppins-Medium',
+
+    includeFontPadding: false,
+
   },
 
   /* SECTION */
@@ -431,26 +484,33 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginTop: 35,
     marginBottom: 16,
+
     paddingHorizontal: 18,
   },
 
   sectionTitle: {
     color: '#fff',
-    fontSize: 21,
+
+    fontSize: scale(20),
 
     fontFamily: 'Poppins-Bold',
+
+    includeFontPadding: false,
   },
 
   sectionSub: {
     color: '#888',
+
     marginTop: 4,
 
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
+
+    includeFontPadding: false,
   },
 
-  /* FAQ CARD */
+  /* FAQ */
 
   cardsWrap: {
     paddingHorizontal: 18,
@@ -463,116 +523,245 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
 
     borderRadius: 24,
-    padding: 18,
+
+    paddingVertical: 16,
+    paddingHorizontal: 16,
 
     marginBottom: 14,
 
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+
+    minHeight: 88,
   },
 
   iconWrap: {
     width: 56,
     height: 56,
+
     borderRadius: 18,
 
     justifyContent: 'center',
     alignItems: 'center',
 
     marginRight: 16,
+
+    flexShrink: 0,
+  },
+
+  cardText: {
+    flex: 1,
+
+    minWidth: 0,
+
+    justifyContent: 'center',
   },
 
   cardTitle: {
     color: '#fff',
-    fontSize: 15,
+
+    fontSize: scale(15),
+
+    lineHeight: 20,
 
     fontFamily: 'Poppins-Bold',
+
+    includeFontPadding: false,
   },
 
   cardDesc: {
     color: '#9a9a9a',
-    fontSize: 13,
+
+    fontSize: scale(13),
 
     marginTop: 6,
-    lineHeight: 20,
+
+    lineHeight: 19,
 
     fontFamily: 'Poppins-Medium',
+
+    includeFontPadding: false,
+  },
+
+  cardArrow: {
+    width: 30,
+    height: 56,
+
+    marginLeft: 8,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    flexShrink: 0,
   },
 
   /* CONTACT */
 
   contactCard: {
     marginHorizontal: 18,
+
     marginBottom: 16,
 
     borderRadius: 28,
-    padding: 18,
+
+    paddingVertical: 16,
+    paddingHorizontal: 16,
 
     flexDirection: 'row',
+
     alignItems: 'center',
-    justifyContent: 'space-between',
 
     borderWidth: 1,
+
     borderColor: 'rgba(255,255,255,0.10)',
+
+    minHeight: 88,
   },
 
   contactLeft: {
+    flex: 1,
+
     flexDirection: 'row',
+
     alignItems: 'center',
+
+    minWidth: 0,
   },
 
-  contactIcon: {
+  /*
+   * Fixed outer container.
+   * This prevents Android devices with different
+   * font/layout measurements from shifting the icon.
+   */
+
+  contactIconOuter: {
     width: 56,
     height: 56,
+
+    marginRight: 16,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    flexShrink: 0,
+  },
+
+  contactIconGradient: {
+    width: 56,
+    height: 56,
+
     borderRadius: 18,
 
     justifyContent: 'center',
     alignItems: 'center',
 
-    marginRight: 16,
+    overflow: 'hidden',
+  },
+
+  contactIonIcon: {
+    width: 22,
+    height: 22,
+
+    includeFontPadding: false,
+
+    textAlign: 'center',
+    textAlignVertical: 'center',
+
+    flexShrink: 0,
+  },
+
+  contactText: {
+    flex: 1,
+
+    minWidth: 0,
+
+    justifyContent: 'center',
   },
 
   contactTitle: {
     color: '#fff',
-    fontSize: 16,
+
+    fontSize: scale(16),
+
+    lineHeight: 21,
 
     fontFamily: 'Poppins-Bold',
+
+    includeFontPadding: false,
   },
 
   contactDesc: {
     color: '#a1a1a1',
+
     marginTop: 4,
 
-    fontSize: 13,
+    fontSize: scale(13),
+
+    lineHeight: 18,
 
     fontFamily: 'Poppins-Medium',
+
+    includeFontPadding: false,
+
+    flexShrink: 1,
   },
 
-  /* NOTE */
+  contactArrow: {
+    width: 32,
+    height: 56,
+
+    marginLeft: 8,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    flexShrink: 0,
+  },
+
+  /* SUPPORT NOTE */
 
   noteBox: {
     marginHorizontal: 18,
+
     marginTop: 12,
 
     borderRadius: 22,
-    padding: 18,
+
+    paddingVertical: 16,
+    paddingHorizontal: 18,
 
     flexDirection: 'row',
+
     alignItems: 'center',
 
     borderWidth: 1,
+
     borderColor: 'rgba(255,255,255,0.08)',
+  },
+
+  noteIcon: {
+    width: 30,
+    height: 30,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    flexShrink: 0,
   },
 
   noteText: {
     color: '#fff',
+
     marginLeft: 12,
 
     flex: 1,
+
     lineHeight: 22,
 
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
+
+    includeFontPadding: false,
   },
 });

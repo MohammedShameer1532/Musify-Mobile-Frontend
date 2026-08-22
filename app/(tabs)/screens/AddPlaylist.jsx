@@ -1,4 +1,4 @@
-import { ActivityIndicator, Animated, Image, Keyboard, KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Animated, Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -15,6 +15,17 @@ import { SearchContext } from '../../contextProvider/searchContext';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import LottieView from 'lottie-react-native';
 import { API_URL } from '@env';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const AddPlaylist = () => {
   const [loading, setLoading] = useState(false);
@@ -198,11 +209,9 @@ const AddPlaylist = () => {
         {/* Header */}
         <View>
           <View style={styles.header}>
-            <AnimatedIcon focused={true}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} >
-                <Ionicons name="arrow-back" size={22} color="white" />
-              </TouchableOpacity>
-            </AnimatedIcon>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} >
+              <Ionicons name="arrow-back" size={scale(22)} color="white" />
+            </TouchableOpacity>
             <Text style={styles.title}>My Playlist</Text>
             <View style={{ width: 40 }} />
           </View>
@@ -307,7 +316,7 @@ const AddPlaylist = () => {
                             },
                             optionText: {
                               color: '#fff',
-                              fontSize: 15,
+                              fontSize: scale(15),
                               fontWeight: '500',
                               marginLeft: 12,
                             },
@@ -317,7 +326,7 @@ const AddPlaylist = () => {
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                               <Feather name="edit" color="#1DB954" size={21} />
                               <Text style={{
-                                fontSize: 13,
+                                fontSize: scale(13),
                                 color: 'white',
                                 marginLeft: 9,
                                 fontFamily: 'Poppins-Bold',
@@ -335,7 +344,7 @@ const AddPlaylist = () => {
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                               <MaterialIcons name="delete-outline" color="#ff4d4d" size={24} />
                               <Text style={{
-                                fontSize: 13,
+                                fontSize: scale(13),
                                 color: 'white',
                                 marginLeft: 7,
                                 fontFamily: 'Poppins-Bold',
@@ -511,14 +520,14 @@ const styles = StyleSheet.create({
   },
 
   sheetTitle: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
     color: '#fff',
   },
 
   sheetSubtitle: {
     color: '#9e9e9e',
-    fontSize: 14,
+    fontSize: scale(14),
     marginBottom: 20,
     fontFamily: 'Poppins-Bold',
   },
@@ -538,7 +547,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     color: '#fff',
-    fontSize: 16,
+    fontSize: scale(16),
     marginBottom: 20,
     fontFamily: 'Poppins-Bold',
   },
@@ -554,7 +563,7 @@ const styles = StyleSheet.create({
   sheetButtonText: {
     color: '#000',
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: scale(16),
   },
   optionWrapper: {
     paddingVertical: 12,
@@ -575,18 +584,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
+
     backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
   backIconContainer: {
@@ -617,7 +627,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: scale(20),
     marginBottom: 20,
     textAlign: 'center',
     color: '#000',
@@ -630,7 +640,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginBottom: 20,
-    fontSize: 16,
+    fontSize: scale(16),
     color: '#000',
     backgroundColor: '#f9f9f9',
     fontFamily: 'Poppins-Bold',
@@ -647,12 +657,12 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: scale(16),
     fontFamily: 'Poppins-Bold',
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: scale(22),
     fontWeight: '700',
   },
 
@@ -672,7 +682,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#fff',
     marginLeft: 10,
-    fontSize: 14,
+    fontSize: scale(14),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -715,13 +725,13 @@ const styles = StyleSheet.create({
 
   playlistName: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
     fontFamily: 'Poppins-Bold',
   },
 
   playlistMeta: {
     color: '#b3b3b3',
-    fontSize: 13,
+    fontSize: scale(13),
     marginTop: 3,
     fontFamily: 'Poppins-Bold',
   },

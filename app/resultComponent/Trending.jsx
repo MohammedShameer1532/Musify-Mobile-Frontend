@@ -1,8 +1,20 @@
-import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
 import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
 import { SearchContext } from '../contextProvider/searchContext';
+import { useNavigation } from '@react-navigation/native';
+import { API_URL } from '@env';
+
 
 const { width } = Dimensions.get('window'); // ✅ screen width
 const LANGUAGES = [
@@ -11,41 +23,90 @@ const LANGUAGES = [
   { name: 'Telugu', code: 'telugu' },
   { name: 'English', code: 'english' },
   { name: 'Punjabi', code: 'punjabi' },
+  { name: 'Marathi', code: 'marathi' },
+  { name: 'Gujarati', code: 'gujarati' },
+  { name: 'Bengali', code: 'bengali' },
   { name: 'Kannada', code: 'kannada' },
+  { name: 'Bhojpuri', code: 'bhojpuri' },
+  { name: 'Malayalam', code: 'malayalam' },
+  { name: 'Sanskrit', code: 'sanskrit' },
+  { name: 'Haryanvi', code: 'haryanvi' },
+  { name: 'Rajasthani', code: 'rajasthani' },
+  { name: 'Odia', code: 'odia' },
+  { name: 'Assamese', code: 'assamese' },
 ];
 
-
-const Radio = () => {
-  const [trend, setTrend] = useState([]);
-  const navigation = useNavigation();
+const Trending = () => {
+  const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { setDataSearch, selectedLanguage, setSelectedLanguage } = useContext(SearchContext);
+  const navigation = useNavigation();
+  const {
+    setDataSearch,
+    selectedLanguage,
+    setSelectedLanguage,
+  } = useContext(SearchContext);
 
-  const trendingData = async () => {
+  // ---------------------------------------
+  // Fetch recommendations
+  // ---------------------------------------
+
+  const getArtistRecommendations = async () => {
     try {
       setLoading(true);
-      const langParam = selectedLanguage ? `&languages=${selectedLanguage}` : '';
-      const url = `https://www.jiosaavn.com/api.php?__call=webradio.getFeaturedStations&api_version=4&_format=json&_marker=0&ctx=wap6dot0${langParam}`;
 
-      const response = await axios.get(url);
-      setTrend(response?.data);
+      const lang = selectedLanguage || 'hindi';
 
+      const response = await axios.get(
+        `${API_URL}/api/jiosaavn?lang=${encodeURIComponent(
+          lang,
+        )}`,
+      );
+
+      console.log('Selected language:', lang);
+      console.log('JioSaavn data:', response.data);
+
+      const data = response.data;
+
+      let artistData = [];
+
+      if (Array.isArray(data?.new_trending)) {
+        artistData = data.new_trending;
+      }
+
+      // Remove duplicate IDs
+      const uniqueArtists = artistData.filter(
+        (item, index, self) =>
+          index === self.findIndex(obj => obj.id === item.id),
+      );
+
+      setArtists(uniqueArtists);
     } catch (error) {
-      console.error("Error fetching trending data:", error);
+      console.error(
+        'Error fetching recommendations:',
+        error.response?.data || error.message,
+      );
+
+      setArtists([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // ---------------------------------------
+  // Refetch when language changes
+  // ---------------------------------------
+
   useEffect(() => {
-    trendingData();
+    getArtistRecommendations();
   }, [selectedLanguage]);
 
+  // ---------------------------------------
+  // Image helper
+  // ---------------------------------------
 
-  const getHighResImage = (image) => {
+  const getHighResImage = image => {
     if (!image) return null;
 
-    // ✅ Case 1: JioSaavn image array
     if (Array.isArray(image)) {
       return (
         image.find(img => img.quality === '500x500')?.link ||
@@ -54,7 +115,6 @@ const Radio = () => {
       );
     }
 
-    // ✅ Case 2: String image (Playlists, Artist)
     if (typeof image === 'string') {
       return image
         .replace(/_\d+x\d+/, '_500x500')
@@ -64,28 +124,46 @@ const Radio = () => {
     return null;
   };
 
+  // ---------------------------------------
+  // Handle artist press
+  // ---------------------------------------
 
-  const handlePress = (songId, moreInfo, imageUrl) => {
-    setDataSearch({
-      id: songId,
-      moreInfo,
-      imageUrl,
-    });
-    navigation.navigate('Rresult', {
-      id: songId,
-      language: moreInfo?.language,
-      moreInfo, // pass full object too if needed
-      imageUrl,
-    });
+  const handlePress = (item) => {
+    if (!item?.id) return;
+
+    setDataSearch(item.id);
+
+    if (item?.type === 'album') {
+      navigation.navigate('Album', {
+        id: item.id,
+      });
+    } else if (item?.type === 'song') {
+      navigation.navigate('Song', {
+        id: item.id,
+      });
+    } else if (item?.type === 'playlist') {
+      navigation.navigate('Playlist', {
+        id: item.id,
+      });
+    }
   };
 
 
+  // ---------------------------------------
+  // Language selection
+  // ---------------------------------------
+
+  const handleLanguageChange = language => {
+    if (language === selectedLanguage) return;
+
+    setSelectedLanguage(language);
+  };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <Text style={styles.header} className='font-extrabold'>
-        Radio
+        Now Trending
       </Text>
       {/* Language selector */}
       <FlatList
@@ -99,7 +177,7 @@ const Radio = () => {
           return (
             <TouchableOpacity
               activeOpacity={0.7}
-              // onPress={() => setSelectedLanguage(item.code)}
+              // onPress={() => handleLanguageChange(item.code)}
               style={[
                 styles.languageButton,
                 isSelected && styles.selectedLanguageButton,
@@ -115,6 +193,8 @@ const Radio = () => {
           );
         }}
       />
+
+      {/* Recommendations */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator
@@ -127,16 +207,22 @@ const Radio = () => {
         </View>
       ) : (
         <FlatList
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.artistList}
+          data={artists}
           horizontal
-          data={trend}
-          keyExtractor={(song, index) => `${song.id}-${index}`}
-          renderItem={({ item: song }) => (
-            <View style={styles.songContainer}>
-              <TouchableOpacity onPress={() => handlePress(song.id, song.more_info, getHighResImage(song?.image))}>
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item, index) =>
+            String(item?.id || index)
+          }
+          contentContainerStyle={styles.artistList}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => handlePress(item)}>
                 <Image
-                  source={{ uri: getHighResImage(song?.image) }}
+                  source={{
+                    uri: getHighResImage(item?.image),
+                  }}
                   style={styles.artistImage}
                   resizeMode="cover"
                 />
@@ -144,13 +230,15 @@ const Radio = () => {
                   style={styles.artistName}
                   numberOfLines={2}
                   ellipsizeMode="tail">
-                  {song?.title.replace(/\s*\(.*?\)\s*/g, '')}
+                  {
+                    item?.title ||
+                    'Unknown'}
                 </Text>
                 <Text
                   style={styles.artistSubtitle}
                   numberOfLines={1}>
-                  {song?.type
-                    ? song.type.charAt(0).toUpperCase() + song.type.slice(1)
+                  {item?.type
+                    ? item.type.charAt(0).toUpperCase() + item.type.slice(1)
                     : ''}
                 </Text>
               </TouchableOpacity>
@@ -159,10 +247,10 @@ const Radio = () => {
         />
       )}
     </View>
-  )
-}
+  );
+};
 
-export default Radio;
+export default Trending;
 
 const styles = StyleSheet.create({
 
@@ -252,7 +340,7 @@ const styles = StyleSheet.create({
   // Card
   // ---------------------------------------
 
-  songContainer: {
+  card: {
     width: width * 0.45,
     paddingHorizontal: 0,
   },
@@ -289,4 +377,4 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontFamily: 'Poppins-Regular',
   },
-})
+});

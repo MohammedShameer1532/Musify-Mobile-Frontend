@@ -1,4 +1,4 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import { SearchContext } from '../contextProvider/searchContext';
 import { LegendList } from '@legendapp/list';
 
 
+const { width } = Dimensions.get('window'); // ✅ screen width
 
 const LANGUAGES = [
   { name: 'Tamil', code: 'tamil' },
@@ -30,10 +31,13 @@ const LANGUAGES = [
 const Tplaylist = () => {
   const [trend, setTrend] = useState([]);
   const navigation = useNavigation();
-  const { setDataSearch, setPlaylistDatas,selectedLanguage } = useContext(SearchContext);
+  const [loading, setLoading] = useState(false);
+  const { setDataSearch, setPlaylistDatas, selectedLanguage, setSelectedLanguage } = useContext(SearchContext);
 
   const trendingData = async () => {
     try {
+      setLoading(true);
+
       const langParam = selectedLanguage ? `&languages=${selectedLanguage}` : '';
       const url = `https://www.jiosaavn.com/api.php?__call=content.getFeaturedPlaylists&fetch_from_serialized_files=true&p=1&n=50&api_version=4&_format=json&_marker=0&ctx=wap6dot0${langParam}`;
 
@@ -41,6 +45,8 @@ const Tplaylist = () => {
       setTrend(response?.data?.data ?? []);
     } catch (error) {
       console.error("Error fetching trending data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,57 +90,63 @@ const Tplaylist = () => {
     }
   };
   return (
-    <View>
-      <View>
-        <Text style={styles.header}>Top Playlists</Text>
-        <LegendList
-          estimatedItemSize={150}
-          getEstimatedItemSize={() => 150}
-          extraData={selectedLanguage}
-          // 🚀 Rendering behavior
-          recycleItems
-          removeClippedSubviews={false}
-          drawDistance={500}
-          windowSize={17}
-
-          // Batch tuning
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-
-          data={LANGUAGES}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.code || 'all'}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={{
-                backgroundColor: selectedLanguage === item.code ? '#10b981' : '#1f2937',
-                paddingVertical: 4,
-                paddingHorizontal: 16,
-                borderRadius: 20,
-                marginHorizontal: 8,
-                marginBottom: 5,
-              }}
-            >
-              <Text style={{ color: 'white', fontSize: 14, fontFamily: 'Poppins-Medium',  }}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-          contentContainerStyle={{ paddingHorizontal: 10, marginTop: 10,marginBottom:32 }}
-        />
-      </View>
+    <View style={styles.container}>
+      {/* Header */}
+      <Text style={styles.header} className='font-extrabold'>
+        Top Playlist
+      </Text>
       <FlatList
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: -20, marginLeft: 20, padding: 5 }}
+        data={LANGUAGES}
         horizontal
-        data={trend}
-        keyExtractor={(song, index) => `${song.id}-${index}`}
-        renderItem={({ item: song }) => (
-          <View style={styles.songContainer}>
-            <TouchableOpacity onPress={() => handlePress(song.id)}>
-              <View style={styles.card}>
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={item => item.code}
+        contentContainerStyle={styles.languageList}
+        renderItem={({ item }) => {
+          const isSelected = selectedLanguage === item.code;
+          return (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              // onPress={() => setSelectedLanguage(item.code)}
+              style={[
+                styles.languageButton,
+                isSelected && styles.selectedLanguageButton,
+              ]}>
+              <Text
+                style={[
+                  styles.languageText,
+                  isSelected && styles.selectedLanguageText,
+                ]}>
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="small"
+            color="#10b981"
+          />
+          <Text style={styles.loadingText}>
+            Loading...
+          </Text>
+        </View>
+      ) : (
+
+        <FlatList
+          showsHorizontalScrollIndicator={false}
+          horizontal
+          data={trend}
+          contentContainerStyle={styles.artistList}
+          keyExtractor={(song, index) => `${song.id}-${index}`}
+          renderItem={({ item: song }) => (
+            <View style={styles.songContainer}>
+              <TouchableOpacity onPress={() => handlePress(song.id)}>
                 <Image
                   source={{ uri: getHighResImage(song?.image) }}
-                  className="rounded-3xl w-44 h-48 p-4"
+                  style={styles.artistImage}
                   resizeMode="cover"
                 />
                 <Text
@@ -143,11 +155,18 @@ const Tplaylist = () => {
                   ellipsizeMode="tail">
                   {song?.title.replace(/\s*\(.*?\)\s*/g, '')}
                 </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+                <Text
+                  style={styles.artistSubtitle}
+                  numberOfLines={1}>
+                  {song?.type
+                    ? song.type.charAt(0).toUpperCase() + song.type.slice(1)
+                    : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      )}
     </View>
   )
 }
@@ -155,26 +174,92 @@ const Tplaylist = () => {
 export default Tplaylist;
 
 const styles = StyleSheet.create({
-  songContainer: {
-    alignItems: 'flex-start',
-    marginTop: 15,
-    marginRight: 16
+
+  container: {
+    width: '100%',
+    marginTop: 5,
   },
+
+  // ---------------------------------------
+  // Header
+  // ---------------------------------------
+
   header: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 20,
     color: 'white',
+    fontSize: 16,
     marginLeft: 20,
-    marginTop: -5,
+    marginTop: 5,
+    marginBottom: 10,
   },
-  card: {
-    width: 176
+
+  loadingContainer: {
+    height: 230,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    color: '#9ca3af',
+    marginTop: 8,
+    fontSize: 13,
+    fontFamily: 'Poppins-Regular',
+  },
+  artistList: {
+    paddingLeft: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  songContainer: {
+    width: width * 0.45,
+  },
+  artistImage: {
+    width: '90%',
+    height: 160,
+    borderRadius: 20,
   },
   songTitle: {
-    fontSize: 14,
     color: 'white',
+    fontSize: 12,
     marginTop: 10,
-    width: 162,
+    width: '100%',
     fontFamily: 'Poppins-Medium',
   },
+
+  artistSubtitle: {
+    color: '#9ca3af',
+    fontSize: 10.5,
+    marginTop: 3,
+    fontFamily: 'Poppins-Regular',
+  },
+
+  languageList: {
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingBottom: 5,
+  },
+
+  languageButton: {
+    height: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1f2937',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+
+  selectedLanguageButton: {
+    backgroundColor: '#10b981',
+  },
+
+  languageText: {
+    color: '#d1d5db',
+    fontSize: 13,
+    fontFamily: 'Poppins-Medium',
+  },
+
+  selectedLanguageText: {
+    color: 'white',
+  },
+
 })

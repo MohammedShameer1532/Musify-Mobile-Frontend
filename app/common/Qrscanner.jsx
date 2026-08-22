@@ -1,101 +1,121 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
+
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
 } from 'react-native';
+
 import Ionicons from 'react-native-vector-icons/Ionicons';
+
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import Scanner from './Scanner';
+
 
 const Qrscanner = ({ navigation }) => {
 
-
   return (
-    <SafeAreaView style={styles.container}>
+
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'bottom']}
+    >
+
       <View style={styles.scannerContainer}>
+
+        {/* CAMERA SCANNER */}
+
         <Scanner />
+
+
+        {/* BACK BUTTON */}
+
         <TouchableOpacity
+          activeOpacity={0.8}
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={25} color="#fff" />
-          <Text style={styles.backText}> Back</Text>
+
+          <Ionicons
+            name="arrow-back"
+            size={23}
+            color="#fff"
+          />
+
+          <Text style={styles.backText}>
+            Back
+          </Text>
+
         </TouchableOpacity>
+
       </View>
+
     </SafeAreaView>
+
   );
+
 };
+
 
 export default Qrscanner;
 
+
+// ======================================================
+// STYLES
+// ======================================================
+
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
-    backgroundColor: "#0f0f0f",
+    backgroundColor: '#000',
   },
 
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 0,
-    alignItems: "flex-end",
-  },
-
-  centerContent: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  title: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "600",
-    marginBottom: 40,
-  },
-
-  qrBox: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 20,
-  },
-
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 40,
-    backgroundColor: "#1DB954",
-    paddingHorizontal: 30,
-    paddingVertical: 14,
-    borderRadius: 30,
-  },
-
-  buttonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 16,
-  },
 
   scannerContainer: {
     flex: 1,
   },
 
+
   backButton: {
-    position: "absolute",
-    bottom: 200,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1DB954",
-    paddingHorizontal: 25,
-    paddingVertical: 12,
-    borderRadius: 30,
+    position: 'absolute',
+
+    top: 15,
+
+    left: 18,
+
+    height: 42,
+
+    paddingHorizontal: 16,
+
+    borderRadius: 22,
+
+    backgroundColor: 'rgba(0,0,0,0.55)',
+
+    borderWidth: 1,
+
+    borderColor: 'rgba(255,255,255,0.18)',
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    justifyContent: 'center',
+
+    zIndex: 100,
   },
 
+
   backText: {
-    color: "white",
+    color: '#fff',
+
     fontFamily: 'Poppins-Bold',
-    fontSize: 16,
+
+    fontSize: 14,
+
+    marginLeft: 7,
   },
+
 });

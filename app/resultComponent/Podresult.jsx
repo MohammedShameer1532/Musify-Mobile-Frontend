@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, FlatList, Image, PermissionsAndroid, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, PermissionsAndroid, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
@@ -26,8 +26,20 @@ import { usePlaylistSheetStore } from '../store/playlistSheetStore';
 import { decode } from 'html-entities';
 import * as Progress from 'react-native-progress';
 import { NativeModules } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { saveDownload } from '../Database/downloadRepository';
 
 
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const Podresult = () => {
   const { dataSearch, setQrdata } = useContext(SearchContext);
@@ -60,15 +72,198 @@ const Podresult = () => {
   });
 
   const { Mp3TagModule } = NativeModules;
+  const [translatedLyrics, setTranslatedLyrics] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('original');
+  const [translating, setTranslating] = useState(false);
+  const [lyricsdata, setLyricsdata] = useState(null);
+
+
+
+  // Guards against out-of-order translation responses when the user
+  // taps through languages quickly.
+  const translateRequestId = useRef(0);
+
+  // Caches translations per-song per-language so re-selecting a
+  // language you've already viewed doesn't re-hit the API.
+  const translationCache = useRef({});
+
+  const lyricLanguages = [
+    { code: 'original', name: 'Original' },
+    { code: 'en', name: 'English' },
+    { code: 'ta', name: 'Tamil' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'te', name: 'Telugu' },
+    { code: 'ml', name: 'Malayalam' },
+    { code: 'kn', name: 'Kannada' },
+    { code: 'bn', name: 'Bengali' },
+    { code: 'mr', name: 'Marathi' },
+  ];
+  const selectedLanguageName = lyricLanguages.find((language) => language.code === selectedLanguage)?.name || 'English';
+
+  // Converts phonetic Latin-script spelling of a native-script language
+  // (e.g. "Naan unnai kadhalikkiren") into real native script (நான் உன்னை
+  // காதலிக்கிறேன்). This is Google's Input Tools / Gboard transliteration
+  // engine — a different service from Translate, built specifically for
+  // this "same language, different script" conversion.
+  const transliterateChunk = async (text, targetLang) => {
+    const response = await axios.get(
+      'https://inputtools.google.com/request',
+      {
+        params: {
+          text,
+          itc: `${targetLang}-t-i0-und`,
+          num: 1,
+          cp: 0,
+          cs: 1,
+          ie: 'utf-8',
+          oe: 'utf-8',
+        },
+      }
+    );
+
+    const status = response?.data?.[0];
+    const candidates = response?.data?.[1]?.[0]?.[1];
+
+    if (status === 'SUCCESS' && Array.isArray(candidates) && candidates[0]) {
+      return candidates[0];
+    }
+
+    throw new Error('Transliteration failed');
+  };
+
+  // Calls Google's public "gtx" translate endpoint directly via axios.
+  // (The google-translate-api-x npm package targets a Node.js server
+  // runtime; inside React Native/Hermes it frequently resolves without
+  // throwing but returns the original, untranslated text — which is
+  // why Tamil selection was silently showing English.)
+  const translateTextChunk = async (text, targetLang) => {
+    const response = await axios.get(
+      'https://translate.googleapis.com/translate_a/single',
+      {
+        params: {
+          client: 'gtx',
+          sl: 'auto',
+          tl: targetLang,
+          dt: 't',
+          q: text,
+        },
+      }
+    );
+
+    // Response shape: [[[translatedPiece, originalPiece, ...], ...], detectedSourceLang, ...]
+    const segments = response?.data?.[0];
+    const detectedSourceLang = response?.data?.[2];
+
+    if (!Array.isArray(segments)) {
+      throw new Error('Unexpected translate response shape');
+    }
+
+    const translated = segments.map((segment) => segment?.[0] ?? '').join('');
+
+    // If Google detects the source text is ALREADY the target language
+    // (this happens with Tanglish/Hinglish-style lyrics — words of the
+    // target language spelled in the Latin alphabet), dt=t just echoes
+    // the input back verbatim instead of converting the script. Fall
+    // back to transliteration to actually get native script out.
+    if (detectedSourceLang === targetLang && translated.trim() === text.trim()) {
+      try {
+        const lines = text.split('\n');
+        const transliteratedLines = [];
+
+        for (const line of lines) {
+          if (!line.trim()) {
+            transliteratedLines.push(line);
+            continue;
+          }
+          transliteratedLines.push(await transliterateChunk(line, targetLang));
+        }
+
+        return transliteratedLines.join('\n');
+      } catch (transliterationError) {
+        console.error('Transliteration fallback failed:', transliterationError);
+        return translated;
+      }
+    }
+
+    return translated;
+  };
+
+  // Google's endpoint caps request size, so long lyrics are translated
+  // in line-based chunks and stitched back together.
+  const translateLongText = async (text, targetLang) => {
+    const MAX_CHUNK = 3500;
+    if (text.length <= MAX_CHUNK) {
+      return translateTextChunk(text, targetLang);
+    }
+
+    const lines = text.split('\n');
+    const chunks = [];
+    let current = '';
+
+    for (const line of lines) {
+      if ((current + '\n' + line).length > MAX_CHUNK) {
+        chunks.push(current);
+        current = line;
+      } else {
+        current = current ? `${current}\n${line}` : line;
+      }
+    }
+    if (current) chunks.push(current);
+
+    const translatedChunks = [];
+    for (const chunk of chunks) {
+      translatedChunks.push(await translateTextChunk(chunk, targetLang));
+    }
+    return translatedChunks.join('\n');
+  };
+
+  const translateLyrics = async (text, language) => {
+    if (!text || !language) return;
+
+    const cacheKey = `${songId || 'unknown'}:${language}`;
+    if (translationCache.current[cacheKey]) {
+      setTranslatedLyrics(translationCache.current[cacheKey]);
+      return;
+    }
+
+    const requestId = ++translateRequestId.current;
+
+    try {
+      setTranslating(true);
+
+      const translatedText = await translateLongText(text, language);
+
+      // Only apply this result if it's still the most recent request.
+      if (requestId === translateRequestId.current) {
+        translationCache.current[cacheKey] = translatedText;
+        setTranslatedLyrics(translatedText);
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      if (requestId === translateRequestId.current) {
+        setTranslatedLyrics('Translation failed');
+      }
+    } finally {
+      if (requestId === translateRequestId.current) {
+        setTranslating(false);
+      }
+    }
+  };
+
+
+
 
 
   const poddata = async () => {
     try {
+      setLoading(true);
       const ress = await axios.get(
         `https://www.jiosaavn.com/api.php?__call=webapi.get&token=${id}&type=show&season_number=1&sort_order=&includeMetaTags=0&ctx=wap6dot0&api_version=4&_format=json&_marker=0`
       );
 
       const podres = ress?.data;
+      console.log('resp', podres);
+
       setEpisodedata(podres);
     } catch (err) {
       console.error("Error:", err);
@@ -444,7 +639,32 @@ const Podresult = () => {
               : "audio/mpeg",
         },
       ]);
+      // =========================
+      // SAVE TO SQLITE DATABASE
+      // =========================
+      console.log("Saving to database...");
+      await saveDownload({
+        id: item.id,
 
+        title: formatSongTitle(item?.name),
+
+        artist:
+          item?.artists?.primary?.[0]?.name || "Unknown",
+
+        album:
+          item?.album?.name || "",
+
+        image:
+          item?.image?.[2]?.url || "",
+
+        path: finalPath,
+
+        extension,
+
+        downloadedAt: Date.now(),
+      });
+
+      console.log("Saved to database");
       // =========================
       // STOP LOADER
       // =========================
@@ -563,6 +783,7 @@ const Podresult = () => {
   }
 
 
+
   const ListHeader = () => (
     <View>
       <View style={styles.albumHeader}>
@@ -576,8 +797,8 @@ const Podresult = () => {
           colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']}
           style={styles.albumInfoGradient}
         >
-          <Text style={styles.albumLabel}>Radio</Text>
-          <Text style={styles.albumName} numberOfLines={2}>
+          <Text style={styles.albumLabel} className='font-bold'>Podcast</Text>
+          <Text style={styles.albumName} numberOfLines={2} className='font-bold'>
             {dataSearch?.title?.replace(/\s*\(.*?\)\s*/g, '')}
           </Text>
         </LinearGradient>
@@ -609,7 +830,7 @@ const Podresult = () => {
                     selectedEpisode === seasonNum ? "#10b981" : "#1f2937",
                 }}
               >
-                <Text style={{ color: "white", fontSize: 14 }}>
+                <Text style={{ color: "white", fontSize: scale(14) }}>
                   {s.title}
                 </Text>
               </TouchableOpacity>
@@ -636,7 +857,7 @@ const Podresult = () => {
               onPress={() => navigation.goBack()}
               style={styles.backBtn}
               activeOpacity={0.8}>
-              <Ionicons name="arrow-back" size={22} color="white" />
+              <Ionicons name="arrow-back" size={scale(22)} color="white" />
             </TouchableOpacity>
             {dataSearch?.imageUrl && (
               <AverageColorExtractor
@@ -650,7 +871,15 @@ const Podresult = () => {
               />
             )}
             {loading ? (
-              <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator
+                  size="small"
+                  color="#10b981"
+                />
+                <Text style={styles.loadingText}>
+                  Loading...
+                </Text>
+              </View>
             ) : (
               <View className='flex-1 '>
                 <FlatList
@@ -711,10 +940,10 @@ const Podresult = () => {
                             <Ionicons name="information-circle-outline" size={18} color="#1DB954" />
                           </View>
                           <Text style={{
-                            color: '#1DB954', fontSize: 11,
-                            fontFamily: 'Poppins-Bold', letterSpacing: 3,
+                            color: '#1DB954', fontSize: scale(15),
+                            fontFamily: 'Poppins-Bold',
                           }}>
-                            ABOUT THIS SHOW
+                            About this show
                           </Text>
                         </View>
 
@@ -722,7 +951,7 @@ const Podresult = () => {
                         <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
                           <Text style={{
                             color: 'rgba(255,255,255,0.75)',
-                            fontSize: 14,
+                            fontSize: scale(14),
                             lineHeight: 22,
                             fontFamily: 'Poppins-Regular',
                           }}>
@@ -749,7 +978,7 @@ const Podresult = () => {
                             <Ionicons name="calendar-outline" size={15} color="rgba(255,255,255,0.4)" />
                             <Text style={{
                               color: 'rgba(255,255,255,0.45)',
-                              fontSize: 12,
+                              fontSize: scale(12),
                               fontFamily: 'Poppins-Regular',
                             }}>
                               Released Year
@@ -765,7 +994,7 @@ const Podresult = () => {
                           }}>
                             <Text style={{
                               color: '#1DB954',
-                              fontSize: 12,
+                              fontSize: scale(12),
                               fontFamily: 'Poppins-Bold',
                             }}>
                               {episodedata?.show_details?.year}
@@ -808,7 +1037,7 @@ const Podresult = () => {
                   }}
                   textStyle={{
                     fontFamily: 'Poppins-Bold',
-                    fontSize: 18,
+                    fontSize: scale(18),
                     color: 'white',
                   }}
                 />
@@ -816,8 +1045,7 @@ const Podresult = () => {
                   color: "white",
                   marginTop: 14,
                   fontFamily: 'Poppins-SemiBold',
-                  fontSize: 18,
-                  letterSpacing: 0.8,
+                  fontSize: scale(18),
                 }}>
                   {globalDownload.downloadedMB} MB
                 </Text>
@@ -825,7 +1053,7 @@ const Podresult = () => {
                   color: "rgba(255,255,255,0.7)",
                   marginTop: 6,
                   fontFamily: 'Poppins-Regular',
-                  fontSize: 14,
+                  fontSize: scale(14),
                 }}>
                   Downloading premium content…
                 </Text>
@@ -853,11 +1081,10 @@ const Podresult = () => {
                 />
                 <Text style={{
                   marginTop: 12,
-                  fontSize: 18,
+                  fontSize: scale(18),
                   fontFamily: 'Poppins-Bold',
                   backgroundClip: "text",
                   color: "white",
-                  letterSpacing: 1,
                 }}>
                   Download Complete 🎵
                 </Text>
@@ -902,15 +1129,8 @@ const Podresult = () => {
                     <View style={{ alignItems: 'center', marginTop: 10 }}>
                       <Image
                         source={{ uri: currentSong?.artwork }}
-                        style={{
-                          width: 260,
-                          height: 260,
-                          borderRadius: 16,
-                          shadowColor: '#000',
-                          shadowOpacity: 0.5,
-                          shadowRadius: 20,
-                          elevation: 10,
-                        }}
+                        style={styles.albumImage}
+                        className="rounded-xl"
                       />
                     </View>
                     <View style={{
@@ -1000,7 +1220,7 @@ const Podresult = () => {
                             </Text>
                           </View>
                         </View>
-                        <View style={styles.icons}>
+                        <View style={styles.menuContainer}>
                           <Menu>
                             <MenuTrigger customStyles={{ optionWrapper: { activeOpacity: 0.6 } }}>
                               <MaterialCommunityIcons name="dots-vertical" color="#fff" size={28} />
@@ -1027,7 +1247,7 @@ const Podresult = () => {
                                 },
                                 optionText: {
                                   color: '#fff',
-                                  fontSize: 15,
+                                  fontSize: scale(15),
                                   fontWeight: '500',
                                   marginLeft: 12,
 
@@ -1038,7 +1258,7 @@ const Podresult = () => {
                               <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => fetchLyrics(currentSong?.id)}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <MaterialIcons name="lyrics" size={20} color="#1DB954" />
-                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Lyrics</Text>
+                                  <Text style={{ color: 'white', fontSize: scale(12), marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Lyrics</Text>
                                 </View>
                               </MenuOption>
                               <View style={{
@@ -1051,7 +1271,7 @@ const Podresult = () => {
                               <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(currentSong)}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <FontAwesome6 name="download" size={20} color="#4da6ff" />
-                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
+                                  <Text style={{ color: 'white', fontSize: scale(12), marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
                                 </View>
                               </MenuOption>
                               <View style={{
@@ -1064,7 +1284,7 @@ const Podresult = () => {
                               <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleshowqr(currentSong)}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <Ionicons name="qr-code-outline" color="#cccccc" size={24} />
-                                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 10, fontFamily: 'Poppins-Bold', }}>QR Code</Text>
+                                  <Text style={{ color: 'white', fontSize: scale(12), marginLeft: 10, fontFamily: 'Poppins-Bold', }}>QR Code</Text>
                                 </View>
                               </MenuOption>
                             </MenuOptions>
@@ -1088,12 +1308,47 @@ const Podresult = () => {
                           style={{ padding: 16 }}
                         >
                           {/* Section title */}
-                          <Text style={{
-                            color: '#1DB954', fontSize: 16, fontFamily: 'Poppins-Bold',
-                            letterSpacing: 2, marginBottom: 12,
-                          }}>
-                            SONG INFO
-                          </Text>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              marginBottom: 16,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 4,
+                                height: 22,
+                                borderRadius: 4,
+                                backgroundColor: '#1DB954',
+                                marginRight: 10,
+                              }}
+                            />
+
+                            <View>
+                              <Text
+                                style={{
+                                  color: '#fff',
+                                  fontSize: scale(16),
+                                  fontFamily: 'Poppins-Bold',
+                                  letterSpacing: 0.2,
+                                }}
+                              >
+                                Song Details
+                              </Text>
+
+                              <Text
+                                style={{
+                                  color: 'rgba(255,255,255,0.4)',
+                                  fontSize: scale(10),
+                                  fontFamily: 'Poppins-Regular',
+                                  marginTop: 1,
+                                }}
+                              >
+                                Everything about this track
+                              </Text>
+                            </View>
+                          </View>
 
                           {[
                             { icon: 'calendar-outline', iconLib: 'Ionicons', label: 'Release Date', value: selectedSongDetails?.releaseDate },
@@ -1116,14 +1371,14 @@ const Podresult = () => {
                                       : <MaterialIcons name={icon} size={15} color="rgba(255,255,255,0.4)" />
                                     }
                                     <Text style={{
-                                      color: 'rgba(255,255,255,0.45)', fontSize: 12,
+                                      color: 'rgba(255,255,255,0.45)', fontSize: scale(12),
                                       fontFamily: 'Poppins-Regular',
                                     }}>
                                       {label}
                                     </Text>
                                   </View>
                                   <Text style={{
-                                    color: '#fff', fontSize: 12, fontFamily: 'Poppins-Bold',
+                                    color: '#fff', fontSize: scale(12), fontFamily: 'Poppins-Bold',
                                     maxWidth: '55%', textAlign: 'right',
                                   }}>
                                     {value}
@@ -1140,13 +1395,37 @@ const Podresult = () => {
                       </View>
                     )}
                     <View style={styles.descSection}>
-
-
                       <View style={styles.descCardModern}>
-                        <Text style={styles.descHeader}>ABOUT EPISODE</Text>
+
+                        {/* Header */}
+                        <View style={styles.descHeaderRow}>
+                          <View style={styles.descIconBox}>
+                            <Ionicons
+                              name="document-text-outline"
+                              size={18}
+                              color="#1DB954"
+                            />
+                          </View>
+
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.descHeader}>
+                              About Episodes
+                            </Text>
+
+                            <Text style={styles.descSubHeader}>
+                              Episode description
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Divider */}
+                        <View style={styles.descDivider} />
+
+                        {/* Description */}
                         <Text style={styles.descTextModern}>
-                          {currentSong?.Description}
+                          {currentSong?.Description || 'No description available for this episode.'}
                         </Text>
+
                       </View>
                     </View>
                   </BottomSheetScrollView>
@@ -1172,11 +1451,11 @@ const Podresult = () => {
               }}
             >
               <View style={{ display: 'flex', flexDirection: 'row', marginLeft: 10, marginTop: 10 }}>
-                <MaterialIcons name="lyrics" size={25} color="#1DB954" />
+                <MaterialIcons name="lyrics" size={scale(24)} color="#1DB954" />
 
                 <Text
                   style={{
-                    fontSize: 18,
+                    fontSize: scale(18),
                     marginLeft: 10,
                     color: "grey",
                     fontFamily: 'Poppins-Bold',
@@ -1187,34 +1466,182 @@ const Podresult = () => {
                 </Text>
               </View>
               <TouchableOpacity style={styles.clearIcon} onPress={() => sheet.current?.close()}>
-                <Ionicons name="close-circle" size={25} color="gray" />
+                <Ionicons name="close-circle" size={scale(24)} color="gray" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ position: "absolute", right: 50, top: "2%" }}
                 onPress={handleCopy}
               >
                 {copied ? (
-                  <Ionicons name="checkbox-outline" size={25} color="grey" />
+                  <Ionicons name="checkbox-outline" size={scale(24)} color="grey" />
                 ) : (
-                  <MaterialDesignIcons name="clipboard-text-multiple" size={25} color="grey" />
+                  <MaterialDesignIcons name="clipboard-text-multiple" size={scale(24)} color="grey" />
                 )}
               </TouchableOpacity>
-              <BottomSheetScrollView
-                contentContainerStyle={{ padding: 16 }}
-                showsVerticalScrollIndicator={false}
-              >
-                <Text
-                  style={{
-                    color: "white",
-                    fontSize: 14,
-                    textAlign: "center",   // centers text horizontally
-                    lineHeight: 22,
-                    marginBottom: 80,     // better readability
-                    fontFamily: 'Poppins-Bold',
-                  }}
-                >
-                  {lyrics}
+              <View style={styles.languageContainer}>
+                <Text style={styles.languageLabel}>
+                  Translate lyrics
                 </Text>
+
+                <Menu>
+                  <MenuTrigger customStyles={{ TriggerTouchableComponent: TouchableOpacity }}>
+                    <View style={styles.languageSelector}>
+                      <MaterialIcons
+                        name="translate"
+                        size={scale(22)}
+                        color="#1DB954"
+                      />
+
+                      <Text
+                        style={styles.selectedLanguageText}
+                        numberOfLines={1}
+                      >
+                        {selectedLanguageName}
+                      </Text>
+
+                      <MaterialIcons
+                        name="keyboard-arrow-down"
+                        size={scale(22)}
+                        color="rgba(255,255,255,0.6)"
+                      />
+                    </View>
+                  </MenuTrigger>
+
+                  <MenuOptions
+                    customStyles={{
+                      optionsContainer: styles.languageMenu,
+                      optionWrapper: {
+                        padding: 0,
+                      },
+                    }}
+                  >
+                    {lyricLanguages.map((language, index) => (
+                      <React.Fragment key={language.code}>
+
+                        <MenuOption
+                          onSelect={() => {
+                            setSelectedLanguage(language.code);
+                          }}
+                        >
+                          <View
+                            style={[
+                              styles.languageOption,
+                              selectedLanguage === language.code &&
+                              styles.languageOptionSelected,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.languageOptionText,
+                                selectedLanguage === language.code &&
+                                styles.languageOptionTextSelected,
+                              ]}
+                            >
+                              {language.name}
+                            </Text>
+
+                            {selectedLanguage === language.code && (
+                              <MaterialIcons
+                                name="check"
+                                size={19}
+                                color="#1DB954"
+                              />
+                            )}
+                          </View>
+                        </MenuOption>
+
+                        {index < lyricLanguages.length - 1 && (
+                          <View style={styles.languageDivider} />
+                        )}
+
+                      </React.Fragment>
+                    ))}
+                  </MenuOptions>
+                </Menu>
+              </View>
+
+              {/* LYRICS BODY — this was missing before, which is why
+                switching languages appeared to do nothing: nothing
+                ever rendered the lyrics/translatedLyrics text. */}
+              <BottomSheetScrollView
+                contentContainerStyle={{
+                  paddingHorizontal: 20,
+                  paddingBottom: 40,
+                  alignItems: translating ? 'center' : 'stretch',
+                }}
+              >
+                {translating ? (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(29,185,84,0.12)',
+                      borderRadius: 20,
+                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      marginTop: 40,
+                      gap: 10,
+                    }}
+                  >
+                    <ActivityIndicator size="small" color="#1DB954" />
+                    <Text
+                      style={{
+                        color: '#1DB954',
+                        fontSize: scale(13),
+                        fontFamily: 'Poppins-SemiBold',
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      translation…
+                    </Text>
+                  </View>
+                ) : (
+                  <View>
+                    <Text
+                      style={{
+                        color: 'white',
+                        fontSize: scale(16),
+                        lineHeight: 24,
+                      }}
+                      className='font-semibold'
+                    >
+                      {translatedLyrics ?? lyrics}
+                    </Text>
+                    {lyricsdata ? (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginTop: 24,
+                          paddingHorizontal: 10,
+                        }}
+                      >
+                        <MaterialIcons
+                          name="copyright"
+                          color="rgba(255,255,255,0.35)"
+                          size={14}
+                          style={{ marginRight: 5 }}
+                        />
+
+                        <Text
+                          style={{
+                            color: 'rgba(255,255,255,0.35)',
+                            fontSize: scale(12),
+                            lineHeight: 16,
+                            textAlign: 'center',
+                            flexShrink: 1,
+                          }}
+                          className='font-bold'
+                        >
+                          {lyricsdata}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                )}
               </BottomSheetScrollView>
             </BottomSheet>
           </SafeAreaView>
@@ -1265,7 +1692,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
 
               {/* Song Title */}
               <Text
-                style={[styles.songTitle, isPlaying && { color: "#1DB954", width: 155, }]}
+                style={[styles.songTitle, isPlaying && { color: "#1DB954", }]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -1314,7 +1741,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
                 },
                 optionText: {
                   color: '#fff',
-                  fontSize: 15,
+                  fontSize: scale(15),
                   fontWeight: '500',
                   marginLeft: 12,
 
@@ -1325,7 +1752,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
               <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => fetchLyrics(song?.id)}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <MaterialIcons name="lyrics" size={20} color="#1DB954" />
-                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Lyrics</Text>
+                  <Text style={{ color: 'white', fontSize: scale(12), marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Lyrics</Text>
                 </View>
               </MenuOption>
               <View style={{
@@ -1338,7 +1765,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
               <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleDownload(song)}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <FontAwesome6 name="download" size={20} color="#4da6ff" />
-                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
+                  <Text style={{ color: 'white', fontSize: scale(12), marginLeft: 12, fontFamily: 'Poppins-Bold', }}>Download</Text>
                 </View>
               </MenuOption>
               <View style={{
@@ -1351,7 +1778,7 @@ const SongItem = React.memo(({ index, song, currentSong, handlePlay, handleDownl
               <MenuOption customStyles={{ optionWrapper: { activeOpacity: 0.6 } }} onSelect={() => handleshowqr(song)}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="qr-code-outline" color="#cccccc" size={24} />
-                  <Text style={{ color: 'white', fontSize: 12, marginLeft: 10, fontFamily: 'Poppins-Bold', }}>QR Code</Text>
+                  <Text style={{ color: 'white', fontSize: scale(12), marginLeft: 10, fontFamily: 'Poppins-Bold', }}>QR Code</Text>
                 </View>
               </MenuOption>
             </MenuOptions>
@@ -1384,16 +1811,15 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     color: 'rgba(255,255,255,0.45)',
-    fontSize: 11,
+    fontSize: scale(10),
     fontFamily: 'Poppins-Regular',
     marginBottom: -1,
   },
 
   infoValue: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(12),
     fontFamily: 'Poppins-Bold',
-    width: 250,
   },
   episodeContainer: {
     marginTop: 20,
@@ -1402,7 +1828,7 @@ const styles = StyleSheet.create({
 
   episodeTitle: {
     color: '#1DB954',
-    fontSize: 16,
+    fontSize: scale(14),
     fontFamily: 'Poppins-Bold',
     textAlign: 'left',
 
@@ -1412,6 +1838,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 20,
     alignItems: 'center',
+    gap: 4,
   },
 
   metaChip: {
@@ -1425,44 +1852,8 @@ const styles = StyleSheet.create({
 
   metaText: {
     color: '#ccc',
-    fontSize: 12,
+    fontSize: scale(12),
     fontFamily: 'Poppins-Bold',
-  },
-
-  descSection: {
-    marginTop: 30,
-    marginBottom: 30,
-  },
-
-  descHeader: {
-    fontSize: 16,
-    color: '#1DB954',
-    fontFamily: 'Poppins-Bold',
-    letterSpacing: 2,
-    marginBottom: 12,
-
-  },
-
-  descCardModern: {
-    marginHorizontal: 16,
-    padding: 18,
-    borderRadius: 20,
-
-    backgroundColor: 'rgba(255,255,255,0.05)',
-
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-  },
-
-  descTextModern: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 14,
-    lineHeight: 22,
-    fontFamily: 'Poppins-Regular',
   },
   container: {
     flex: 1,
@@ -1482,22 +1873,14 @@ const styles = StyleSheet.create({
   },
   albumLabel: {
     color: '#1DB954',
-    fontSize: 11,
-    fontFamily: 'Poppins-Bold',
-    letterSpacing: 3,
+    fontSize: scale(16),
     marginBottom: 6,
   },
   albumName: {
     color: '#fff',
-    fontSize: 20,
-    fontFamily: 'Poppins-Bold',
-    letterSpacing: 0.3,
+    fontSize: scale(14),
     lineHeight: 32,
     marginBottom: 12,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 10,
   },
   metaBadge: {
     flexDirection: 'row',
@@ -1512,7 +1895,7 @@ const styles = StyleSheet.create({
   },
   metaBadgeText: {
     color: '#1DB954',
-    fontSize: 12,
+    fontSize: scale(12),
     fontFamily: 'Poppins-Bold',
   },
   albumHeader: {
@@ -1521,22 +1904,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 16,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
     marginTop: 10,
     // zIndex: 1000,
   },
   albumImage: {
-    width: 260,
-    height: 260,
-    borderRadius: 20,
+    width: SONG_IMAGE_SIZE,
+    height: SONG_IMAGE_SIZE,
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOpacity: 0.4,
     shadowRadius: 20,
@@ -1549,7 +1932,7 @@ const styles = StyleSheet.create({
   },
 
   albumTitle: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontFamily: 'Poppins-Bold',
     color: '#fff',
     textAlign: 'center',
@@ -1557,7 +1940,7 @@ const styles = StyleSheet.create({
 
   albumMeta: {
     marginTop: 0,
-    fontSize: 14,
+    fontSize: scale(14),
     color: '#cfcfcf',
   },
   playButton: {
@@ -1585,20 +1968,28 @@ const styles = StyleSheet.create({
     backdropFilter: 'blur(10px)',
   },
   songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
+  songImage: {
+    width: scale(58),
+    height: scale(58),
+    borderRadius: 12,
+    marginRight: 14,
+    borderWidth: 2,
+  },
   songText: { flex: 1, paddingRight: 8, },
   songTitle: {
-    color: '#fff',
-    fontSize: 14,
+    color: 'white',
+    fontSize: scale(12),
     fontFamily: 'Poppins-Bold',
     marginBottom: -5,
-    width: 180,
+    flex: 1,
+    minWidth: 0,
   },
   artist: {
     color: 'rgba(255,255,255,0.45)',
-    fontSize: 12,
+    fontSize: scale(10),
     fontFamily: 'Poppins-Regular',
-    marginTop: 10,
+    marginTop: 5,
+    flexShrink: 1,
   },
   songRight: { flexDirection: 'row', alignItems: 'center' },
   songImagee: {
@@ -1622,43 +2013,208 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   textContainer: {
-    alignSelf: 'flex-start',
-    paddingLeft: 18,
-    marginTop: -5,
-    width: '100%',
+    alignSelf: 'stretch',
+    paddingHorizontal: 18,
   },
   songTitled: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: 'white',
     marginTop: 10,
     width: 280,
     fontFamily: 'Poppins-Bold',
   },
   songTitles: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: '700',
     color: 'white',
     marginTop: 10,
     width: 280,
   },
   album: {
-    fontSize: 16,
+    fontSize: scale(16),
     color: 'grey',
     marginTop: 5,
-  },
-  icons: {
-    paddingTop: 20,
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    letterSpacing: 10,
-    width: 100,
-    position: 'absolute',
-    marginLeft: 290,
   },
   clearIcon: {
     position: 'absolute',
     right: 10,
     top: '2%',
+  },
+  menuContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 16,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuTriggerSmall: {
+    padding: 6,
+  },
+
+  languageContainer: {
+    height: 58,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  languageLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: scale(12),
+    fontFamily: 'Poppins-Regular',
+  },
+
+  languageSelector: {
+    minWidth: 145,
+    height: 40,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  selectedLanguageText: {
+    flex: 1,
+    marginLeft: 8,
+    marginRight: 4,
+    color: '#fff',
+    fontSize: scale(12),
+    fontFamily: 'Poppins-Bold',
+  },
+
+  languageMenu: {
+    width: 180,
+    marginTop: 8,
+    borderRadius: 14,
+    backgroundColor: '#202020',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+
+  languageOption: {
+    height: 42,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  languageOptionSelected: {
+    backgroundColor: 'rgba(29,185,84,0.12)',
+  },
+
+  languageOptionText: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: scale(12),
+    fontFamily: 'Poppins-Medium',
+  },
+
+  languageOptionTextSelected: {
+    color: '#1DB954',
+    fontFamily: 'Poppins-Bold',
+  },
+
+  languageDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    marginHorizontal: 8,
+  },
+
+  loadingContainer: {
+    height: 230,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  loadingText: {
+    color: '#9ca3af',
+    marginTop: 8,
+    fontSize: scale(13),
+    fontFamily: 'Poppins-Regular',
+  },
+  descSection: {
+    marginTop: 20,
+    marginBottom: 30,
+  },
+
+  descCardModern: {
+    marginHorizontal: 16,
+    padding: 18,
+    borderRadius: 20,
+
+    backgroundColor: 'rgba(255,255,255,0.05)',
+
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+
+    overflow: 'hidden',
+  },
+
+  descHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  descIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+
+    backgroundColor: 'rgba(29,185,84,0.12)',
+
+    borderWidth: 1,
+    borderColor: 'rgba(29,185,84,0.18)',
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    marginRight: 12,
+  },
+
+  descHeader: {
+    fontSize: scale(15),
+    color: '#1DB954',
+    fontFamily: 'Poppins-Bold',
+  },
+
+  descSubHeader: {
+    marginTop: 2,
+    fontSize: scale(10),
+    color: 'rgba(255,255,255,0.4)',
+    fontFamily: 'Poppins-Regular',
+  },
+
+  descDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    marginVertical: 16,
+  },
+
+  descTextModern: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: scale(13),
+    lineHeight: 21,
+    fontFamily: 'Poppins-Regular',
   },
 });

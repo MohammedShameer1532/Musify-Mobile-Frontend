@@ -3,6 +3,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,8 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Navbar from '../common/Navbar';
-import useNetwork from '../contextProvider/networkContext';
-import Suggestion from '../resultComponent/Suggestion';
 import Newrelease from '../resultComponent/Newrelease';
 import Tplaylist from '../resultComponent/Tplaylist';
 import Radio from '../resultComponent/Radio';
@@ -24,10 +23,17 @@ import { getAuth } from '@react-native-firebase/auth';
 import { getFirestore } from '@react-native-firebase/firestore';
 import { doc, getDoc, setDoc } from '@react-native-firebase/firestore';
 import Recommendation from '../resultComponent/Recommendation';
-import { API_URL } from '@env';
 import { useNavigation } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import Trending from '../resultComponent/Trending';
+import { Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const IndexScreen = () => {
   const [visible, setVisible] = useState(false);
@@ -36,50 +42,58 @@ const IndexScreen = () => {
   const navigation = useNavigation();
   const sections = [
     { id: '1', component: <Recommendation /> },
-    { id: '2', component: <Newrelease /> },
-    { id: '3', component: <Tplaylist /> },
-    { id: '4', component: <Radio /> },
-    { id: '5', component: <Podcast /> },
-    { id: '6', component: <Topartist /> },
+    { id: '2', component: <Trending /> },
+    { id: '3', component: <Newrelease /> },
+    { id: '4', component: <Tplaylist /> },
+    { id: '5', component: <Topartist /> },//
+    { id: '7', component: <Podcast /> },//
+    { id: '8', component: <Radio /> },
   ];
+
+
 
   useEffect(() => {
     const checkWelcome = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) return;
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
 
-      const uid = user.uid;
-      const name = user.displayName || 'there';
+        if (!user) return;
 
-      const db = getFirestore();
-      const userRef = doc(db, 'users', uid);
-      const docSnap = await getDoc(userRef);
+        const uid = user.uid;
+        const name = user.displayName || 'there';
 
-      // 🔥 FIRST TIME USER
-      if (!docSnap.exists() || !docSnap.data().isOnboarded) {
-        setTitle(`Hi ${name} 👋`);
-        setMessage('You’re successfully onboarded!');
-        setVisible(true);
+        const db = getFirestore();
+        const userRef = doc(db, 'users', uid);
+        const docSnap = await getDoc(userRef);
 
-        await setDoc(
-          userRef,
-          { isOnboarded: true },
-          { merge: true }
-        );
+        if (!docSnap.exists() || !docSnap.data().isOnboarded) {
+          setTitle(`Hi ${name} 👋`);
+          setMessage('You’re successfully onboarded!');
+          setVisible(true);
 
-        return;
-      }
+          await setDoc(
+            userRef,
+            { isOnboarded: true },
+            { merge: true }
+          );
 
-      // 🔁 RETURNING USER (once per app launch)
-      const flagKey = `welcome_shown_${uid}`;
-      const alreadyShown = await AsyncStorage.getItem(flagKey);
+          return;
+        }
 
-      if (!alreadyShown) {
-        setTitle(`Welcome back ${name} 🎉`);
-        setMessage('Glad to see you again!');
-        setVisible(true);
-        await AsyncStorage.setItem(flagKey, 'true');
+        const flagKey = `welcome_shown_${uid}`;
+        const alreadyShown = await AsyncStorage.getItem(flagKey);
+
+        if (!alreadyShown) {
+          setTitle(`Welcome back ${name} 🎉`);
+          setMessage('Glad to see you again!');
+          setVisible(true);
+
+          await AsyncStorage.setItem(flagKey, 'true');
+        }
+
+      } catch (error) {
+        console.log('Welcome check error:', error);
       }
     };
 
@@ -87,68 +101,72 @@ const IndexScreen = () => {
   }, []);
 
 
-
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <>
+      <StatusBar
+        backgroundColor="#000000"
+        barStyle="light-content"
+        translucent={false}
+      />
       <LinearGradient
         colors={['#3a86ff', '#1a1a2e', '#0d0d0d']} // reversed order
         start={{ x: 0, y: 0 }}   // top
         end={{ x: 0, y: 1 }}     // bottom
         style={{ flex: 1 }}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View className="flex-row items-center justify-between p-2 ml-4 mt-4 mr-4">
+        <SafeAreaView style={{ flex: 1 }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View className="flex-row items-center justify-between p-2 ml-4 mt-4 mr-4">
 
-            {/* Left section */}
-            <View className="flex-row items-center gap-3">
-              <Image
-                source={require('../assets/LysernFy.png')}
-                style={styles.avatar}
-                className="w-14 h-14 rounded-md"
-              />
-              <Text style={styles.header}>
-                LysernFy
-              </Text>
-            </View>
-
-            {/* Right section */}
-            <TouchableOpacity onPress={() => navigation.navigate('Qrscanner')} className='mr-5'>
-              <MaterialIcons name="qr-code-scanner" color="#fff" size={32} />
-            </TouchableOpacity>
-          </View>
-          <Navbar />
-          {/* Custom Modal */}
-          <Modal transparent visible={visible} animationType="fade">
-            <View style={styles.overlay}>
-              <View style={styles.alertBox}>
-                <Text style={styles.title}>{title}</Text>
-                <Text style={styles.message}>{message}</Text>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => setVisible(false)}
-                >
-                  <Text style={styles.buttonText}>Continue</Text>
-                </TouchableOpacity>
+              {/* Left section */}
+              <View className="flex-row items-center gap-3">
+                <Image
+                  source={require('../assets/LysernFy.png')}
+                  style={styles.avatar}
+                />
+                <Text style={styles.header} className='font-extrabold'>
+                  LysernFy
+                </Text>
               </View>
-            </View>
-          </Modal>
 
-          {/* Content */}
-          <LegendList
-            data={sections}
-            estimatedItemSize={150}
-            renderItem={({ item }) => item.component}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
-            contentContainerStyle={{ paddingBottom: 90, marginTop: 0 }}
-            ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
-            showsVerticalScrollIndicator={false}
-          />
-        </KeyboardAvoidingView>
+              {/* Right section */}
+              <TouchableOpacity onPress={() => navigation.navigate('Qrscanner')} className='mr-5'>
+                <MaterialIcons name="qr-code-scanner" color="#fff" size={scale(30)} />
+              </TouchableOpacity>
+            </View>
+            <Navbar />
+            {/* Custom Modal */}
+            <Modal transparent visible={visible} animationType="fade">
+              <View style={styles.overlay}>
+                <View style={styles.alertBox}>
+                  <Text style={styles.title}>{title}</Text>
+                  <Text style={styles.message}>{message}</Text>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => setVisible(false)}
+                  >
+                    <Text style={styles.buttonText}>Continue</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+
+            {/* Content */}
+            <LegendList
+              data={sections}
+              estimatedItemSize={150}
+              renderItem={({ item }) => item.component}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
+              contentContainerStyle={{ paddingBottom: 90, marginTop: 0 }}
+              showsVerticalScrollIndicator={false}
+            />
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </LinearGradient>
-    </SafeAreaView>
+    </>
   );
 };
 
@@ -158,7 +176,11 @@ const styles = StyleSheet.create({
   offlineContainer: {
     padding: 20
   },
-
+  avatar: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(6),
+  },
   offlineCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,10 +232,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Bold',
   },
   header: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 26,
+    fontSize: scale(26),
     color: 'white',
-    letterSpacing: 0.2
   },
   overlay: {
     flex: 1,

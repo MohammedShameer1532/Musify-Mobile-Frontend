@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
 
     left: 18,
     right: 18,
-    bottom: 10,
+    bottom: 5,
 
     height: 86, // increased
 
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
 
   tabItem: {
     paddingTop: 20,
-    paddingBottom: 30,
+    paddingBottom: 20,
   },
 
   label: {

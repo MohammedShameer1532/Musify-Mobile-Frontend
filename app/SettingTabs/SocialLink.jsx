@@ -8,11 +8,24 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  Dimensions,
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const SocialLink = ({ navigation }) => {
   const links = [
@@ -86,7 +99,7 @@ const SocialLink = ({ navigation }) => {
             >
               <Ionicons
                 name="arrow-back"
-                size={22}
+                size={scale(22)}
                 color="#fff"
               />
             </TouchableOpacity>
@@ -142,9 +155,7 @@ const SocialLink = ({ navigation }) => {
                 <TouchableOpacity
                   key={index}
                   activeOpacity={0.9}
-                  onPress={() =>
-                    Linking.openURL(link.url)
-                  }
+                  onPress={() => Linking.openURL(link.url)}
                   style={styles.touchCard}
                 >
                   <LinearGradient
@@ -154,8 +165,7 @@ const SocialLink = ({ navigation }) => {
                     ]}
                     style={styles.card}
                   >
-                    {/* Left */}
-
+                    {/* Left Side */}
                     <View style={styles.leftContent}>
                       <LinearGradient
                         colors={link.colors}
@@ -168,23 +178,34 @@ const SocialLink = ({ navigation }) => {
                         />
                       </LinearGradient>
 
-                      <View style={{ marginLeft: 16 }}>
-                        <Text style={styles.cardTitle}>
+                      <View
+                        style={{
+                          marginLeft: 16,
+                          flex: 1,
+                        }}
+                      >
+                        <Text
+                          style={styles.cardTitle}
+                          numberOfLines={1}
+                        >
                           {link.title}
                         </Text>
 
-                        <Text style={styles.cardUsername}>
+                        <Text
+                          style={styles.cardUsername}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
                           {link.username}
                         </Text>
                       </View>
                     </View>
 
-                    {/* Right */}
-
+                    {/* Right Arrow */}
                     <View style={styles.arrowWrap}>
                       <Ionicons
-                        name="arrow-forward"
-                        size={18}
+                        name="chevron-forward"
+                        size={22}
                         color="#fff"
                       />
                     </View>
@@ -196,9 +217,23 @@ const SocialLink = ({ navigation }) => {
             {/* FOOTER */}
 
             <View style={styles.footer}>
+              <MaterialCommunityIcons
+                name="laptop"
+                size={20}
+                color="#1DB954"
+                style={{ marginRight: 8, marginBottom: 2 }}
+              />
+
               <Text style={styles.footerText}>
-                Built with ❤️ by Mohammed Shameer
+                Built by Mohammed Shameer
               </Text>
+
+              <MaterialCommunityIcons
+                name="heart"
+                size={16}
+                color="#ff4d6d"
+                style={{ marginLeft: 6 }}
+              />
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -227,9 +262,9 @@ const styles = StyleSheet.create({
 
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
 
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
@@ -240,7 +275,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -299,7 +334,7 @@ const styles = StyleSheet.create({
 
   heroTitle: {
     color: '#fff',
-    fontSize: 30,
+    fontSize: scale(24),
     marginTop: 28,
     textAlign: 'center',
 
@@ -312,7 +347,7 @@ const styles = StyleSheet.create({
 
     marginTop: 12,
     lineHeight: 24,
-    fontSize: 15,
+    fontSize: scale(15),
 
     paddingHorizontal: 10,
 
@@ -331,71 +366,68 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    borderRadius: 28,
-
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
 
   leftContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 12,
   },
 
   iconWrap: {
     width: 58,
     height: 58,
     borderRadius: 20,
-
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  cardTitle: {
-    color: '#fff',
-    fontSize: 17,
-
-    fontFamily: 'Poppins-Bold',
-  },
-
-  cardUsername: {
-    color: '#999',
-    fontSize: 13,
-    marginTop: 4,
-
-    fontFamily: 'Poppins-Medium',
   },
 
   arrowWrap: {
     width: 42,
     height: 42,
     borderRadius: 14,
-
     backgroundColor: 'rgba(255,255,255,0.08)',
-
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
+  },
+
+  cardTitle: {
+    color: '#fff',
+    fontSize: scale(16),
+    fontFamily: 'Poppins-Bold',
+  },
+
+  cardUsername: {
+    color: '#999',
+    fontSize: scale(13),
+    marginTop: 4,
+
+    fontFamily: 'Poppins-Medium',
   },
 
   /* FOOTER */
 
   footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
     paddingBottom: 20,
   },
 
   footerText: {
-    color: '#777',
-    fontSize: 13,
-
+    color: '#999',
+    fontSize: scale(13),
     fontFamily: 'Poppins-Medium',
   },
 });

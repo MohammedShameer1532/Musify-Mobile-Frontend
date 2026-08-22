@@ -8,6 +8,7 @@ import {
   Image,
   ScrollView,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -18,6 +19,17 @@ import { useRef } from 'react';
 import ViewShot from 'react-native-view-shot';
 import RNBlobUtil from 'react-native-blob-util';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const Donateus = () => {
   const navigation = useNavigation();
@@ -89,7 +101,7 @@ const Donateus = () => {
             >
               <Ionicons
                 name="arrow-back"
-                size={22}
+                size={scale(22)}
                 color="#fff"
               />
             </TouchableOpacity>
@@ -392,9 +404,9 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
 
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
@@ -405,7 +417,7 @@ const styles = StyleSheet.create({
 
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -459,7 +471,7 @@ const styles = StyleSheet.create({
 
   heroTitle: {
     color: '#fff',
-    fontSize: 30,
+    fontSize: scale(24),
 
     marginTop: 26,
     textAlign: 'center',
@@ -473,7 +485,7 @@ const styles = StyleSheet.create({
 
     marginTop: 14,
     lineHeight: 24,
-    fontSize: 15,
+    fontSize: scale(15),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -509,7 +521,7 @@ const styles = StyleSheet.create({
 
   statsNumber: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: scale(18),
     marginTop: 10,
 
     fontFamily: 'Poppins-Bold',
@@ -519,7 +531,7 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 4,
 
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -534,7 +546,7 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: scale(20),
 
     fontFamily: 'Poppins-Bold',
   },
@@ -543,7 +555,7 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 4,
 
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -582,14 +594,14 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
 
     fontFamily: 'Poppins-Bold',
   },
 
   cardDesc: {
     color: '#9a9a9a',
-    fontSize: 13,
+    fontSize: scale(13),
 
     marginTop: 6,
     lineHeight: 20,
@@ -621,7 +633,7 @@ const styles = StyleSheet.create({
 
   donateText: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: scale(16),
 
     fontFamily: 'Poppins-Bold',
   },
@@ -656,7 +668,7 @@ const styles = StyleSheet.create({
 
   qrHeading: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: scale(20),
 
     marginTop: 16,
 
@@ -680,10 +692,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
 
     lineHeight: 22,
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
-    marginTop:10
+    marginTop: 10
   },
 
   /* NOTE */
@@ -709,7 +721,7 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 22,
 
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -733,13 +745,13 @@ const styles = StyleSheet.create({
 
   downloadText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
     marginLeft: 8,
     marginTop: 5,
     fontFamily: 'Poppins-Bold',
   },
   downloadIcon: {
-    fontSize: 15,
-    fontFamily: 'Poppins-Bold', 
+    fontSize: scale(15),
+    fontFamily: 'Poppins-Bold',
   }
 });

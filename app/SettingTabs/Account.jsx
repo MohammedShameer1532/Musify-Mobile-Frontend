@@ -9,6 +9,7 @@ import {
   View,
   ActivityIndicator,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +34,17 @@ import {
   doc,
   onSnapshot,
 } from '@react-native-firebase/firestore';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const Account = () => {
   const navigation = useNavigation();
@@ -191,7 +203,7 @@ const Account = () => {
             onPress={() => navigation.goBack()}
             style={styles.backBtn}
           >
-            <Ionicons name="arrow-back" size={22} color="white" />
+            <Ionicons name="arrow-back" size={scale(22)} color="white" />
           </TouchableOpacity>
 
           <Text style={styles.title}>
@@ -470,19 +482,21 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
     backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+
+
   },
 
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -528,7 +542,7 @@ const styles = StyleSheet.create({
 
   heroName: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: scale(24),
     marginTop: 14,
     fontFamily: 'Poppins-Bold',
   },
@@ -536,7 +550,7 @@ const styles = StyleSheet.create({
   heroEmail: {
     color: 'rgba(255,255,255,0.85)',
     marginTop: 5,
-    fontSize: 14,
+    fontSize: scale(14),
     fontFamily: 'Poppins-Medium',
   },
 
@@ -590,14 +604,14 @@ const styles = StyleSheet.create({
   statsTitle: {
     color: '#aaa',
     marginTop: 10,
-    fontSize: 13,
+    fontSize: scale(13),
     fontFamily: 'Poppins-Medium',
   },
 
   statsValue: {
     color: '#fff',
     marginTop: 6,
-    fontSize: 14,
+    fontSize: scale(14),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -625,7 +639,7 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: scale(18),
     marginBottom: 20,
     fontFamily: 'Poppins-Bold',
   },
@@ -642,14 +656,14 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     color: '#888',
-    fontSize: 12,
+    fontSize: scale(12),
     fontFamily: 'Poppins-Medium',
   },
 
   infoValue: {
     color: '#fff',
     marginTop: 4,
-    fontSize: 14,
+    fontSize: scale(14),
     fontFamily: 'Poppins-SemiBold',
   },
 
@@ -679,7 +693,7 @@ const styles = StyleSheet.create({
 
   btnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: scale(16),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -699,7 +713,7 @@ const styles = StyleSheet.create({
 
   modalTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     textAlign: 'center',
     marginBottom: 12,
     fontFamily: 'Poppins-Bold',

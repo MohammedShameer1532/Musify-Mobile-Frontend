@@ -1,13 +1,24 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import React, { useCallback, useContext, useState } from 'react';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SearchContext } from '../contextProvider/searchContext';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+
+const { width } = Dimensions.get('window'); // screen width
 
 const Recommendation = () => {
   const [suggestion, setSuggestion] = useState([]);
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
   const { setDataSearch, songsuggest } = useContext(SearchContext);
 
   const DEFAULT_ID = "_giyfEgV";
@@ -18,99 +29,133 @@ const Recommendation = () => {
       getSuggestions();
     }, [id])
   );
+
   const getSuggestions = async () => {
     try {
+      setLoading(true);
       const validId = /^\d+$/.test(id) ? DEFAULT_ID : id;
-
       const res = await axios.get(
         `https://musify-api-inky.vercel.app/api/songs/${validId}/suggestions?limit=30`
       );
-
-      const data = res.data.data || [];
-      setSuggestion(data);
-
+      setSuggestion(res.data.data || []);
     } catch (err) {
       console.error('Error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const getHighResImage = (image) => {
     if (!image) return null;
-
-    // ✅ Case 1: JioSaavn image array
     if (Array.isArray(image)) {
       return (
-        image.find(img => img.quality === '500x500')?.link ||
-        image.find(img => img.quality === '150x150')?.link ||
-        image[image.length - 1]?.link
+        image.find(img => img.url?.includes('500x500'))?.url ||
+        image.find(img => img.url?.includes('150x150'))?.url ||
+        image[0]?.url
       );
     }
-
-    // ✅ Case 2: String image (Playlists, Artist)
     if (typeof image === 'string') {
-      return image
-        .replace(/_\d+x\d+/, '_500x500')
-        .replace(/-\d+x\d+/, '-500x500');
+      return image.replace(/_\d+x\d+/, '_500x500').replace(/-\d+x\d+/, '-500x500');
     }
-
     return null;
   };
 
   return (
-    <View >
-      <Text style={styles.header} >Recommendation</Text>
-      <FlatList
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 0, marginLeft: 20, padding: 5 }}
-        horizontal
-        data={suggestion}
-        keyExtractor={(song) => song.id}
-        renderItem={({ item: song }) => (
-          <View style={styles.songContainer}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Sresult', setDataSearch(song.id))}
-            >
-              <Image
-                source={{ uri: getHighResImage(song?.image[2]?.url) }}
-                className="rounded-3xl w-44 h-48 p-4"
-                resizeMode="cover"
-              />
-              <Text
-                style={styles.songTitle}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {song?.name?.replace(/\s*\(.*?\)\s*/g, '')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+    <View style={styles.container}>
+      <Text style={styles.header} className='font-extrabold'>You Might Like</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="small"
+            color="#10b981"
+          />
+          <Text style={styles.loadingText}>
+            Loading...
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.artistList}
+          horizontal
+          data={suggestion}
+          keyExtractor={(song) => song.id}
+          renderItem={({ item: song }) => (
+            <View style={styles.card}>
+              <TouchableOpacity onPress={() => navigation.navigate('Sresult', setDataSearch(song.id))}>
+                <Image
+                  source={{ uri: getHighResImage(song?.image) }}
+                  style={styles.artistImage}
+                  resizeMode="cover"
+                />
+                <Text style={styles.artistName} numberOfLines={2} ellipsizeMode="tail">
+                  {song?.name?.replace(/\s*\(.*?\)\s*/g, '')}
+                </Text>
+                <Text style={styles.artistSubtitle} numberOfLines={1}>
+                  {song?.type
+                    ? song.type.charAt(0).toUpperCase() + song.type.slice(1)
+                    : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 };
 
 export default Recommendation;
+
 const styles = StyleSheet.create({
-  header: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 20,
-    color: 'white',
-    marginLeft: 20,
+  container: {
+    width: '100%',
     marginTop: 5,
   },
-
-  songContainer: {
-    marginTop: 0,
-    marginRight: 16,   // ✅ controls gap between images
-    alignItems: 'flex-start',
+  header: {
+    color: 'white',
+    fontSize: 16,
+    marginLeft: 20,
+    marginTop: 5,
+    marginBottom: 10,
   },
 
-  songTitle: {
-    fontSize: 14,
+  loadingContainer: {
+    height: 230,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    color: '#9ca3af',
+    marginTop: 8,
+    fontSize: 13,
+    fontFamily: 'Poppins-Regular',
+  },
+  artistList: {
+    paddingLeft: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  card: {
+    width: width * 0.45,
+  },
+  artistImage: {
+    width: '90%',
+    height: 160,
+    borderRadius: 20,
+  },
+  artistName: {
     color: 'white',
+    fontSize: 12,
     marginTop: 10,
-    width: 176,       // match image width
+    width: '100%',
     fontFamily: 'Poppins-Medium',
-  }
-})
+  },
+  artistSubtitle: {
+    color: '#9ca3af',
+    fontSize: 10.5,
+    marginTop: 3,
+    fontFamily: 'Poppins-Regular',
+  },
+});

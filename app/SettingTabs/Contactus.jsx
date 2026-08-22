@@ -9,12 +9,25 @@ import {
   StatusBar,
   ScrollView,
   Image,
+  Dimensions,
 } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const Contactus = () => {
   const navigation = useNavigation();
@@ -48,7 +61,7 @@ const Contactus = () => {
             >
               <Ionicons
                 name="arrow-back"
-                size={22}
+                size={scale(22)}
                 color="#fff"
               />
             </TouchableOpacity>
@@ -87,7 +100,10 @@ const Contactus = () => {
               </LinearGradient>
 
               <Text style={styles.heroTitle}>
-                We’re Here To Help 💬
+                Don’t hesitate to reach out !
+                <LinearGradient colors={['#7d5fff', '#5f27cd']} style={styles.callIcon} >
+                  <SimpleLineIcons name="call-in" color="#fff" size={20} />
+                </LinearGradient>
               </Text>
 
               <Text style={styles.heroSubtitle}>
@@ -126,22 +142,28 @@ const Contactus = () => {
                       />
                     </LinearGradient>
 
-                    <View style={{ marginLeft: 16 }}>
-                      <Text style={styles.cardTitle}>
+                    <View style={styles.cardText}>
+                      <Text
+                        style={styles.cardTitle}
+                        numberOfLines={1}
+                        ellipsizeMode="tail">
                         Email Support
                       </Text>
 
-                      <Text style={styles.cardDesc}>
+                      <Text
+                        style={styles.cardDesc}
+                        numberOfLines={1}
+                        ellipsizeMode="tail">
                         mshameer1227@gmail.com
                       </Text>
                     </View>
                   </View>
-
                   <View style={styles.arrowWrap}>
                     <Ionicons
                       name="arrow-forward"
                       size={18}
                       color="#fff"
+                      style={styles.arrowIcon}
                     />
                   </View>
                 </LinearGradient>
@@ -189,6 +211,7 @@ const Contactus = () => {
                       name="arrow-forward"
                       size={18}
                       color="#fff"
+                      style={styles.arrowIcon}
                     />
                   </View>
                 </LinearGradient>
@@ -247,7 +270,15 @@ const styles = StyleSheet.create({
   },
 
   /* HEADER */
-
+  callIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    margintop: -20,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -258,9 +289,9 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
 
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
@@ -271,7 +302,7 @@ const styles = StyleSheet.create({
 
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -333,7 +364,7 @@ const styles = StyleSheet.create({
 
   heroTitle: {
     color: '#fff',
-    fontSize: 30,
+    fontSize: scale(24),
 
     marginTop: 28,
     textAlign: 'center',
@@ -347,7 +378,7 @@ const styles = StyleSheet.create({
 
     marginTop: 14,
     lineHeight: 24,
-    fontSize: 15,
+    fontSize: scale(15),
 
     paddingHorizontal: 10,
 
@@ -355,7 +386,12 @@ const styles = StyleSheet.create({
   },
 
   /* CARDS */
-
+  cardText: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 16,
+    justifyContent: 'center',
+  },
   cardsContainer: {
     marginTop: 36,
     paddingHorizontal: 18,
@@ -380,8 +416,13 @@ const styles = StyleSheet.create({
   },
 
   leftSection: {
+    flex: 1,
+
     flexDirection: 'row',
     alignItems: 'center',
+
+    minWidth: 0,
+    marginRight: 12,
   },
 
   iconWrap: {
@@ -391,33 +432,49 @@ const styles = StyleSheet.create({
 
     justifyContent: 'center',
     alignItems: 'center',
+
+    flexShrink: 0,
   },
 
   cardTitle: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: scale(16),
 
     fontFamily: 'Poppins-Bold',
   },
 
   cardDesc: {
     color: '#999',
-    fontSize: 13,
-
-    marginTop: 4,
-
+    fontSize: scale(13),
+    marginTop: 5,
     fontFamily: 'Poppins-Medium',
   },
 
   arrowWrap: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
 
     backgroundColor: 'rgba(255,255,255,0.08)',
 
     justifyContent: 'center',
     alignItems: 'center',
+
+    flexShrink: 0,
+
+    overflow: 'hidden',
+  },
+
+  arrowIcon: {
+    width: 20,
+    height: 20,
+
+    includeFontPadding: false,
+
+    textAlign: 'center',
+    textAlignVertical: 'center',
+
+    alignSelf: 'center',
   },
 
   /* NOTE CARD */
@@ -451,7 +508,7 @@ const styles = StyleSheet.create({
 
   noteTitle: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: scale(16),
 
     marginBottom: 4,
 
@@ -460,7 +517,7 @@ const styles = StyleSheet.create({
 
   noteText: {
     color: '#999',
-    fontSize: 13,
+    fontSize: scale(13),
     lineHeight: 22,
 
     fontFamily: 'Poppins-Medium',
@@ -476,7 +533,7 @@ const styles = StyleSheet.create({
 
   footerText: {
     color: '#777',
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
   },

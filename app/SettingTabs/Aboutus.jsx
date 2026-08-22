@@ -15,7 +15,16 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
-const { width } = Dimensions.get('window');
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const AboutUs = () => {
   const navigation = useNavigation();
@@ -42,7 +51,7 @@ const AboutUs = () => {
             >
               <Ionicons
                 name="arrow-back"
-                size={22}
+                size={scale(22)}
                 color="#fff"
               />
             </TouchableOpacity>
@@ -318,9 +327,9 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
 
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
@@ -345,7 +354,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -404,7 +413,7 @@ const styles = StyleSheet.create({
 
   appName: {
     color: '#fff',
-    fontSize: 34,
+    fontSize: scale(24),
     marginTop: 24,
 
     letterSpacing: 1,
@@ -430,7 +439,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginLeft: 8,
 
-    fontSize: 14,
+    fontSize: scale(14),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -461,7 +470,7 @@ const styles = StyleSheet.create({
 
   statsNumber: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: scale(24),
 
     fontFamily: 'Poppins-Bold',
   },
@@ -470,7 +479,7 @@ const styles = StyleSheet.create({
     color: '#aaa',
     marginTop: 6,
 
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -508,7 +517,7 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
 
     marginLeft: 14,
 
@@ -519,7 +528,7 @@ const styles = StyleSheet.create({
     color: '#cfcfcf',
 
     lineHeight: 26,
-    fontSize: 15,
+    fontSize: scale(15),
 
     marginBottom: 14,
 
@@ -555,7 +564,7 @@ const styles = StyleSheet.create({
 
   featureTitle: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
 
     fontFamily: 'Poppins-Bold',
   },
@@ -566,7 +575,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 22,
 
-    fontSize: 13,
+    fontSize: scale(13),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -580,7 +589,7 @@ const styles = StyleSheet.create({
 
   footerText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
 
     fontFamily: 'Poppins-Medium',
   },
@@ -589,7 +598,7 @@ const styles = StyleSheet.create({
     color: '#777',
 
     marginTop: 10,
-    fontSize: 12,
+    fontSize: scale(12),
 
     fontFamily: 'Poppins-Regular',
   },

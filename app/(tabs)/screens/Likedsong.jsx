@@ -1,4 +1,4 @@
-import { ActivityIndicator, Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -13,12 +13,23 @@ import TrackPlayer, { useActiveTrack } from 'react-native-track-player';
 import LottieView from 'lottie-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import Entypo from "react-native-vector-icons/Entypo";
 import Music from '../../common/Music';
 import AverageColorExtractor from '../../common/AverageColorExtractor';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { decode } from 'html-entities';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const Likedsong = () => {
   const navigation = useNavigation();
@@ -188,11 +199,9 @@ const Likedsong = () => {
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
-          <AnimatedIcon focused={true}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={22} color="white" style={styles.backIcon} />
-            </TouchableOpacity>
-          </AnimatedIcon>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={scale(22)} color="white" />
+          </TouchableOpacity>
           <View style={{ width: 40 }} />
         </View>
         {loading ? (
@@ -207,7 +216,7 @@ const Likedsong = () => {
         ) : showsong.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', fontWeight: 600, letterSpacing: 0.5 }}>
             <MaterialCommunityIcons name="music-off" size={80} color="gray" />
-            <Text style={{ color: "gray", fontSize: 18, marginTop: 15 }}>
+            <Text style={{ color: "gray", fontSize: scale(18), marginTop: 15 }}>
               No liked songs yet
             </Text>
           </View>
@@ -279,91 +288,101 @@ const Likedsong = () => {
           backgroundComponent={GradientBackground}
           onChange={(index) => setIsSheetOpen(index >= 0)}
         >
-          {currentSong?.artwork && (
-            <AverageColorExtractor
-              key={currentSong?.id}
-              imageUrl={currentSong.artwork}
-              onColorExtracted={(color) => {
-                if (color) setBackgroundColor(color);
-              }}
-            />
-          )}
-          <TouchableOpacity onPress={() => sheetRef.current?.close()} style={{ width: 50 }} className='w-10 mt-0 ml-5'>
-            <Entypo name="chevron-thin-down" size={30} color="white" style={styles.backIcon} className="ml-5" />
-          </TouchableOpacity>
-          {currentSong && (
-            <View style={styles.songContainer}>
-              {currentSong?.artist !== "<unknown>" ? (
-                <Image
-                  source={{ uri: currentSong?.artwork }}
-                  style={styles.songImages}
-                  className="rounded-xl"
-                  resizeMode="cover"
-                />
-              ) : (
-                <Image
-                  source={require("../../assets/musicphoto.jpg")}
-                  className="rounded-xl"
-                  style={styles.songImages}
-                  resizeMode="cover"
-                />
-              )}
-              <View
-                style={{
-                  marginTop: 20,
-                  paddingVertical: 20,
-                  backgroundColor: 'rgba(255,255,255,0.07)',
-                  borderRadius: 20,
-                  marginHorizontal: 16,
-                  alignSelf: 'stretch',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.08)',
+          <BottomSheetScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingBottom: 80,
+              flexGrow: 1,
+            }}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}>
+
+            {currentSong?.artwork && (
+              <AverageColorExtractor
+                key={currentSong?.id}
+                imageUrl={currentSong.artwork}
+                onColorExtracted={(color) => {
+                  if (color) setBackgroundColor(color);
                 }}
-              >
-                <View style={styles.textContainer}>
-                  {/* ALBUM */}
-                  <View style={styles.infoRow}>
-                    <View style={styles.iconBox}>
-                      <MaterialIcons name="album" size={16} color="#1DB954" />
+              />
+            )}
+            <TouchableOpacity onPress={() => sheetRef.current?.close()} style={{ width: 50 }} className='w-10 mt-0 ml-5'>
+              <Entypo name="chevron-thin-down" size={30} color="white" style={styles.backIcon} className="ml-5" />
+            </TouchableOpacity>
+            {currentSong && (
+              <View style={styles.songContainer}>
+                {currentSong?.artist !== "<unknown>" ? (
+                  <Image
+                    source={{ uri: currentSong?.artwork }}
+                    style={styles.songImages}
+                    className="rounded-xl"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Image
+                    source={require("../../assets/musicphoto.jpg")}
+                    className="rounded-xl"
+                    style={styles.songImages}
+                    resizeMode="cover"
+                  />
+                )}
+                <View
+                  style={{
+                    marginTop: 20,
+                    paddingVertical: 20,
+                    backgroundColor: 'rgba(255,255,255,0.07)',
+                    borderRadius: 20,
+                    marginHorizontal: 16,
+                    alignSelf: 'stretch',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <View style={styles.textContainer}>
+                    {/* ALBUM */}
+                    <View style={styles.infoRow}>
+                      <View style={styles.iconBox}>
+                        <MaterialIcons name="album" size={16} color="#1DB954" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Album</Text>
+                        <Text style={styles.infoValue}>
+                          {formatSongTitle(currentSong?.album)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.infoLabel}>Album</Text>
-                      <Text style={styles.infoValue}>
-                        {formatSongTitle(currentSong?.album)}
-                      </Text>
-                    </View>
-                  </View>
 
-                  {/* SONG */}
-                  <View style={styles.infoRow}>
-                    <View style={styles.iconBox}>
-                      <Ionicons name="musical-note" size={16} color="#1DB954" />
+                    {/* SONG */}
+                    <View style={styles.infoRow}>
+                      <View style={styles.iconBox}>
+                        <Ionicons name="musical-note" size={16} color="#1DB954" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Song</Text>
+                        <Text style={styles.infoValue}>
+                          {formatSongTitle(currentSong?.title)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.infoLabel}>Song</Text>
-                      <Text style={styles.infoValue}>
-                        {formatSongTitle(currentSong?.title)}
-                      </Text>
-                    </View>
-                  </View>
 
-                  {/* ARTIST */}
-                  <View style={styles.infoRow}>
-                    <View style={styles.iconBox}>
-                      <Ionicons name="person" size={16} color="#1DB954" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.infoLabel}>Artist</Text>
-                      <Text style={styles.infoValue}>
-                        {formatSongTitle(currentSong?.artist)}
-                      </Text>
+                    {/* ARTIST */}
+                    <View style={styles.infoRow}>
+                      <View style={styles.iconBox}>
+                        <Ionicons name="person" size={16} color="#1DB954" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.infoLabel}>Artist</Text>
+                        <Text style={styles.infoValue}>
+                          {formatSongTitle(currentSong?.artist)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
+                  <Music />
                 </View>
-                <Music />
               </View>
-            </View>
-          )}
+            )}
+          </BottomSheetScrollView>
         </BottomSheet>
       </SafeAreaView>
     </LinearGradient >
@@ -411,14 +430,16 @@ const SongItem = React.memo(({ song, currentSong, handlePlay, handlelike, deleti
               )}
 
               <Text
-                style={[styles.songTitle, isPlaying && { color: "#1DB954", width: 200 }]}
+                style={[styles.songTitle, isPlaying && { color: "#1DB954" }]}
                 numberOfLines={1}
+                ellipsizeMode="tail"
               >
                 {song?.title ? song.title.replace(/\s*\(.*?\)\s*/g, "") : "Unknown"}
               </Text>
             </View>
 
-            <Text style={styles.artist} numberOfLines={1}>
+            <Text style={styles.artist} numberOfLines={1}
+              ellipsizeMode="tail">
               {song?.artist ? song.artist.replace(/\s*\(.*?\)\s*/g, "") : "Unknown Artist"}
             </Text>
           </View>
@@ -430,7 +451,7 @@ const SongItem = React.memo(({ song, currentSong, handlePlay, handlelike, deleti
           disabled={deletingId === song?.song_id}
           style={styles.deleteBtn}
         >
-          <AntDesign name="delete" color="#fff" size={24} />
+          <AntDesign name="delete" color="#fff" size={scale(20)} />
         </TouchableOpacity>
       </View>
     </GestureHandlerRootView>
@@ -457,16 +478,15 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     color: 'rgba(255,255,255,0.45)',
-    fontSize: 11,
+    fontSize: scale(10),
     fontFamily: 'Poppins-Regular',
     marginBottom: -1,
   },
 
   infoValue: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(12),
     fontFamily: 'Poppins-Bold',
-    width: 260,
   },
   deleteBtn: {
     position: 'absolute',
@@ -485,19 +505,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
+
     backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
-    alignItems: 'center',
-    justifyContent: 'center',
 
   },
   title: {
     color: '#fff',
-    fontSize: 35,
+    fontSize: scale(35),
     fontWeight: '800',
     height: 40,
   },
@@ -515,10 +536,9 @@ const styles = StyleSheet.create({
   },
   overlayText: {
     color: '#fff',
-    fontSize: 30,
+    fontSize: scale(25),
     fontFamily: 'Poppins-Bold',
     marginTop: 16,
-    letterSpacing: 0.5,
   },
   gradientIconContainer: {
     justifyContent: 'center',
@@ -541,10 +561,29 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1e1e1e',
   },
   songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
+  songImage: {
+    width: scale(58),
+    height: scale(58),
+    borderRadius: 12,
+    marginRight: 14,
+    borderWidth: 2,
+  },
   songText: { flex: 1 },
-  songTitle: { fontSize: 14, color: 'white', fontFamily: 'Poppins-Bold', },
-  artist: { fontSize: 12, color: 'gray', marginTop: 4, fontFamily: 'Poppins-Regular' },
+  songTitle: {
+    color: 'white',
+    fontSize: scale(12),
+    fontFamily: 'Poppins-Bold',
+    marginBottom: -5,
+    flex: 1,
+    minWidth: 0,
+  },
+  artist: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: scale(10),
+    fontFamily: 'Poppins-Regular',
+    marginTop: 5,
+    flexShrink: 1,
+  },
   songRight: { flexDirection: 'row', alignItems: 'center' },
   playButton: {
     width: 36,
@@ -560,28 +599,31 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   songImages: {
-    width: 290,
-    height: 290,
+    width: SONG_IMAGE_SIZE,
+    height: SONG_IMAGE_SIZE,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
   },
   songTitles: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: '600',
     color: 'white',
     marginTop: 10,
     width: 300,
   },
   songTitless: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: '600',
     color: 'white',
     marginTop: 10,
     width: 220,
   },
   textContainer: {
-    alignSelf: 'flex-start',
-    paddingLeft: 18,
-    marginTop: -5,
-    width: '100%',
+    alignSelf: 'stretch',
+    paddingHorizontal: 18,
   },
   icons: {
     paddingTop: 20,

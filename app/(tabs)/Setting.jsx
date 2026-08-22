@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Image,
   Modal,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -25,13 +26,22 @@ import { Animated } from 'react-native';
 import Fontisto from 'react-native-vector-icons/Fontisto';
 
 
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
+
 const Setting = () => {
   const navigation = useNavigation();
   const [userInfo, setUserInfo] = useState(null);
   const [deviceId, setDeviceId] = useState(null);
   const [deviceName, setDeviceName] = useState(null);
-
-
+  const listenerRef = useRef(null)
 
   useEffect(() => {
     DeviceInfo.getUniqueId().then(setDeviceId);
@@ -43,21 +53,29 @@ const Setting = () => {
     const authInstance = getAuth();
     const user = authInstance.currentUser;
 
+    if (!user) return;
+
     const db = getFirestore();
-    const userRef = doc(collection(db, 'users'), user.uid);
+    const userRef = doc(db, "users", user.uid);
 
-    const unsubscribe = onSnapshot(userRef, snapshot => {
-      if (snapshot.exists) {
-        const data = snapshot.data();
-        setUserInfo(data);
-      } else {
-        console.error('⚠️ User document does not exist');
+    listenerRef.current = onSnapshot(
+      userRef,
+      snapshot => {
+        if (snapshot.exists()) {
+          setUserInfo(snapshot.data());
+        } else {
+          console.log("User document not found");
+        }
+      },
+      error => {
+        console.log("Code:", error.code);
+        console.log("Message:", error.message);
       }
-    }, error => {
-      console.error('❌ Firestore listener error:', error);
-    });
+    );
 
-    return unsubscribe;
+    return () => {
+      listenerRef.current?.();
+    };
   }, []);
 
 
@@ -85,21 +103,34 @@ const Setting = () => {
     try {
       const authInstance = getAuth();
       const user = authInstance.currentUser;
-      if (user) {
-        await AsyncStorage.removeItem(`welcome_shown_${user.uid}`);
-      }
-      await signOut(authInstance);
-      await GoogleSignin.signOut();
+
+      if (!user) return;
+
+      // Stop Firestore listener
+      listenerRef.current?.();
+
+      // Remove local storage
+      await AsyncStorage.removeItem(`welcome_shown_${user.uid}`);
+
+      // Backend logout
       await handleLogedout(user.uid);
+
+      // Firebase logout
+      await signOut(authInstance);
+
+      // Google logout
+      await GoogleSignin.signOut();
+
+      // Navigate to Login
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],
       });
+
     } catch (error) {
       console.log('Sign out error 👉', error);
     }
   };
-
 
   function AnimatedIcon({ children, focused }) {
     const scale = new Animated.Value(focused ? 1.15 : 1);
@@ -133,11 +164,9 @@ const Setting = () => {
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
-          <AnimatedIcon focused={true}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={22} color="white" />
-            </TouchableOpacity>
-          </AnimatedIcon>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={scale(22)} color="white" />
+          </TouchableOpacity>
           <Text style={styles.title}>Settings</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -493,7 +522,7 @@ const Setting = () => {
                 </Text>
 
                 <Text style={styles.optionSubtitle}>
-                  1.0.0
+                  {DeviceInfo.getVersion()}
                 </Text>
               </View>
             </View>
@@ -529,18 +558,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
+
     backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -561,12 +591,12 @@ const styles = StyleSheet.create({
   },
   name: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
     fontFamily: 'Poppins-Bold',
   },
   email: {
     color: '#bdbdbd',
-    fontSize: 12,
+    fontSize: scale(12),
     marginTop: 4,
     fontFamily: 'Poppins-Medium',
   },
@@ -583,7 +613,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: scale(16),
     marginBottom: 14,
     marginLeft: 4,
     fontFamily: 'Poppins-Bold',
@@ -624,13 +654,13 @@ const styles = StyleSheet.create({
 
   optionTitle: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
     fontFamily: 'Poppins-Bold',
   },
 
   optionSubtitle: {
     color: '#8f8f8f',
-    fontSize: 12,
+    fontSize: scale(12),
     marginTop: 3,
     fontFamily: 'Poppins-Medium',
   },
@@ -663,7 +693,7 @@ const styles = StyleSheet.create({
   },
   btnText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
     fontFamily: 'Poppins-Bold',
   },
 
@@ -681,14 +711,14 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
   },
   modalMessage: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: '#ccc',
     textAlign: 'center',
     marginBottom: 18,

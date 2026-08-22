@@ -1,5 +1,4 @@
 import { createContext, useEffect, useState } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 export const SearchContext = createContext({});
 
 export const SearchProvider = ({ children }) => {
@@ -16,26 +15,7 @@ export const SearchProvider = ({ children }) => {
   const [addtoplaylist, setAddtoplaylist] = useState([]);
   const [qrdata, setQrdata] = useState(null);
   const [scaneddata, setScaneddata] = useState(null);
-  const [selectedLanguage, setSelectedLanguage] = useState('');
-
-  useEffect(() => {
-    const loadLanguage = async () => {
-      const saved = await AsyncStorage.getItem('selectedLanguage');
-
-      if (saved) {
-        setSelectedLanguage(saved);
-      }
-    };
-
-    loadLanguage();
-  }, []);
-
-  useEffect(() => {
-    AsyncStorage.setItem(
-      'selectedLanguage',
-      selectedLanguage,
-    );
-  }, [selectedLanguage]);
+  const [selectedLanguage, setSelectedLanguage] = useState(null);
 
   return (
     <SearchContext.Provider value={{

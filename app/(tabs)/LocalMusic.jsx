@@ -3,42 +3,44 @@ import {
   StyleSheet,
   Text,
   View,
-  FlatList,
   PermissionsAndroid,
   Platform,
   TouchableOpacity,
-  ActivityIndicator,
   Image,
-  Animated
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import LottieView from 'lottie-react-native';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import Music from '../common/Music';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import TrackPlayer, { Capability, Event, useActiveTrack } from 'react-native-track-player';
+import TrackPlayer, { useActiveTrack } from 'react-native-track-player';
 import Entypo from "react-native-vector-icons/Entypo";
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SearchContext } from '../contextProvider/searchContext';
 import Localsearch from '../common/Localsearch';
-import { LegendList } from '@legendapp/list';
-import Icon from 'react-native-vector-icons/Entypo';
+import { LegendList } from '@legendapp/list'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
-import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { decode } from 'html-entities';
 import {
   NativeModules,
   NativeEventEmitter,
 } from 'react-native';
 const { LocalAudio } = NativeModules;
-const eventEmitter =
-  new NativeEventEmitter(LocalAudio);
+const eventEmitter = new NativeEventEmitter(LocalAudio);
+import { Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 
 // ====================== Modern Song Item ======================
@@ -109,7 +111,7 @@ const SongItem = React.memo(({ song, currentSong, handlePlay, handleDeletesong }
             <Text
               style={[
                 styles.songTitle,
-                isPlaying && { color: "#1DB954", width: 160, }
+                isPlaying && { color: "#1DB954" }
               ]}
               numberOfLines={1}
               ellipsizeMode="tail"
@@ -167,7 +169,7 @@ const SongItem = React.memo(({ song, currentSong, handlePlay, handleDeletesong }
                 },
                 optionText: {
                   color: '#fff',
-                  fontSize: 15,
+                  fontSize: scale(15),
                   fontWeight: '500',
                   marginLeft: 12,
                 },
@@ -180,7 +182,7 @@ const SongItem = React.memo(({ song, currentSong, handlePlay, handleDeletesong }
                     size={24}
                     color="#ff4d4d"
                   />
-                  <Text style={{ color: 'white', fontSize: 15, marginLeft: 5, fontFamily: 'Poppins-Bold', }}>Delete</Text>
+                  <Text style={{ color: 'white', fontSize: scale(15), marginLeft: 5, fontFamily: 'Poppins-Bold', }}>Delete</Text>
                 </View>
               </MenuOption>
             </MenuOptions>
@@ -207,7 +209,6 @@ const LocalMusic = () => {
   const [filteredFiles, setFilteredFiles] = useState([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const currentSong = useActiveTrack();
-
 
 
 
@@ -355,7 +356,7 @@ const LocalMusic = () => {
         artwork: s.artwork,
         hasArtwork: true,
         album: s.album,
-        year:s.year,
+        year: s.year,
       }));
 
       // Add queue
@@ -424,11 +425,9 @@ const LocalMusic = () => {
           <SafeAreaView className="flex-1">
             <View style={styles.header}>
               {/* Back Button on the left */}
-              <AnimatedIcon focused={true}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                  <Ionicons name="arrow-back" size={22} color="white" />
-                </TouchableOpacity>
-              </AnimatedIcon>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={scale(22)} color="white" />
+              </TouchableOpacity>
 
               {/* Centered Logo + Title */}
               <View style={styles.centerContainer}>
@@ -528,83 +527,109 @@ const LocalMusic = () => {
                 elevation: 20,
               }}
               onChange={(index) => setIsSheetOpen(index >= 0)}
+
             >
               <TouchableOpacity onPress={() => sheetRef.current?.close()} style={{ width: 50 }} className='w-10 mt-[-5] ml-5'>
                 <Entypo name="chevron-thin-down" size={30} color="white" style={styles.backIcon} className="ml-5" />
               </TouchableOpacity>
-              {currentSong && (
-                <View style={styles.songContainer}>
-                  {currentSong?.artist !== "<unknown>" ? (
-                    <Image
-                      source={{ uri: currentSong?.artwork }}
-                      style={styles.songImages}
-                      className="rounded-xl"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require("../assets/musicphoto.jpg")}
-                      className="rounded-xl"
-                      style={styles.songImages}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <View
-                    style={{
-                      marginTop: 30,
-                      paddingVertical: 5,
-                      backgroundColor: 'rgba(255,255,255,0.07)',
-                      borderRadius: 20,
-                      marginHorizontal: 16,
-                      alignSelf: 'stretch',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255,255,255,0.08)',
-                    }}
-                  >
-                    <View style={styles.textContainer}>
-                      {/* ALBUM */}
-                      <View style={styles.infoRow}>
-                        <View style={styles.iconBox}>
-                          <MaterialIcons name="album" size={16} color="#1DB954" />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.infoLabel}>Album</Text>
-                          <Text style={styles.infoValue}>
-                            {formatSongTitle(currentSong?.album)}
-                          </Text>
-                        </View>
-                      </View>
+              <BottomSheetScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{
+                  alignItems: "center",
+                  paddingBottom: 120,
+                }}
+              >
+                {currentSong && (
+                  <>
+                    {currentSong.artist !== "<unknown>" ? (
+                      <Image
+                        source={{ uri: currentSong?.artwork }}
+                        style={styles.songImages}
+                        className="rounded-xl"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Image
+                        source={require("../assets/musicphoto.jpg")}
+                        className="rounded-xl"
+                        style={styles.songImages}
+                        resizeMode="cover"
+                      />)}
 
-                      {/* SONG */}
-                      <View style={styles.infoRow}>
-                        <View style={styles.iconBox}>
-                          <Ionicons name="musical-note" size={16} color="#1DB954" />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.infoLabel}>Song</Text>
-                          <Text style={styles.infoValue}>
-                            {formatSongTitle(currentSong?.title)}
-                          </Text>
-                        </View>
-                      </View>
+                    <View
+                      style={{
+                        width: "92%",
+                        marginTop: 30,
+                        paddingVertical: 10,
+                        backgroundColor: "rgba(255,255,255,0.07)",
+                        borderRadius: 20,
+                        borderWidth: 1,
+                        borderColor: "rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <View style={styles.textContainer}>
+                        {/* Album */}
+                        <View style={styles.infoRow}>
+                          <View style={styles.iconBox}>
+                            <MaterialIcons
+                              name="album"
+                              size={16}
+                              color="#1DB954"
+                            />
+                          </View>
 
-                      {/* ARTIST */}
-                      <View style={styles.infoRow}>
-                        <View style={styles.iconBox}>
-                          <Ionicons name="person" size={16} color="#1DB954" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>Album</Text>
+                            <Text style={styles.infoValue}>
+                              {formatSongTitle(currentSong.album)}
+                            </Text>
+                          </View>
                         </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.infoLabel}>Artist</Text>
-                          <Text style={styles.infoValue}>
-                            {formatSongTitle(currentSong?.artist)}
-                          </Text>
+
+                        {/* Song */}
+                        <View style={styles.infoRow}>
+                          <View style={styles.iconBox}>
+                            <Ionicons
+                              name="musical-note"
+                              size={16}
+                              color="#1DB954"
+                            />
+                          </View>
+
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>Song</Text>
+                            <Text style={styles.infoValue}>
+                              {formatSongTitle(currentSong.title)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Artist */}
+                        <View style={styles.infoRow}>
+                          <View style={styles.iconBox}>
+                            <Ionicons
+                              name="person"
+                              size={16}
+                              color="#1DB954"
+                            />
+                          </View>
+
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>Artist</Text>
+                            <Text style={styles.infoValue}>
+                              {formatSongTitle(currentSong.artist)}
+                            </Text>
+                          </View>
                         </View>
                       </View>
+                      <Music hideActions />
                     </View>
-                    <Music hideActions />
-                  </View>
-                </View>
-              )}
+                  </>
+                )}
+
+              </BottomSheetScrollView>
+
             </BottomSheet>
           </SafeAreaView>
         </LinearGradient>
@@ -634,14 +659,14 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     color: 'rgba(255,255,255,0.45)',
-    fontSize: 11,
+    fontSize: scale(11),
     fontFamily: 'Poppins-Regular',
     marginBottom: -1,
   },
 
   infoValue: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(15),
     fontFamily: 'Poppins-Bold',
     width: 260,
   },
@@ -655,14 +680,15 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
+
     backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   centerContainer: {
@@ -681,7 +707,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: 'white',
-    fontSize: 20,
+    fontSize: scale(20),
     fontFamily: 'Poppins-Bold',
   },
   // Song item
@@ -699,10 +725,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   songLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  songImage: { width: 60, height: 60, borderRadius: 10, marginRight: 12, borderWidth: 2 },
+  songImage: {
+    width: scale(58),
+    height: scale(58),
+    borderRadius: 12,
+    marginRight: 14,
+    borderWidth: 2,
+  },
   songText: { flex: 1 },
-  songTitle: { fontSize: 14, fontWeight: '600', color: 'white', fontFamily: 'Poppins-Bold', width: 180, },
-  artist: { fontSize: 12, color: 'gray', marginTop: 4, fontFamily: 'Poppins-Regular' },
+  songTitle: { flex: 1, fontSize: scale(12), color: 'white', fontFamily: 'Poppins-Bold' },
+  artist: { fontSize: scale(10), color: 'gray', marginTop: 4, fontFamily: 'Poppins-Regular' },
   songRight: { flexDirection: 'row', alignItems: 'center' },
   playButton: {
     width: 36,
@@ -743,11 +775,10 @@ const styles = StyleSheet.create({
     height: 260,
   },
   songTitles: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: '600',
     color: 'white',
     marginTop: 10,
-    width: 300,
   },
   textContainer: {
     alignSelf: 'flex-start',

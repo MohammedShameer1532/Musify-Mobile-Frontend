@@ -8,6 +8,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +23,17 @@ import {
   setDoc,
   serverTimestamp,
 } from '@react-native-firebase/firestore';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const ProfileEdit = ({ navigation }) => {
 
@@ -68,7 +80,13 @@ const ProfileEdit = ({ navigation }) => {
     if (!url) return null;
     return url.replace(/s96-c|s100-c|s128-c/, 's400-c');
   };
-
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Setting'); // Use your Settings route name
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
 
@@ -78,10 +96,10 @@ const ProfileEdit = ({ navigation }) => {
         style={styles.topSection}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
           style={styles.backBtn}
         >
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={scale(22)} color="#fff" />
         </TouchableOpacity>
 
         <View style={styles.avatarContainer}>
@@ -173,9 +191,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 18,
-    width: 35,
-    height: 35,
-    borderRadius: 20,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
 
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
@@ -213,14 +231,14 @@ const styles = StyleSheet.create({
 
   heading: {
     color: '#fff',
-    fontSize: 26,
+    fontSize: scale(26),
     fontFamily: 'Poppins-Bold',
     marginTop: 18,
   },
 
   subHeading: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
+    fontSize: scale(14),
     textAlign: 'center',
     paddingHorizontal: 30,
     marginTop: 8,
@@ -239,7 +257,7 @@ const styles = StyleSheet.create({
 
   label: {
     color: '#aaa',
-    fontSize: 14,
+    fontSize: scale(14),
     marginBottom: 10,
     fontFamily: 'Poppins-Medium',
   },
@@ -258,7 +276,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: '#fff',
-    fontSize: 16,
+    fontSize: scale(16),
     height: 55,
     fontFamily: 'Poppins-Medium',
   },
@@ -273,7 +291,7 @@ const styles = StyleSheet.create({
 
   btnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: scale(16),
     marginLeft: 8,
     fontFamily: 'Poppins-Bold',
   },

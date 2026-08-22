@@ -1,5 +1,5 @@
 import React, { useContext, useRef, useMemo, useState, useEffect } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Text } from 'react-native-gesture-handler';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -11,6 +11,15 @@ import { SearchContext } from '../contextProvider/searchContext';
 import { decode } from 'html-entities';
 
 
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 const Qrsheet = () => {
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['100%'], []);
@@ -127,7 +136,7 @@ const Qrsheet = () => {
             </ViewShot>
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                <Ionicons name="share-outline" size={18} color="white" />
+                <Ionicons name="share-outline" size={scale(22)} color="white" />
                 <Text style={styles.shareText}>Share</Text>
               </TouchableOpacity>
             </View>
@@ -148,18 +157,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f0f0f",
   },
   songName: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: scale(14),
     color: "#000",
     marginBottom: 18,
     textAlign: "center",
-    maxWidth: 200,
-    letterSpacing: 0.5,
+    fontFamily: 'Poppins-Bold',
+    minWidth: 0,
   },
   header: {
+    height: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 0,
-    alignItems: "flex-end",
   },
 
   centerContent: {
@@ -169,16 +180,16 @@ const styles = StyleSheet.create({
 
   title: {
     color: "white",
-    fontSize: 24,
+    fontSize: scale(22),
     fontWeight: "700",
     marginBottom: 40,
     letterSpacing: 0.5,
   },
   songImage: {
-    width: 80,
-    height: 80,
-    marginBottom: 20,
+    width: scale(70),
+    height: scale(70),
     borderRadius: 12,
+    marginBottom: 20,
   },
   qrBox: {
     display: 'flex',
@@ -207,7 +218,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: scale(16),
   },
 
   scannerContainer: {
@@ -229,7 +240,7 @@ const styles = StyleSheet.create({
   backText: {
     color: "white",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: scale(16),
   },
   actionRow: {
     flexDirection: "row",
@@ -257,8 +268,8 @@ const styles = StyleSheet.create({
 
   shareText: {
     color: "white",
-    fontWeight: "700",
     marginLeft: 6,
-    fontSize: 18,
+    fontSize: scale(16),
+    fontFamily: 'Poppins-Bold',
   },
 });

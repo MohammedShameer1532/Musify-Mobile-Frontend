@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
+import { View, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AverageColorExtractor from '../common/AverageColorExtractor';
 import { SearchContext } from '../contextProvider/searchContext';
@@ -9,6 +9,17 @@ import LinearGradient from 'react-native-linear-gradient';
 import Music from '../common/Music';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { decode } from 'html-entities';
+
+
+const { width } = Dimensions.get('window'); // ✅ screen width
+const SONG_IMAGE_SIZE = Math.min(
+  width * 0.62,
+  320
+);
+
+const BASE_WIDTH = 360;
+
+const scale = (size) => (width / BASE_WIDTH) * size;
 
 const Outersong = () => {
   const [backgroundColor, setBackgroundColor] = useState('rgb(30, 30, 30)');
@@ -34,11 +45,22 @@ const Outersong = () => {
   return (
     <LinearGradient colors={[backgroundColor, 'rgba(0,0,0,0.98)', '#000']} locations={[0, 0.5, 1]} style={styles.background}>
       <SafeAreaView style={styles.safeArea}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={25} color="white" />
-        </TouchableOpacity>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={scale(22)} color="white" />
+          </TouchableOpacity>
+        </View>
+
         {!outerdata ? (
-          <ActivityIndicator size="large" color="white" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }} />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="small"
+              color="#10b981"
+            />
+            <Text style={styles.loadingText}>
+              Loading...
+            </Text>
+          </View>
         ) : (
           <FlatList
             data={Array.isArray(outerdata) ? outerdata : [outerdata]}
@@ -115,7 +137,7 @@ const Outersong = () => {
                     </View>
                   </View>
 
-                  <Music />
+                  <Music hideActions />
                 </View>
               </View>
             )}
@@ -136,6 +158,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+
+    paddingHorizontal: 18,
+    paddingTop: 10,
+  },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -154,64 +185,60 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     color: 'rgba(255,255,255,0.45)',
-    fontSize: 11,
+    fontSize: scale(10),
     fontFamily: 'Poppins-Regular',
     marginBottom: -1,
   },
 
   infoValue: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: scale(12),
     fontFamily: 'Poppins-Bold',
   },
-  background: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(20),
+
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
-    marginLeft: 16,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    marginTop: 10,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   songContainer: {
     alignItems: 'center',
     marginTop: 0,
   },
   textContainer: {
-    alignSelf: 'flex-start',
-    paddingLeft: 18,
-    marginTop: -5,
-    width: '100%',
+    alignSelf: 'stretch',
+    paddingHorizontal: 18,
   },
   songImage: {
-    width: 260,
-    height: 260,
+    width: SONG_IMAGE_SIZE,
+    height: SONG_IMAGE_SIZE,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
   },
   songTitle: {
-    fontSize: 22,
+    fontSize: scale(22),
     color: 'white',
     marginTop: 10,
     fontFamily: 'Poppins-Bold',
     width: 270,
   },
   album: {
-    fontSize: 13.5,
+    fontSize: scale(13.5),
     fontFamily: 'Poppins-Medium',
     color: '#aaa',
     marginTop: 5,
     width: 290,
   },
   artist: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontFamily: 'Poppins-Regular',
     color: 'grey',
     marginTop: 5,
@@ -230,6 +257,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 10,
     top: '2%',
+  },
+
+  loadingContainer: {
+    height: 230,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  loadingText: {
+    color: '#9ca3af',
+    marginTop: 8,
+    fontSize: scale(13),
+    fontFamily: 'Poppins-Regular',
   },
 
 });

@@ -23,12 +23,12 @@ const Navbar = () => {
 
       const songs = songRes.data || [];
       const playlists = playlistRes.data || [];
-
       setSearchResult({ songs, playlists });
     } catch (error) {
       console.error('Error fetching search results:', error);
     }
   };
+  console.log('search results', searchResult);
 
 
   // Push results to global context and navigate
@@ -89,6 +89,6 @@ const styles = StyleSheet.create({
     flex: 1,
     color: 'white',
     marginLeft: 8,
-    fontSize: 16,
+    fontSize: 14,
   },
 });

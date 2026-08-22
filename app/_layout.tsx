@@ -6,7 +6,6 @@ import {useColorScheme} from 'react-native';
 import '../global.css';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-
 import TabsLayout from './(tabs)/TabsLayout';
 import Search from './common/Search';
 import Song from './resultComponent/Song';
@@ -22,9 +21,8 @@ import Podresult from './resultComponent/Podresult';
 import TrackPlayer, {
   AppKilledPlaybackBehavior,
   Capability,
-  RatingType,
 } from 'react-native-track-player';
-import {useContext, useEffect} from 'react';
+import {useContext, useEffect, useState} from 'react';
 import Tartist from './resultComponent/Tartist';
 import Artistsongs from './resultComponent/Artistsongs';
 import Outersong from './resultComponent/Outersong';
@@ -51,7 +49,6 @@ import Likedsong from './(tabs)/screens/Likedsong';
 import Download from './(tabs)/screens/Download';
 import AddPlaylist from './(tabs)/screens/AddPlaylist';
 import {BottomSheetProvider} from './contextProvider/bottomSheetContext';
-import Testing from './common/Testing';
 import {BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import Viewplaylist from './(tabs)/screens/Viewplaylist';
@@ -64,18 +61,23 @@ import General from './SettingTabs/General';
 import Musiclang from './SettingTabs/Musiclang';
 import Equilizer from './SettingTabs/Equilizer';
 import OfflineBanner from './common/OfflineBanner';
+import {initDatabase} from './Database/downloadRepository';
+import Trending from './resultComponent/Trending';
+import {KeyboardProvider} from 'react-native-keyboard-controller';
 const Stack = createNativeStackNavigator();
 
 /* -------------------- App Navigator -------------------- */
 function AppNavigator() {
-  const {setOuterdata} = useContext(SearchContext);
+  const {setOuterdata, setSelectedLanguage} = useContext(SearchContext);
   const {user, loading} = useAuth();
+  const [checkingLanguage, setCheckingLanguage] = useState(true);
+  const [hasLanguage, setHasLanguage] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !checkingLanguage) {
       BootSplash.hide({fade: true});
     }
-  }, [loading]);
+  }, [loading, checkingLanguage]);
 
   // TrackPlayer setup
   useEffect(() => {
@@ -86,8 +88,6 @@ function AppNavigator() {
         await TrackPlayer.setupPlayer();
 
         await TrackPlayer.updateOptions({
-          stopWithApp: false,
-
           capabilities: [
             Capability.Play,
             Capability.Pause,
@@ -203,13 +203,115 @@ function AppNavigator() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) return null;
+  // =====================================================
+  // CHECK USER LANGUAGE
+  // =====================================================
+
+  useEffect(() => {
+    const checkLanguagePreference = async () => {
+      // Firebase auth is still loading
+      if (loading) {
+        return;
+      }
+
+      // No logged-in user
+      if (!user) {
+        setHasLanguage(false);
+        setCheckingLanguage(false);
+        return;
+      }
+
+      try {
+        setCheckingLanguage(true);
+
+        console.log('🌐 Checking language for:', user.uid);
+
+        const response = await axios.get(
+          `${API_URL}/api/preferences/${encodeURIComponent(user.uid)}`,
+        );
+
+        console.log('🌐 Language API response:', response?.data);
+
+        const language =
+          response?.data?.music_language ||
+          response?.data?.language ||
+          response?.data?.data?.music_language ||
+          response?.data?.data?.language;
+
+        if (language) {
+          // =============================================
+          // LANGUAGE EXISTS
+          // =============================================
+
+          console.log('✅ Language already selected:', language);
+
+          setSelectedLanguage(language);
+          setHasLanguage(true);
+        } else {
+          // =============================================
+          // NO LANGUAGE
+          // =============================================
+
+          console.log('⚠️ No language found. Opening Musiclang.');
+
+          setSelectedLanguage('');
+          setHasLanguage(false);
+        }
+      } catch (error) {
+        console.log(
+          '❌ Language API error:',
+          error?.response?.status,
+          error?.response?.data,
+        );
+
+        // 404 means user has no preference
+        if (error?.response?.status === 404) {
+          setSelectedLanguage('');
+          setHasLanguage(false);
+        } else {
+          /*
+           * IMPORTANT:
+           *
+           * If the API/server is temporarily unavailable,
+           * don't send an existing user to Musiclang.
+           *
+           * You can change this if you want.
+           */
+          setHasLanguage(true);
+        }
+      } finally {
+        setCheckingLanguage(false);
+      }
+    };
+
+    checkLanguagePreference();
+  }, [loading, user, setSelectedLanguage]);
+
+  // =====================================================
+  // DON'T CREATE NAVIGATOR UNTIL EVERYTHING IS READY
+  // =====================================================
+
+  if (loading || (user && checkingLanguage)) {
+    return null;
+  }
+
+  // =====================================================
+  // SELECT INITIAL SCREEN
+  // =====================================================
+
+  const initialRoute = !user
+    ? 'Login'
+    : hasLanguage
+    ? 'TabsLayout'
+    : 'Musiclang';
+
+  console.log('🚀 Initial route:', initialRoute);
 
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{headerShown: false}}
-        initialRouteName={user ? 'TabsLayout' : 'Login'}>
+        initialRouteName={initialRoute}>
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="TabsLayout" component={TabsLayout} />
         <Stack.Screen name="Search" component={Search} />
@@ -245,6 +347,8 @@ function AppNavigator() {
         <Stack.Screen name="Musiclang" component={Musiclang} />
         <Stack.Screen name="Equilizer" component={Equilizer} />
         <Stack.Screen name="OfflineBanner" component={OfflineBanner} />
+        <Stack.Screen name="Download" component={Download} />
+        <Stack.Screen name="Trending" component={Trending} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
@@ -256,11 +360,23 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
-    configureGoogleSignIn();
+    const initializeApp = async () => {
+      try {
+        configureGoogleSignIn();
+        await initDatabase();
+
+        console.log('✅ App database initialized');
+      } catch (error) {
+        console.error('❌ App initialization error:', error);
+      }
+    };
+
+    initializeApp();
   }, []);
 
   return (
     <SafeAreaProvider>
+      {/* <KeyboardProvider> */}
       <SearchProvider>
         <GestureHandlerRootView style={{flex: 1}}>
           <BottomSheetModalProvider>
@@ -278,6 +394,7 @@ export default function RootLayout() {
           </BottomSheetModalProvider>
         </GestureHandlerRootView>
       </SearchProvider>
+      {/* </KeyboardProvider> */}
     </SafeAreaProvider>
   );
 }

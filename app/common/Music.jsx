@@ -1,4 +1,7 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet, Text, TouchableOpacity, View, Dimensions,
+  PixelRatio,
+} from 'react-native';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
@@ -13,7 +16,20 @@ import { SearchContext } from '../contextProvider/searchContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { decode } from 'html-entities';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Reference device width
+const BASE_WIDTH = 360;
+
+// Scale according to screen width
+const scale = (size) => {
+  const scaled = (SCREEN_WIDTH / BASE_WIDTH) * size;
+
+  // Prevent the UI from becoming excessively large/small
+  return PixelRatio.roundToNearestPixel(
+    Math.max(size * 0.85, Math.min(scaled, size * 1.15))
+  );
+};
 
 const Music = ({ hideActions = false }) => {
   const { position, duration } = useProgress();
@@ -60,22 +76,22 @@ const Music = ({ hideActions = false }) => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  
-    const formatSongTitle = (rawTitle) => {
-      if (!rawTitle) return 'Unknown';
-  
-      const decoded = decode(rawTitle); // Converts &quot; to "
-      const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
-  
-      if (titleMatch) {
-        const mainTitle = titleMatch[1].trim();
-        const source = titleMatch[2].trim();
-        return `${mainTitle} from ${source}`;
-      }
-  
-      return decoded.trim(); // fallback if pattern doesn't match
-    };
-  
+
+  const formatSongTitle = (rawTitle) => {
+    if (!rawTitle) return 'Unknown';
+
+    const decoded = decode(rawTitle); // Converts &quot; to "
+    const titleMatch = decoded.match(/^(.+?)\s*\(From\s+"([^"]+)"\)/i);
+
+    if (titleMatch) {
+      const mainTitle = titleMatch[1].trim();
+      const source = titleMatch[2].trim();
+      return `${mainTitle} from ${source}`;
+    }
+
+    return decoded.trim(); // fallback if pattern doesn't match
+  };
+
 
   const handleSkipToNext = async () => {
     try {
@@ -210,42 +226,79 @@ const Music = ({ hideActions = false }) => {
         }}
       />
       <View style={styles.timeContainer}>
-        <Text style={styles.timeText}>{formatTime(position)}</Text>
-        <Text style={styles.timeText}>{formatTime(duration)}</Text>
+        <Text style={styles.timeText} className='font-bold'>{formatTime(position)}</Text>
+        <Text style={styles.timeText} className='font-bold'>{formatTime(duration)}</Text>
       </View>
       <View style={styles.controls}>
-        <TouchableOpacity onPress={handleSkipToPrevious}>
-          <FontAwesome6 name="backward-step" size={28} color="#fff" />
+
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={handleSkipToPrevious}
+        >
+          <FontAwesome6
+            name="backward-step"
+            size={scale(28)}
+            color="#fff"
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleSeekBackward}>
-          <Ionicons name="play-back" size={28} color="#fff" />
+
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={handleSeekBackward}
+        >
+          <Ionicons
+            name="play-back"
+            size={scale(28)}
+            color="#fff"
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handlePlayPause}>
+
+        <TouchableOpacity
+          style={styles.playButton}
+          onPress={handlePlayPause}
+        >
           <Ionicons
             name={isPlaying ? 'pause-circle' : 'play-circle'}
-            size={72}
+            size={scale(72)}
             color="#1DB954"
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleSeekForward}>
-          <Ionicons name="play-forward" size={28} color="#fff" />
+
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={handleSeekForward}
+        >
+          <Ionicons
+            name="play-forward"
+            size={scale(28)}
+            color="#fff"
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleSkipToNext}>
-          <FontAwesome6 name="forward-step" size={28} color="#fff" />
+
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={handleSkipToNext}
+        >
+          <FontAwesome6
+            name="forward-step"
+            size={scale(28)}
+            color="#fff"
+          />
         </TouchableOpacity>
+
       </View>
       {!hideActions && (
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={handleShuffleToggle}>
-            <Ionicons name="shuffle" size={25} color={isShuffle ? '#1DB954' : '#fff'} />
+            <Ionicons name="shuffle" size={scale(25)} color={isShuffle ? '#1DB954' : '#fff'} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionBtn} onPress={handleRepeatToggle}>
-            <MaterialIcons name="repeat-one" size={25} color={isRepeatOne ? '#1DB954' : '#fff'} />
+            <MaterialIcons name="repeat-one" size={scale(25)} color={isRepeatOne ? '#1DB954' : '#fff'} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionBtn} onPress={handlelike}>
-            <Ionicons name={liked ? "heart" : "heart-outline"} size={25} color={liked ? "#ff3b30" : "#fff"} />
+            <Ionicons name={liked ? "heart" : "heart-outline"} size={scale(25)} color={liked ? "#ff3b30" : "#fff"} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionBtn}
@@ -253,7 +306,7 @@ const Music = ({ hideActions = false }) => {
               setAddtoplaylist(currentSong);
               openSheet();
             }}>
-            <MaterialCommunityIcons name="playlist-music" size={25} color="#fff" />
+            <MaterialCommunityIcons name="playlist-music" size={scale(25)} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
@@ -265,43 +318,63 @@ const Music = ({ hideActions = false }) => {
 export default Music;
 
 const styles = StyleSheet.create({
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    width: '100%',
-    marginTop: 10,
-  },
-  actionBtn: {
-    padding: 12,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
   container: {
     width: '100%',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    paddingVertical: scale(20),
+    paddingHorizontal: scale(16),
     alignItems: 'center',
   },
   slider: {
     width: '100%',
-    height: 40,
+    height: scale(40),
   },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: -10,
+    marginTop: scale(-10),
   },
   timeText: {
     color: '#ccc',
-    fontSize: 12,
+    fontSize: scale(12),
   },
   controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
     width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 0,
+    paddingHorizontal: scale(8),
+  },
+
+  controlButton: {
+    width: scale(44),
+    height: scale(44),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  playButton: {
+    width: scale(78),
+    height: scale(78),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(18),
+    marginTop: scale(10),
+  },
+
+  actionBtn: {
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

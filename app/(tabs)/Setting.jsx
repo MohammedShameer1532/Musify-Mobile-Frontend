@@ -10,6 +10,7 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -158,7 +159,16 @@ const Setting = () => {
     );
   }
 
+  const handleRateApp = async () => {
 
+    const playStoreUrl = `https://play.google.com/store/apps/details?id=com.lysernfy#reviews`;
+
+    try {
+      await Linking.openURL(playStoreUrl);
+    } catch (error) {
+      console.log('Unable to open Google Play:', error);
+    }
+  };
   return (
     <LinearGradient colors={['#050505', '#0b0b0b']} style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -437,6 +447,7 @@ const Setting = () => {
 
             <TouchableOpacity
               style={styles.optionCard}
+              onPress={handleRateApp}
             >
               <LinearGradient
                 colors={['#f97316', '#ea580c']}

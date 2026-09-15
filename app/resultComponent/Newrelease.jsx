@@ -33,22 +33,32 @@ const Newrelease = () => {
   const [trend, setTrend] = useState([]);
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
-  const { setDataSearch, selectedLanguage, setSelectedLanguage } = useContext(SearchContext);
+  const { setDataSearch, selectedLanguage, setSelectedLanguage, setSongsuggest } = useContext(SearchContext);
 
   const trendingData = async () => {
     try {
       setLoading(true);
       const langParam = selectedLanguage ? `&languages=${selectedLanguage}` : '';
       const url = `https://www.jiosaavn.com/api.php?__call=content.getAlbums&api_version=4&_format=json&_marker=0&n=50&p=1&ctx=wap6dot0${langParam}`;
-
       const response = await axios.get(url);
-      setTrend(response?.data?.data ?? []);
+      // Get the actual array from Axios response
+      const results = response?.data?.data ?? [];
+
+      // Keep only songs
+      const songsOnly = results.filter(item => item?.type === 'song');
+      setSongsuggest(songsOnly[0]?.id);
+      console.log('songsOnly:', songsOnly);
+
+      setTrend(results);
     } catch (error) {
       console.error("Error fetching trending data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+
+
 
 
   useEffect(() => {
@@ -102,7 +112,7 @@ const Newrelease = () => {
     if (titleMatch) {
       const mainTitle = titleMatch[1].trim();
       const source = titleMatch[2].trim();
-      return `${mainTitle} from ${source}`;
+      return `${mainTitle} from ${source} `;
     }
 
     return decoded.trim(); // fallback if pattern doesn't match
@@ -158,7 +168,7 @@ const Newrelease = () => {
           contentContainerStyle={styles.artistList}
           horizontal
           data={trend}
-          keyExtractor={(song, index) => `${song.id}-${index}`}
+          keyExtractor={(song, index) => `${song.id} -${index} `}
           renderItem={({ item: song }) => (
             <View style={styles.songContainer}>
               <TouchableOpacity onPress={() => handlePress(song.id)}>

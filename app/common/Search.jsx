@@ -39,7 +39,7 @@ const Search = () => {
     );
 
     setAllData(uniqueData);
-    setSongsuggest(uniqueData);
+    // setSongsuggest(uniqueData);
   }, [songsData, playlistsData]);
 
   const renderItem = ({ item }) => {

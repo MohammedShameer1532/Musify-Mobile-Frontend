@@ -19,31 +19,57 @@ const Recommendation = () => {
   const [suggestion, setSuggestion] = useState([]);
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
-  const { setDataSearch, songsuggest } = useContext(SearchContext);
 
-  const DEFAULT_ID = "_giyfEgV";
-  const id = songsuggest[0]?.id || DEFAULT_ID;
+  const {
+    setDataSearch,
+    songsuggest,
+  } = useContext(SearchContext);
+
+  console.log('songsuggest:', songsuggest);
+
+  // songsuggest is already the ID
+  const id = songsuggest;
+
+  const getSuggestions = async () => {
+    if (!id) {
+      console.log('No songsuggest ID available');
+      setSuggestion([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      console.log('Fetching suggestions for ID:', id);
+
+      const url =
+        `https://musify-api-inky.vercel.app/api/songs/${encodeURIComponent(id)}/suggestions?limit=30`;
+
+      console.log('Suggestion URL:', url);
+
+      const res = await axios.get(url);
+
+      console.log('Suggestion response:', res.data);
+
+      setSuggestion(res?.data?.data || []);
+
+    } catch (err) {
+      console.error(
+        'Error fetching suggestions:',
+        err?.response?.data || err.message
+      );
+
+      setSuggestion([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       getSuggestions();
     }, [id])
   );
-
-  const getSuggestions = async () => {
-    try {
-      setLoading(true);
-      const validId = /^\d+$/.test(id) ? DEFAULT_ID : id;
-      const res = await axios.get(
-        `https://musify-api-inky.vercel.app/api/songs/${validId}/suggestions?limit=30`
-      );
-      setSuggestion(res.data.data || []);
-    } catch (err) {
-      console.error('Error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getHighResImage = (image) => {
     if (!image) return null;

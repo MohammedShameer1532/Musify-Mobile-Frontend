@@ -247,6 +247,7 @@ const LocalMusic = () => {
       const files =
         await LocalAudio.getAudioFiles();
 
+
       setAudioFiles(files);
 
       setFilteredFiles(files);
@@ -446,6 +447,20 @@ const LocalMusic = () => {
                 loop
                 style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}
               />
+            ) : audioFiles.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons
+                  name="musical-notes"
+                  size={30}
+                  color="#fff"
+                />
+                <Text style={styles.emptyTitle}>
+                  No Offline Songs Available
+                </Text>
+                <Text style={styles.emptySubtitle}>
+                  Your local music will appear here when songs are available on your device.
+                </Text>
+              </View>
             ) : (
               <View className='flex-1'>
                 <LegendList
@@ -641,6 +656,35 @@ const LocalMusic = () => {
 export default LocalMusic;
 
 const styles = StyleSheet.create({
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingBottom: 60,
+  },
+
+  emptyAnimation: {
+    width: 220,
+    height: 220,
+  },
+
+  emptyTitle: {
+    color: '#FFFFFF',
+    fontSize: scale(18),
+    fontFamily: 'Poppins-Bold',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+
+  emptySubtitle: {
+    color: '#999999',
+    fontSize: scale(13),
+    fontFamily: 'Poppins-Regular',
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: 8,
+  },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',

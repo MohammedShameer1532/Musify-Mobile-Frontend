@@ -38,13 +38,17 @@ const ShareScreenMod = () => {
   const onShare = async () => {
     try {
       await Share.share({
-        title: 'Music App',
+        title: 'Share LysernFy',
         message:
-          '🎵 I am using this amazing Music App for streaming songs, playlists and vibes. Try it now 🚀\n\nhttps://example.com/app-link',
-        url: 'https://example.com/app-link',
+          '🎵 Discover your next favorite song with LysernFy! 🎧\n\n' +
+          'Enjoy music, explore your favorite artists, discover new tracks, ' +
+          'create playlists, and listen anytime, anywhere.\n\n' +
+          '🚀 Download LysernFy now and enjoy the music!\n\n' +
+          '📲 Get it on Google Play:\n' +
+          'https://play.google.com/store/apps/details?id=com.lysernfy',
       });
     } catch (error) {
-      console.error('Share error', error);
+      console.error('Share error:', error);
     }
   };
 
